@@ -1,4 +1,6 @@
-credentials.json
+desktop_credentials.json
+service_account_credentials.json
+token.json
 .edgarenv*
 temp.txt
 out.txt

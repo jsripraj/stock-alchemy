@@ -2,7 +2,7 @@ import os.path
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
-from google.oauth2 import service_account
+# from google.oauth2 import service_account
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
@@ -13,7 +13,7 @@ SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
 # The ID and range of a sample spreadsheet.
 # SAMPLE_SPREADSHEET_ID = "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms"
 SAMPLE_SPREADSHEET_ID = "1jCkn8CCRc1gXVGfW3SaRqHa_yKBJPzCVIfPGhrMoO6k" # my "Scratch" sheet
-SAMPLE_RANGE_NAME = "Class Data!A2:C"
+SAMPLE_RANGE_NAME = "Sheet17!A2:C6"
 
 
 def main():
@@ -31,14 +31,14 @@ def main():
     if creds and creds.expired and creds.refresh_token:
       creds.refresh(Request())
     else:
-      # flow = InstalledAppFlow.from_client_secrets_file(
-      #     "credentials.json", SCOPES
-      # )
-      # creds = flow.run_local_server(port=0)
-      creds = service_account.Credentials.from_service_account_file("credentials.json", scopes=SCOPES)
+      flow = InstalledAppFlow.from_client_secrets_file(
+          "desktop_credentials.json", SCOPES
+      )
+      creds = flow.run_local_server(port=0)
+      # creds = service_account.Credentials.from_service_account_file("credentials.json", scopes=SCOPES)
     # Save the credentials for the next run
-    # with open("token.json", "w") as token:
-    #   token.write(creds.to_json())
+    with open("token.json", "w") as token:
+      token.write(creds.to_json())
 
   try:
     service = build("sheets", "v4", credentials=creds)
