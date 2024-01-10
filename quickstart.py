@@ -56,7 +56,8 @@ def main():
       print("No data found.")
       return
 
-    print("Name, Major:")
+    # print("Name, Major:")
+    print("Got data from sample sheet:")
     for row in values:
       # Print columns A and E, which correspond to indices 0 and 4.
       print(f"{row[0]}, {row[1]}, {row[2]}")
