@@ -4,6 +4,7 @@
   - Experiment with Google Sheets API
   - Get one entry from edgar (say, Assets) and write it to a google sheet
     - try using jq to help view edgar json: `cat out.txt | jq '.facts."us-gaap" | keys'`
+    - use a fact's description to determine which financial statement it belongs in
 - write a script/tool to act like finviz and filter or score stocks by metrics (By 1/21/24)
   - Create functions (or eventually microservices) that gather “individual” financial entries
   - Use these functions to gather financial data and export to google sheets report. This report could serve as the basis for manual investment analysis. The report would basically consolidate every available filing into one sheet.
