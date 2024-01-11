@@ -1,1 +1,15 @@
 # edgar
+- experiment with APIs (By 1/12/24)
+  - I think I can use the EDGAR API to get any financial entry from any year
+  - Experiment with Google Sheets API
+  - Get one entry from edgar (say, Assets) and write it to a google sheet
+    - try using jq to help view edgar json: `cat out.txt | jq '.facts."us-gaap" | keys'`
+    - use a fact's description to determine which financial statement it belongs in
+- write a script/tool to act like finviz and filter or score stocks by metrics (By 1/21/24)
+  - Create functions (or eventually microservices) that gather “individual” financial entries
+  - Use these functions to gather financial data and export to google sheets report. This report could serve as the basis for manual investment analysis. The report would basically consolidate every available filing into one sheet.
+  - Add calculated metrics to the report, such as trends over time, etc.
+  - User should be able to interact with these  functions via an API
+- create a trading robot (By 1/31/24)
+  - Use the API from step 2 (and also maybe Watson sentiment analysis or similar) to create an automated trading robot
+- Build a login system so users can manage their own robots, stocks, reports, etc.
