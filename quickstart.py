@@ -6,7 +6,8 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-import google.auth
+import requests
+# import google.auth
 
 # If modifying these scopes, delete the file token.json.
 # SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
@@ -45,6 +46,7 @@ def main():
   try:
     service = build("sheets", "v4", credentials=creds)
     create("test-report", service)
+    edgar_get()
 
   #   # Call the Sheets API
   #   sheet = service.spreadsheets()
@@ -67,7 +69,6 @@ def main():
   except HttpError as err:
     print(err)
 
-
 def create(title, service):
   """
   Creates the Sheet the user has access to.
@@ -87,6 +88,20 @@ def create(title, service):
     )
     print(f"Spreadsheet ID: {(spreadsheet.get('spreadsheetId'))}")
     return spreadsheet.get("spreadsheetId")
+  except HttpError as error:
+    print(f"An error occurred: {error}")
+    return error
+    
+def edgar_get():
+  """
+  Retrieves financial information from EDGAR
+  """
+  url = 'https://data.sec.gov/api/xbrl/companyfacts/CIK0001637207.json'
+  headers = {'user-agent': 'jsripraj@gmail.com'}
+  try:
+    r = requests.get(url, headers=headers)
+    data = r.json()
+    print(data["facts"]["us-gaap"]["Assets"]["units"]["USD"][-1]["val"])
   except HttpError as error:
     print(f"An error occurred: {error}")
     return error
