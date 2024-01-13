@@ -45,8 +45,16 @@ def main():
 
   try:
     service = build("sheets", "v4", credentials=creds)
-    create("test-report", service)
-    edgar_get()
+    spreadsheet_id = create("test-report", service)
+    data = edgar_get()
+    # Pass: spreadsheet_id,  range_name, value_input_option and  _values
+    update_values(
+        spreadsheet_id,
+        "A1",
+        "USER_ENTERED",
+        [[data]],
+        service
+    )
 
   #   # Call the Sheets API
   #   sheet = service.spreadsheets()
@@ -101,7 +109,44 @@ def edgar_get():
   try:
     r = requests.get(url, headers=headers)
     data = r.json()
-    print(data["facts"]["us-gaap"]["Assets"]["units"]["USD"][-1]["val"])
+    val = data["facts"]["us-gaap"]["Assets"]["units"]["USD"][-1]["val"]
+    print(val)
+    return val
+  except HttpError as error:
+    print(f"An error occurred: {error}")
+    return error
+
+def update_values(spreadsheet_id, range_name, value_input_option, _values, service):
+  """
+  Creates the batch_update the user has access to.
+  Load pre-authorized user credentials from the environment.
+  TODO(developer) - See https://developers.google.com/identity
+  for guides on implementing OAuth2 for the application.
+  """
+  # creds, _ = google.auth.default()
+  # pylint: disable=maybe-no-member
+  try:
+    # service = build("sheets", "v4", credentials=creds)
+    # values = [
+    #     [
+    #         # Cell values ...
+    #     ],
+    #     # Additional rows ...
+    # ]
+    body = {"values": _values}
+    result = (
+        service.spreadsheets()
+        .values()
+        .update(
+            spreadsheetId=spreadsheet_id,
+            range=range_name,
+            valueInputOption=value_input_option,
+            body=body,
+        )
+        .execute()
+    )
+    print(f"{result.get('updatedCells')} cells updated.")
+    return result
   except HttpError as error:
     print(f"An error occurred: {error}")
     return error
