@@ -47,12 +47,12 @@ def main():
     service = build("sheets", "v4", credentials=creds)
     spreadsheet_id = create("test-report", service)
     data = edgar_get()
-    # Pass: spreadsheet_id,  range_name, value_input_option and  _values
+    # Pass: spreadsheet_id,  range_name, value_input_option, _values, and service
     update_values(
         spreadsheet_id,
         "A1",
         "USER_ENTERED",
-        [[data]],
+        [["Assets", data]],
         service
     )
 
