@@ -52,7 +52,7 @@ def main():
         spreadsheet_id,
         "A1",
         "USER_ENTERED",
-        [["Assets", data]],
+        [data],
         service
     )
 
@@ -108,10 +108,9 @@ def edgar_get():
   headers = {'user-agent': 'jsripraj@gmail.com'}
   try:
     r = requests.get(url, headers=headers)
-    data = r.json()
-    val = data["facts"]["us-gaap"]["Assets"]["units"]["USD"][-1]["val"]
-    print(val)
-    return val
+    json_data = r.json()
+    data = json_data["facts"]["us-gaap"]["Assets"]["units"]["USD"]
+    return [obj["end"] for obj in data]
   except HttpError as error:
     print(f"An error occurred: {error}")
     return error
