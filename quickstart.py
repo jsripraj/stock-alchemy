@@ -7,6 +7,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 import requests
+from datetime import date
 # import google.auth
 
 # If modifying these scopes, delete the file token.json.
@@ -38,7 +39,6 @@ def main():
           "desktop_credentials.json", SCOPES
       )
       creds = flow.run_local_server(port=0)
-      # creds = service_account.Credentials.from_service_account_file("credentials.json", scopes=SCOPES)
     # Save the credentials for the next run
     with open("token.json", "w") as token:
       token.write(creds.to_json())
@@ -55,25 +55,6 @@ def main():
         [data],
         service
     )
-
-  #   # Call the Sheets API
-  #   sheet = service.spreadsheets()
-  #   result = (
-  #       sheet.values()
-  #       .get(spreadsheetId=SAMPLE_SPREADSHEET_ID, range=SAMPLE_RANGE_NAME)
-  #       .execute()
-  #   )
-  #   values = result.get("values", [])
-
-  #   if not values:
-  #     print("No data found.")
-  #     return
-
-  #   # print("Name, Major:")
-  #   print("Got data from sample sheet:")
-  #   for row in values:
-  #     # Print columns A and E, which correspond to indices 0 and 4.
-  #     print(f"{row[0]}, {row[1]}, {row[2]}")
   except HttpError as err:
     print(err)
 
@@ -110,10 +91,28 @@ def edgar_get():
     r = requests.get(url, headers=headers)
     json_data = r.json()
     data = json_data["facts"]["us-gaap"]["Assets"]["units"]["USD"]
-    return [obj["end"] for obj in data]
+    output_dates = []
+    for obj in data:
+      if obj['fp'] == 'FY':
+        end_date = edgar_date_string_to_date(obj['end'])
+        file_date = edgar_date_string_to_date(obj['filed'])
+        # Make sure fiscal year makes sense and time to file is less than half a year 
+        if obj['fy'] <= end_date.year and (file_date - end_date).days < 180:
+          output_dates.append(obj['end'])
+    if data[-1]["fp"] != "FY":
+      output_dates.append(data[-1]["end"])
+    return output_dates
   except HttpError as error:
     print(f"An error occurred: {error}")
     return error
+  
+def edgar_date_string_to_date(date_str):
+  """
+  Takes a date string in the form yyyy-mm-dd (such as those obtained from the
+  EDGAR API) and returns a Python date object.
+  """
+  d = [int(x) for x in date_str.split('-')]
+  return date(d[0], d[1], d[2])
 
 def update_values(spreadsheet_id, range_name, value_input_option, _values, service):
   """
