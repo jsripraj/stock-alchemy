@@ -1,25 +1,17 @@
 import os.path
+import requests
+from datetime import date
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
-# from google.oauth2 import service_account
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-import requests
-from datetime import date
-# import google.auth
 
 # If modifying these scopes, delete the file token.json.
-# SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 CIK = 1637207
 USER_EMAIL = 'jsripraj@gmail.com'
-
-# The ID and range of a sample spreadsheet.
-# SAMPLE_SPREADSHEET_ID = "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms"
-# SAMPLE_SPREADSHEET_ID = "1jCkn8CCRc1gXVGfW3SaRqHa_yKBJPzCVIfPGhrMoO6k" # my "Scratch" sheet
-# SAMPLE_RANGE_NAME = "Sheet17!A2:C6"
 
 def main():
   """Shows basic usage of the Sheets API.
@@ -47,6 +39,7 @@ def main():
   try:
     service = build("sheets", "v4", credentials=creds)
     spreadsheet_id = create_spreadsheet("test-report", service)
+    update_sheet(spreadsheet_id, service)
     data = edgar_get()
     # Pass: spreadsheet_id,  range_name, value_input_option, _values, and service
     update_values(
@@ -74,12 +67,34 @@ def create_spreadsheet(title, service):
         .create(body=spreadsheet, fields="spreadsheetId")
         .execute()
     )
-    print(f"Spreadsheet ID: {(spreadsheet.get('spreadsheetId'))}")
+    # print(f"Spreadsheet ID: {(spreadsheet.get('spreadsheetId'))}")
     return spreadsheet.get("spreadsheetId")
   except HttpError as error:
     print(f"An error occurred: {error}")
     return error
     
+def update_sheet(spreadsheet_id, service):
+  requests = []
+  requests.append(
+    {
+      "updateSheetPropertiesRequest": {
+        "properties": {
+          "sheetId": 0,
+          "title": "Balance Sheet"
+        },
+        "fields": "title",
+      }
+    }
+  )
+  
+  body = {"requests": requests}
+  response = (
+    service.spreadsheets()
+    .batchUpdate(spreadsheetId=spreadsheet_id, body=body)
+    .execute()
+  )
+  return response
+
 def edgar_get():
   """
   Retrieves financial information from EDGAR
@@ -128,13 +143,6 @@ def update_values(spreadsheet_id, range_name, value_input_option, _values, servi
   # creds, _ = google.auth.default()
   # pylint: disable=maybe-no-member
   try:
-    # service = build("sheets", "v4", credentials=creds)
-    # values = [
-    #     [
-    #         # Cell values ...
-    #     ],
-    #     # Additional rows ...
-    # ]
     body = {"values": _values}
     result = (
         service.spreadsheets()
