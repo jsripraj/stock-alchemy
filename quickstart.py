@@ -13,12 +13,13 @@ from datetime import date
 # If modifying these scopes, delete the file token.json.
 # SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
+CIK = 1637207
+USER_EMAIL = 'jsripraj@gmail.com'
 
 # The ID and range of a sample spreadsheet.
 # SAMPLE_SPREADSHEET_ID = "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms"
-SAMPLE_SPREADSHEET_ID = "1jCkn8CCRc1gXVGfW3SaRqHa_yKBJPzCVIfPGhrMoO6k" # my "Scratch" sheet
-SAMPLE_RANGE_NAME = "Sheet17!A2:C6"
-
+# SAMPLE_SPREADSHEET_ID = "1jCkn8CCRc1gXVGfW3SaRqHa_yKBJPzCVIfPGhrMoO6k" # my "Scratch" sheet
+# SAMPLE_RANGE_NAME = "Sheet17!A2:C6"
 
 def main():
   """Shows basic usage of the Sheets API.
@@ -45,7 +46,7 @@ def main():
 
   try:
     service = build("sheets", "v4", credentials=creds)
-    spreadsheet_id = create("test-report", service)
+    spreadsheet_id = create_spreadsheet("test-report", service)
     data = edgar_get()
     # Pass: spreadsheet_id,  range_name, value_input_option, _values, and service
     update_values(
@@ -58,17 +59,15 @@ def main():
   except HttpError as err:
     print(err)
 
-def create(title, service):
+def create_spreadsheet(title, service):
   """
   Creates the Sheet the user has access to.
   Load pre-authorized user credentials from the environment.
   TODO(developer) - See https://developers.google.com/identity
   for guides on implementing OAuth2 for the application.
   """
-  # creds, _ = google.auth.default()
   # pylint: disable=maybe-no-member
   try:
-    # service = build("sheets", "v4", credentials=creds)
     spreadsheet = {"properties": {"title": title}}
     spreadsheet = (
         service.spreadsheets()
@@ -85,8 +84,8 @@ def edgar_get():
   """
   Retrieves financial information from EDGAR
   """
-  url = 'https://data.sec.gov/api/xbrl/companyfacts/CIK0001637207.json'
-  headers = {'user-agent': 'jsripraj@gmail.com'}
+  url = f'https://data.sec.gov/api/xbrl/companyfacts/CIK{format_CIK(CIK)}.json'
+  headers = {'user-agent': USER_EMAIL}
   try:
     r = requests.get(url, headers=headers)
     json_data = r.json()
@@ -105,6 +104,11 @@ def edgar_get():
   except HttpError as error:
     print(f"An error occurred: {error}")
     return error
+
+def format_CIK(cik):
+  cik = str(cik)
+  out = ('0' * (10 - len(cik))) + cik
+  return out
   
 def edgar_date_string_to_date(date_str):
   """
