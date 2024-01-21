@@ -7,11 +7,14 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+from openai import OpenAI
+
 
 # If modifying these scopes, delete the file token.json.
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 CIK = 1637207
 USER_EMAIL = 'jsripraj@gmail.com'
+
 
 def main():
   """Shows basic usage of the Sheets API.
@@ -38,6 +41,7 @@ def main():
 
   try:
     service = build("sheets", "v4", credentials=creds)
+    test_chatgpt()
     spreadsheet_id = create_spreadsheet("test-report", service)
     create_sheets(spreadsheet_id, service)
     data = edgar_get()
@@ -51,6 +55,21 @@ def main():
     )
   except HttpError as err:
     print(err)
+
+
+def test_chatgpt():
+  print('testing chatgpt')
+  client = OpenAI()
+  
+  completion = client.chat.completions.create(
+    model="gpt-3.5-turbo",
+    messages=[
+      {"role": "system", "content": "You are a poetic assistant, skilled in explaining complex programming concepts with creative flair."},
+      {"role": "user", "content": "Compose a poem that explains the concept of recursion in programming."}
+    ]
+  )
+  print(completion.choices[0].message)
+
 
 def create_spreadsheet(title, service):
   """
@@ -73,6 +92,7 @@ def create_spreadsheet(title, service):
     print(f"An error occurred: {error}")
     return error
     
+
 def create_sheets(spreadsheet_id, service):
   requests = []
   requests.append(
@@ -113,6 +133,7 @@ def create_sheets(spreadsheet_id, service):
   )
   return response
 
+
 def edgar_get():
   """
   Retrieves financial information from EDGAR
@@ -138,11 +159,13 @@ def edgar_get():
     print(f"An error occurred: {error}")
     return error
 
+
 def format_CIK(cik):
   cik = str(cik)
   out = ('0' * (10 - len(cik))) + cik
   return out
   
+
 def edgar_date_string_to_date(date_str):
   """
   Takes a date string in the form yyyy-mm-dd (such as those obtained from the
@@ -150,6 +173,7 @@ def edgar_date_string_to_date(date_str):
   """
   d = [int(x) for x in date_str.split('-')]
   return date(d[0], d[1], d[2])
+
 
 def update_values(spreadsheet_id, range_name, value_input_option, _values, service):
   """
@@ -178,6 +202,7 @@ def update_values(spreadsheet_id, range_name, value_input_option, _values, servi
   except HttpError as error:
     print(f"An error occurred: {error}")
     return error
+
 
 if __name__ == "__main__":
   main()
