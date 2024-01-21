@@ -39,7 +39,7 @@ def main():
   try:
     service = build("sheets", "v4", credentials=creds)
     spreadsheet_id = create_spreadsheet("test-report", service)
-    update_sheet(spreadsheet_id, service)
+    create_sheets(spreadsheet_id, service)
     data = edgar_get()
     # Pass: spreadsheet_id,  range_name, value_input_option, _values, and service
     update_values(
@@ -73,16 +73,34 @@ def create_spreadsheet(title, service):
     print(f"An error occurred: {error}")
     return error
     
-def update_sheet(spreadsheet_id, service):
+def create_sheets(spreadsheet_id, service):
   requests = []
   requests.append(
     {
-      "updateSheetPropertiesRequest": {
+      "updateSheetProperties": {
         "properties": {
           "sheetId": 0,
           "title": "Balance Sheet"
         },
         "fields": "title",
+      }
+    }
+  )
+  requests.append(
+    {
+      "addSheet": {
+        "properties": {
+          "title": "Income Statement"
+        }
+      }
+    }
+  )
+  requests.append(
+    {
+      "addSheet": {
+        "properties": {
+          "title": "Cash Flow Statement"
+        }
       }
     }
   )
