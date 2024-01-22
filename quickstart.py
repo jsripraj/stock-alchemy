@@ -15,6 +15,27 @@ SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 CIK = 1637207
 USER_EMAIL = 'jsripraj@gmail.com'
 
+class Filing:
+  def __init__(self, end: date, accn: str, fy: int, fp: str, form: str, filed: date):
+    self.end = end 
+    self.accn = accn  
+    self.fy = fy
+    self.fp = fp
+    self.form = form
+    self.filed = filed
+  
+  def __str__(self):
+    out = (
+      'Filing Object\n'
+      f'  end: {self.end}\n'
+      f'  accn: {self.accn}\n'
+      f'  fy: {self.fy}\n'
+      f'  fp: {self.fp}\n'
+      f'  form: {self.form}\n'
+      f'  filed: {self.filed}\n'
+    )
+    return out
+
 
 def main():
   """Shows basic usage of the Sheets API.
@@ -41,34 +62,52 @@ def main():
 
   try:
     service = build("sheets", "v4", credentials=creds)
-    test_chatgpt()
-    spreadsheet_id = create_spreadsheet("test-report", service)
-    create_sheets(spreadsheet_id, service)
-    data = edgar_get()
-    # Pass: spreadsheet_id,  range_name, value_input_option, _values, and service
-    update_values(
-        spreadsheet_id,
-        "A1",
-        "USER_ENTERED",
-        [data],
-        service
-    )
+    # spreadsheet_id = create_spreadsheet("test-report", service)
+    # create_sheets(spreadsheet_id, service)
+    data = edgar_get_data()
+    filings = edgar_get_filings(data)
+    print(*filings, sep="\n")
+    # test_chatgpt(data)
+    # # Pass: spreadsheet_id,  range_name, value_input_option, _values, and service
+    # update_values(
+    #     spreadsheet_id,
+    #     "A1",
+    #     "USER_ENTERED",
+    #     [data],
+    #     service
+    # )
   except HttpError as err:
     print(err)
 
 
-def test_chatgpt():
+def test_chatgpt(items):
   print('testing chatgpt')
   client = OpenAI()
   
-  completion = client.chat.completions.create(
-    model="gpt-3.5-turbo",
-    messages=[
-      {"role": "system", "content": "You are a poetic assistant, skilled in explaining complex programming concepts with creative flair."},
-      {"role": "user", "content": "Compose a poem that explains the concept of recursion in programming."}
-    ]
-  )
-  print(completion.choices[0].message)
+  # test_entries = [
+  #   "AccountsPayableCurrent",
+  #   "AccountsPayableRelatedPartiesCurrent",
+  #   "AccountsPayableRelatedPartiesCurrentAndNoncurrent",
+  #   "AccountsPayableRelatedPartiesNoncurrent",
+  #   "AccountsReceivableNetCurrent",
+  #   "AccountsReceivableRelatedParties",
+  #   "AccountsReceivableRelatedPartiesCurrent",
+  #   "AccretionAmortizationOfDiscountsAndPremiumsInvestments",
+  #   "AccruedLiabilitiesCurrent",
+  # ]
+  
+  print(f'len of items is {len(str(items))}')
+  # completion = client.chat.completions.create(
+  #   model="gpt-3.5-turbo",
+  #   messages=[
+  #     {"role": "user", "content": "I will give you a list of financial items. Do not add spaces to the names of the items."
+  #      "First, list the items that belong in the Balance Sheet. Order the items how they would appear on a typical Balance Sheet"
+  #      "Second, list the items that belong in the Income Statement. "
+  #      "Third, list the items that belong in the Cash Flow Statement. "
+  #      f"Here is the list: {str(items)}"}
+  #   ]
+  # )
+  # print(completion.choices[0].message.content)
 
 
 def create_spreadsheet(title, service):
@@ -134,27 +173,52 @@ def create_sheets(spreadsheet_id, service):
   return response
 
 
-def edgar_get():
+def edgar_get_data():
   """
-  Retrieves financial information from EDGAR
+  Returns dictionary of the company data from EDGAR
   """
   url = f'https://data.sec.gov/api/xbrl/companyfacts/CIK{format_CIK(CIK)}.json'
   headers = {'user-agent': USER_EMAIL}
   try:
     r = requests.get(url, headers=headers)
     json_data = r.json()
-    data = json_data["facts"]["us-gaap"]["Assets"]["units"]["USD"]
-    output_dates = []
-    for obj in data:
-      if obj['fp'] == 'FY':
-        end_date = edgar_date_string_to_date(obj['end'])
-        file_date = edgar_date_string_to_date(obj['filed'])
-        # Make sure fiscal year makes sense and time to file is less than half a year 
-        if obj['fy'] <= end_date.year and (file_date - end_date).days < 180:
-          output_dates.append(obj['end'])
-    if data[-1]["fp"] != "FY":
-      output_dates.append(data[-1]["end"])
-    return output_dates
+    return json_data
+  except HttpError as error:
+    print(f"An error occurred: {error}")
+    return error
+
+
+def edgar_get_filings(data):
+  """
+  Get the FYE filings from EDGAR and create Filing objects.
+  Returns a chronological list of Filing objects.
+  """
+  filings = data["facts"]["us-gaap"]["Assets"]["units"]["USD"]
+  output = []
+  for f in filings:
+    if f['fp'] == 'FY':
+      end_date = edgar_date_string_to_date(f['end'])
+      filed_date = edgar_date_string_to_date(f['filed'])
+      # Make sure fiscal year makes sense and time to file is less than half a year 
+      if f['fy'] <= end_date.year and (filed_date - end_date).days < 180:
+        output.append(Filing(end_date, f['accn'], int(f['fy']), f['fp'], f['form'], filed_date))
+  if filings[-1]["fp"] != "FY":
+    output.append(Filing(end_date, f['accn'], int(f['fy']), f['fp'], f['form'], filed_date))
+  return output
+
+
+def edgar_get_assets():
+  """
+  Get the value of Assets from EDGAR. Assets will be used to calculate a cutoff to filter
+  out less material financial items.
+  """
+  url = f'https://data.sec.gov/api/xbrl/companyfacts/CIK{format_CIK(CIK)}.json'
+  headers = {'user-agent': USER_EMAIL}
+  try:
+    r = requests.get(url, headers=headers)
+    json_data = r.json()
+    data = json_data["facts"]["us-gaap"]["Assets"]
+    return [k for k in data] 
   except HttpError as error:
     print(f"An error occurred: {error}")
     return error
