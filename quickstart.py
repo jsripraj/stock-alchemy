@@ -66,7 +66,8 @@ def main():
     # create_sheets(spreadsheet_id, service)
     data = edgar_get_data()
     filings = edgar_get_filings(data)
-    print(*filings, sep="\n")
+    assets = get_assets(data, filings)
+    # print(*filings, sep="\n")
     # test_chatgpt(data)
     # # Pass: spreadsheet_id,  range_name, value_input_option, _values, and service
     # update_values(
@@ -207,21 +208,21 @@ def edgar_get_filings(data):
   return output
 
 
-def edgar_get_assets():
+def get_assets(data, filings):
   """
-  Get the value of Assets from EDGAR. Assets will be used to calculate a cutoff to filter
-  out less material financial items.
+  Returns the value of Assets from the most recent fiscal year. 
+  Assets will be used to calculate a cutoff to filter out less material financial items.
   """
-  url = f'https://data.sec.gov/api/xbrl/companyfacts/CIK{format_CIK(CIK)}.json'
-  headers = {'user-agent': USER_EMAIL}
-  try:
-    r = requests.get(url, headers=headers)
-    json_data = r.json()
-    data = json_data["facts"]["us-gaap"]["Assets"]
-    return [k for k in data] 
-  except HttpError as error:
-    print(f"An error occurred: {error}")
-    return error
+  if filings[-1].fy == 'FY':
+    i = -1
+  else:
+    i = -2
+  asset_filings = data["facts"]["us-gaap"]["Assets"]["units"]["USD"]
+  for asset_filing in asset_filings:
+    accn = asset_filing['accn']
+    end = edgar_date_string_to_date(asset_filing['end'])
+    if accn == filings[i].accn and end == filings[i].end:
+      return int(asset_filing['val'])
 
 
 def format_CIK(cik):
