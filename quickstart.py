@@ -1,6 +1,7 @@
 import os.path
 import requests
 from datetime import date
+import pprint
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -14,6 +15,7 @@ from openai import OpenAI
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 CIK = 1637207
 USER_EMAIL = 'jsripraj@gmail.com'
+ASSET_CUTOFF_PERCENTAGE = 0.025
 
 class Filing:
   def __init__(self, end: date, accn: str, fy: int, fp: str, form: str, filed: date):
@@ -35,7 +37,7 @@ class Filing:
       f'  filed: {self.filed}\n'
     )
     return out
-
+  
 
 def main():
   """Shows basic usage of the Sheets API.
@@ -67,6 +69,9 @@ def main():
     data = edgar_get_data()
     filings = edgar_get_filings(data)
     assets = get_assets(data, filings)
+    line_items = filter_line_items(data, filings, assets)
+    pprint.pprint(line_items)
+    print(f'len of filtered line items = {len(line_items)}')
     # print(*filings, sep="\n")
     # test_chatgpt(data)
     # # Pass: spreadsheet_id,  range_name, value_input_option, _values, and service
@@ -225,7 +230,40 @@ def get_assets(data, filings):
       return int(asset_filing['val'])
 
 
+def filter_line_items(data, filings, assets):
+  """
+  Returns a list of line item names, excluding any items that are not able, in any
+  filing, to meet a given percentage of assets.
+  """
+  output = []
+  line_items = data['facts']['us-gaap']
+  for name in line_items.keys():
+    if "USD" in line_items[name]["units"]:
+      for new_filing in line_items[name]["units"]["USD"]:
+        # print(f'new_filing = {new_filing}')
+        filing = get_filing_by_accn(filings, new_filing['accn'])
+        if filing and new_filing['end'] == f'{filing.end}':
+          if float(new_filing['val'] >= ASSET_CUTOFF_PERCENTAGE * assets):
+            output.append(name)
+            break
+  return output
+
+
+def get_filing_by_accn(filings, accn):
+  """
+  Returns the Filings object with the given accn.
+  If no matching Filing is found, returns None.
+  """
+  for f in filings:
+    if f.accn == accn:
+      return f
+  return None
+
+
 def format_CIK(cik):
+  """
+  Returns a 10-digit string representation of a given CIK.
+  """
   cik = str(cik)
   out = ('0' * (10 - len(cik))) + cik
   return out
