@@ -15,7 +15,7 @@ from openai import OpenAI
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 CIK = 1637207
 USER_EMAIL = 'jsripraj@gmail.com'
-ASSET_CUTOFF_PERCENTAGE = 0.025
+ASSET_CUTOFF_PERCENTAGE = 0.05
 
 class Filing:
   def __init__(self, end: date, accn: str, fy: int, fp: str, form: str, filed: date):
@@ -68,12 +68,14 @@ def main():
     # create_sheets(spreadsheet_id, service)
     data = edgar_get_data()
     filings = edgar_get_filings(data)
-    assets = get_assets(data, filings)
-    line_items = filter_line_items(data, filings, assets)
-    pprint.pprint(line_items)
-    print(f'len of filtered line items = {len(line_items)}')
+
+    play(data, filings)
+    # assets = get_assets(data, filings)
+    # line_items = filter_line_items(data, filings, assets)
+    # pprint.pprint(line_items)
+    # print(f'len of filtered line items = {len(line_items)}')
     # print(*filings, sep="\n")
-    # test_chatgpt(data)
+    # test_chatgpt(line_items)
     # # Pass: spreadsheet_id,  range_name, value_input_option, _values, and service
     # update_values(
     #     spreadsheet_id,
@@ -84,6 +86,17 @@ def main():
     # )
   except HttpError as err:
     print(err)
+
+
+def play(data, filings):
+  items = data['facts']['us-gaap']
+  filing_2022 = get_filing_by_year(filings, 2022)
+  for name in items.keys():
+    if 'right' in name.lower():
+      print(f"Name: {name}")
+      print(f"Label: {items[name]['label']}")
+      # print(f"Description: {items[name]['description']}")
+      print(f"Value: {get_item_value_at_filing(data, name, filing_2022)}\n")
 
 
 def test_chatgpt(items):
@@ -101,19 +114,46 @@ def test_chatgpt(items):
   #   "AccretionAmortizationOfDiscountsAndPremiumsInvestments",
   #   "AccruedLiabilitiesCurrent",
   # ]
+
+  completion = client.chat.completions.create(
+    model="gpt-3.5-turbo",
+    messages=[
+      {"role": "user", "content": "I will give you a list of financial statement line items"
+        "For each of the items, tell me whether an increase is good, bad, or neutral."
+       f"Here is the list: {str(items)}"}
+    ]
+  )
+  resp = completion.choices[0].message.content
+  pprint.pprint(resp)
   
-  print(f'len of items is {len(str(items))}')
+  # print(f'len of items is {len(str(items))}')
   # completion = client.chat.completions.create(
   #   model="gpt-3.5-turbo",
   #   messages=[
-  #     {"role": "user", "content": "I will give you a list of financial items. Do not add spaces to the names of the items."
-  #      "First, list the items that belong in the Balance Sheet. Order the items how they would appear on a typical Balance Sheet"
+  #     {"role": "user", "content": "I will give you a list of financial statement line items"
+  #      "First, list the items that belong in the Balance Sheet. "
   #      "Second, list the items that belong in the Income Statement. "
   #      "Third, list the items that belong in the Cash Flow Statement. "
   #      f"Here is the list: {str(items)}"}
   #   ]
   # )
-  # print(completion.choices[0].message.content)
+  # resp = completion.choices[0].message.content
+  # balance_items, income_items, cash_items = resp.split('\n\n')
+  # completion = client.chat.completions.create(
+  #   model="gpt-3.5-turbo",
+  #   messages=[
+  #     {"role": "user", 
+  #      "content": "I will give you a list of some balance sheet line items."
+  #      "Organize them into a typical balance sheet order."
+  #      f"Here is the list: {balance_items}"
+  #     }
+  #   ]
+  # )
+  # resp = completion.choices[0].message.content
+  # print(resp)
+  # print(f'resp split into {len(resp)} pieces')
+  # for i in range(len(resp)):
+  #   print(f'Piece #{i}:\n{resp[i]}\n')
 
 
 def create_spreadsheet(title, service):
@@ -244,7 +284,10 @@ def filter_line_items(data, filings, assets):
         filing = get_filing_by_accn(filings, new_filing['accn'])
         if filing and new_filing['end'] == f'{filing.end}':
           if float(new_filing['val'] >= ASSET_CUTOFF_PERCENTAGE * assets):
-            output.append(name)
+            output.append(line_items[name]["label"])
+            # print(name)
+            # print(f'Label: {line_items[name]["label"]}')
+            # print(f'Description: {line_items[name]["description"]}\n')
             break
   return output
 
@@ -257,6 +300,38 @@ def get_filing_by_accn(filings, accn):
   for f in filings:
     if f.accn == accn:
       return f
+  return None
+
+
+def get_filing_by_year(filings, year):
+  """
+  Returns the Filing object for the given year.
+  If no matching Filing is found, returns None.
+  """
+  for f in filings:
+    if f.end.year == year:
+      return f
+  return None
+
+
+def get_item_value_at_filing(data, item_name, filing):
+  """
+  Returns the value of the given item_name for the given filing object.
+  Returns none if no value is found for the given filing or if the filing is None.
+  """
+  if not filing:
+    print(f'No filing found.')
+    return None
+  items = data['facts']['us-gaap']
+  # pprint.pprint(items['Assets']['units']['USD'])
+  for name in items.keys():
+    if name == item_name:
+      item_filings = items[name]['units']['USD']
+      for item_filing in item_filings:
+        if item_filing['accn'] == filing.accn and item_filing['end'] == str(filing.end):
+          res = int(item_filing['val'])
+          # print(res)
+          return res
   return None
 
 
