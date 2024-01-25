@@ -2,6 +2,7 @@ import os.path
 import requests
 from datetime import date
 import pprint
+import json
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -66,10 +67,13 @@ def main():
     service = build("sheets", "v4", credentials=creds)
     # spreadsheet_id = create_spreadsheet("test-report", service)
     # create_sheets(spreadsheet_id, service)
+    company_data = edgar_get_company_metadata()
+    ticker = company_data['tickers'][0]
     data = edgar_get_data()
     filings = edgar_get_filings(data)
 
     play(data, filings)
+    test_polygon()
     # assets = get_assets(data, filings)
     # line_items = filter_line_items(data, filings, assets)
     # pprint.pprint(line_items)
@@ -89,15 +93,35 @@ def main():
 
 
 def play(data, filings):
-  items = data['facts']['us-gaap']
-  filing_2022 = get_filing_by_year(filings, 2022)
-  for name in items.keys():
-    if 'right' in name.lower():
-      print(f"Name: {name}")
-      print(f"Label: {items[name]['label']}")
-      # print(f"Description: {items[name]['description']}")
-      print(f"Value: {get_item_value_at_filing(data, name, filing_2022)}\n")
+  pass
+  # print(list(data['facts'].keys()))
+  # print(str(data).replace("'", '"'))
+  # items = data['facts']['us-gaap']
+  # filing_2022 = get_filing_by_year(filings, 2022)
+  # for name in items.keys():
+  #   if 'intangible' in name.lower():
+  #     print(f"Name: {name}")
+  #     print(f"Label: {items[name]['label']}")
+  #     # print(f"Description: {items[name]['description']}")
+  #     print(f"Value: {get_item_value_at_filing(data, name, filing_2022)}\n")
 
+
+def test_polygon():
+  # url = f'https://data.sec.gov/api/xbrl/companyfacts/CIK{format_CIK(CIK)}.json'
+  with open('polygon_key.txt') as f:
+    key = f.read().strip()
+  # print(f'key = {key}')
+  # print(date.today())
+  url = f'https://api.polygon.io/v1/open-close/PLNT/{date.today()}?adjusted=true&apiKey={key}'
+  # print(f'url = {url}')
+  # headers = {'user-agent': USER_EMAIL}
+  # try:
+  #   r = requests.get(url, headers=headers)
+  #   json_data = r.json()
+  #   return json_data
+  # except HttpError as error:
+  #   print(f"An error occurred: {error}")
+  #   return error
 
 def test_chatgpt(items):
   print('testing chatgpt')
@@ -228,6 +252,23 @@ def edgar_get_data():
   try:
     r = requests.get(url, headers=headers)
     json_data = r.json()
+    # print(json.dumps(json_data))
+    return json_data
+  except HttpError as error:
+    print(f"An error occurred: {error}")
+    return error
+
+
+def edgar_get_company_metadata():
+  """
+  Returns dictionary of company metadata from EDGAR
+  """
+  url = f'https://data.sec.gov/submissions/CIK{format_CIK(CIK)}.json'
+  headers = {'user-agent': USER_EMAIL}
+  try:
+    r = requests.get(url, headers=headers)
+    json_data = r.json()
+    # print(json.dumps(json_data))
     return json_data
   except HttpError as error:
     print(f"An error occurred: {error}")

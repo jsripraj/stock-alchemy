@@ -5,6 +5,9 @@ token.json
 .edgarenv*
 temp.txt
 out.txt
+out2.txt
 out_pprint.txt
 chatgpt-key.txt
 sample_data_json.txt
+polygon_key.txt
+
