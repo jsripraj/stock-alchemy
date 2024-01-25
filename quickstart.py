@@ -1,6 +1,6 @@
 import os.path
 import requests
-from datetime import date
+from datetime import date, timedelta
 import pprint
 import json
 
@@ -10,6 +10,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from openai import OpenAI
+from polygon import RESTClient
 
 
 # If modifying these scopes, delete the file token.json.
@@ -73,7 +74,7 @@ def main():
     filings = edgar_get_filings(data)
 
     play(data, filings)
-    test_polygon()
+    test_polygon(ticker)
     # assets = get_assets(data, filings)
     # line_items = filter_line_items(data, filings, assets)
     # pprint.pprint(line_items)
@@ -106,22 +107,24 @@ def play(data, filings):
   #     print(f"Value: {get_item_value_at_filing(data, name, filing_2022)}\n")
 
 
-def test_polygon():
-  # url = f'https://data.sec.gov/api/xbrl/companyfacts/CIK{format_CIK(CIK)}.json'
+def test_polygon(ticker):
   with open('polygon_key.txt') as f:
     key = f.read().strip()
-  # print(f'key = {key}')
-  # print(date.today())
-  url = f'https://api.polygon.io/v1/open-close/PLNT/{date.today()}?adjusted=true&apiKey={key}'
+  client = RESTClient(api_key=key)
+  # url = f'https://api.polygon.io/v1/open-close/{ticker}/{date.today()}?adjusted=true&apiKey={key}'
   # print(f'url = {url}')
   # headers = {'user-agent': USER_EMAIL}
-  # try:
-  #   r = requests.get(url, headers=headers)
-  #   json_data = r.json()
-  #   return json_data
-  # except HttpError as error:
-  #   print(f"An error occurred: {error}")
-  #   return error
+  try:
+    # r = requests.get(url)
+    # yesterday = date.today() - timedelta(days=1)
+    r = client.get_previous_close_agg(ticker)
+    print(r)
+    # json_data = r.json()
+    # pprint.pprint(json_data)
+    # return json_data
+  except HttpError as error:
+    print(f"An error occurred: {error}")
+    return error
 
 def test_chatgpt(items):
   print('testing chatgpt')
