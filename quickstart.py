@@ -13,7 +13,7 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from openai import OpenAI
 from polygon import RESTClient
-
+from sec_cik_mapper import StockMapper
 
 # If modifying these scopes, delete the file token.json.
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
@@ -48,8 +48,8 @@ class Filing:
   
 
 def main():
-  """Shows basic usage of the Sheets API.
-  Prints values from a sample spreadsheet.
+  """ 
+  Run trading robot.
   """
   creds = None
   # The file token.json stores the user's access and refresh tokens, and is
@@ -85,7 +85,9 @@ def main():
     market_cap = float(market_cap[:-1])
     if mult == 'T':
       market_cap *= pow(10, 12)
-    print(f'PE = {market_cap / earnings}')
+    # print(f'PE = {market_cap / earnings}')
+    test_eodhd()
+
     # test_polygon(ticker)
     # assets = get_assets(data, filings)
     # line_items = filter_line_items(data, filings, assets)
@@ -116,10 +118,10 @@ def play(data, filings):
       val = get_item_value_at_filing(data, name, filing)
       # if not val:
       #   continue
-      print(f"Name: {name}")
-      print(f"Label: {items[name]['label']}")
+      # print(f"Name: {name}")
+      # print(f"Label: {items[name]['label']}")
+      # print(f"Value: {val}\n")
       # print(f"Description: {items[name]['description']}")
-      print(f"Value: {val}\n")
       return val
 
 
@@ -134,12 +136,22 @@ def yahoo(ticker):
     # res = soup.find(string="Market Cap")
     # print(res.parent.parent.next_sibling)
     res = soup.find(attrs={"data-test":"MARKET_CAP-value"})
-    print(type(res.string))
+    # print(type(res.string))
     return str(res.string)
   except HttpError as error:
     print(f"An error occurred: {error}")
     return error
 
+
+def test_eodhd():
+  # EXCHANGE_CODE = 'US'
+  # url = f'https://eodhd.com/api/exchange-symbol-list/{EXCHANGE_CODE}?api_token=65b5850a9df356.73179775&fmt=json'
+  # data = requests.get(url).json()
+
+  # pprint.pprint(data)
+  mapper = StockMapper()
+  res = mapper.ticker_to_cik['ZS']
+  print(res)
 
 
 def test_polygon(ticker):
@@ -150,16 +162,19 @@ def test_polygon(ticker):
   # print(f'url = {url}')
   # headers = {'user-agent': USER_EMAIL}
   try:
+    for t in client.list_tickers(market="stocks", type="CS", active=True, all_pages=True):
+      print(t)
     # r = requests.get(url)
     # yesterday = date.today() - timedelta(days=1)
-    r = client.get_previous_close_agg(ticker)
-    pprint.pprint(vars(r[0]))
+    # r = client.get_previous_close_agg(ticker)
+    # pprint.pprint(vars(r[0]))
     # json_data = r.json()
     # pprint.pprint(json_data)
     # return json_data
   except HttpError as error:
     print(f"An error occurred: {error}")
     return error
+
 
 def test_chatgpt(items):
   print('testing chatgpt')
