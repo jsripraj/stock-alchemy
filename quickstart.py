@@ -15,7 +15,11 @@ from polygon import RESTClient
 
 # If modifying these scopes, delete the file token.json.
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
-CIK = 1637207
+CIK = 1637207 # PLNT
+# CIK = 12659 # HRB
+# CIK = 1498710 # SAVE
+# CIK = 320193 # APPL
+# CIK = 1543151 # UBER
 USER_EMAIL = 'jsripraj@gmail.com'
 ASSET_CUTOFF_PERCENTAGE = 0.05
 
@@ -74,7 +78,7 @@ def main():
     filings = edgar_get_filings(data)
 
     play(data, filings)
-    test_polygon(ticker)
+    # test_polygon(ticker)
     # assets = get_assets(data, filings)
     # line_items = filter_line_items(data, filings, assets)
     # pprint.pprint(line_items)
@@ -94,17 +98,20 @@ def main():
 
 
 def play(data, filings):
-  pass
   # print(list(data['facts'].keys()))
   # print(str(data).replace("'", '"'))
-  # items = data['facts']['us-gaap']
-  # filing_2022 = get_filing_by_year(filings, 2022)
-  # for name in items.keys():
-  #   if 'intangible' in name.lower():
-  #     print(f"Name: {name}")
-  #     print(f"Label: {items[name]['label']}")
-  #     # print(f"Description: {items[name]['description']}")
-  #     print(f"Value: {get_item_value_at_filing(data, name, filing_2022)}\n")
+  year = 2022
+  items = data['facts']['us-gaap']
+  filing = get_filing_by_year(filings, year)
+  for name in items.keys():
+    if 'common' in name.lower():
+      val = get_item_value_at_filing(data, name, filing)
+      # if not val:
+      #   continue
+      print(f"Name: {name}")
+      print(f"Label: {items[name]['label']}")
+      # print(f"Description: {items[name]['description']}")
+      print(f"Value: {val}\n")
 
 
 def test_polygon(ticker):
@@ -118,7 +125,7 @@ def test_polygon(ticker):
     # r = requests.get(url)
     # yesterday = date.today() - timedelta(days=1)
     r = client.get_previous_close_agg(ticker)
-    print(r)
+    pprint.pprint(vars(r[0]))
     # json_data = r.json()
     # pprint.pprint(json_data)
     # return json_data
@@ -370,12 +377,13 @@ def get_item_value_at_filing(data, item_name, filing):
   # pprint.pprint(items['Assets']['units']['USD'])
   for name in items.keys():
     if name == item_name:
-      item_filings = items[name]['units']['USD']
-      for item_filing in item_filings:
-        if item_filing['accn'] == filing.accn and item_filing['end'] == str(filing.end):
-          res = int(item_filing['val'])
-          # print(res)
-          return res
+      if 'USD' in items[name]['units']:
+        item_filings = items[name]['units']['USD']
+        for item_filing in item_filings:
+          if item_filing['accn'] == filing.accn and item_filing['end'] == str(filing.end):
+            res = int(item_filing['val'])
+            # print(res)
+            return res
   return None
 
 
