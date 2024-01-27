@@ -79,8 +79,13 @@ def main():
     data = edgar_get_data()
     filings = edgar_get_filings(data)
 
-    yahoo(ticker)
-    # play(data, filings)
+    market_cap = yahoo(ticker)
+    earnings = play(data, filings)
+    mult = market_cap[-1]
+    market_cap = float(market_cap[:-1])
+    if mult == 'T':
+      market_cap *= pow(10, 12)
+    print(f'PE = {market_cap / earnings}')
     # test_polygon(ticker)
     # assets = get_assets(data, filings)
     # line_items = filter_line_items(data, filings, assets)
@@ -107,7 +112,7 @@ def play(data, filings):
   items = data['facts']['us-gaap']
   filing = get_filing_by_year(filings, year)
   for name in items.keys():
-    if 'common' in name.lower():
+    if 'NetIncomeLoss' in name:
       val = get_item_value_at_filing(data, name, filing)
       # if not val:
       #   continue
@@ -115,11 +120,13 @@ def play(data, filings):
       print(f"Label: {items[name]['label']}")
       # print(f"Description: {items[name]['description']}")
       print(f"Value: {val}\n")
+      return val
 
 
 def yahoo(ticker):
-  url = f'https://finance.yahoo.com/quote/{ticker}'
   try:
+    # url = f"https://finance.yahoo.com/quote/{ticker}/key-statistics?p={ticker}"
+    url = f"https://finance.yahoo.com/quote/{ticker}"
     r = requests.get(url)
     # print(r.text)
     soup = BeautifulSoup(r.text, 'html.parser')
@@ -127,7 +134,8 @@ def yahoo(ticker):
     # res = soup.find(string="Market Cap")
     # print(res.parent.parent.next_sibling)
     res = soup.find(attrs={"data-test":"MARKET_CAP-value"})
-    print(res.string)
+    print(type(res.string))
+    return str(res.string)
   except HttpError as error:
     print(f"An error occurred: {error}")
     return error
