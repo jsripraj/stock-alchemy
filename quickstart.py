@@ -1,8 +1,10 @@
 import os.path
-import requests
 from datetime import date, timedelta
 import pprint
 import json
+
+import requests
+from bs4 import BeautifulSoup
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -15,10 +17,10 @@ from polygon import RESTClient
 
 # If modifying these scopes, delete the file token.json.
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
-CIK = 1637207 # PLNT
+# CIK = 1637207 # PLNT
 # CIK = 12659 # HRB
 # CIK = 1498710 # SAVE
-# CIK = 320193 # APPL
+CIK = 320193 # AAPL
 # CIK = 1543151 # UBER
 USER_EMAIL = 'jsripraj@gmail.com'
 ASSET_CUTOFF_PERCENTAGE = 0.05
@@ -77,7 +79,8 @@ def main():
     data = edgar_get_data()
     filings = edgar_get_filings(data)
 
-    play(data, filings)
+    yahoo(ticker)
+    # play(data, filings)
     # test_polygon(ticker)
     # assets = get_assets(data, filings)
     # line_items = filter_line_items(data, filings, assets)
@@ -112,6 +115,23 @@ def play(data, filings):
       print(f"Label: {items[name]['label']}")
       # print(f"Description: {items[name]['description']}")
       print(f"Value: {val}\n")
+
+
+def yahoo(ticker):
+  url = f'https://finance.yahoo.com/quote/{ticker}'
+  try:
+    r = requests.get(url)
+    # print(r.text)
+    soup = BeautifulSoup(r.text, 'html.parser')
+    # print(soup.prettify())
+    # res = soup.find(string="Market Cap")
+    # print(res.parent.parent.next_sibling)
+    res = soup.find(attrs={"data-test":"MARKET_CAP-value"})
+    print(res.string)
+  except HttpError as error:
+    print(f"An error occurred: {error}")
+    return error
+
 
 
 def test_polygon(ticker):
