@@ -20,10 +20,11 @@ SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 # CIK = 1637207 # PLNT
 # CIK = 12659 # HRB
 # CIK = 1498710 # SAVE
-CIK = 320193 # AAPL
+# CIK = 320193 # AAPL
 # CIK = 1543151 # UBER
 USER_EMAIL = 'jsripraj@gmail.com'
 ASSET_CUTOFF_PERCENTAGE = 0.05
+
 
 class Filing:
   def __init__(self, end: date, accn: str, fy: int, fp: str, form: str, filed: date):
@@ -51,6 +52,8 @@ def main():
   """ 
   Run trading robot.
   """
+
+  """ GOOGLE SHEETS STUFF
   creds = None
   # The file token.json stores the user's access and refresh tokens, and is
   # created automatically when the authorization flow completes for the first
@@ -69,24 +72,30 @@ def main():
     # Save the credentials for the next run
     with open("token.json", "w") as token:
       token.write(creds.to_json())
+  """
 
   try:
-    service = build("sheets", "v4", credentials=creds)
+    # service = build("sheets", "v4", credentials=creds)
     # spreadsheet_id = create_spreadsheet("test-report", service)
     # create_sheets(spreadsheet_id, service)
-    company_data = edgar_get_company_metadata()
-    ticker = company_data['tickers'][0]
-    data = edgar_get_data()
-    filings = edgar_get_filings(data)
+    # company_data = edgar_get_company_metadata()
+    # ticker = company_data['tickers'][0]
 
-    market_cap = yahoo(ticker)
-    earnings = play(data, filings)
-    mult = market_cap[-1]
-    market_cap = float(market_cap[:-1])
-    if mult == 'T':
-      market_cap *= pow(10, 12)
-    # print(f'PE = {market_cap / earnings}')
-    test_eodhd()
+    tickers = ['AAPL'] # Eventually this will be a list of every ticker on the market
+    for ticker in tickers:
+      cik = get_cik(ticker)
+      market_cap = get_market_cap(ticker)
+
+    # data = edgar_get_data()
+    # filings = edgar_get_filings(data)
+
+    # earnings = play(data, filings)
+    # mult = market_cap[-1]
+    # market_cap = float(market_cap[:-1])
+    # if mult == 'T':
+    #   market_cap *= pow(10, 12)
+    # # print(f'PE = {market_cap / earnings}')
+    # test_eodhd()
 
     # test_polygon(ticker)
     # assets = get_assets(data, filings)
@@ -125,9 +134,12 @@ def play(data, filings):
       return val
 
 
-def yahoo(ticker):
+def get_market_cap(ticker: str) -> int:
+  """
+  Returns the market cap of the given ticker. This function gets market cap 
+  data by scraping Yahoo Finance with BeautifulSoup.
+  """
   try:
-    # url = f"https://finance.yahoo.com/quote/{ticker}/key-statistics?p={ticker}"
     url = f"https://finance.yahoo.com/quote/{ticker}"
     r = requests.get(url)
     # print(r.text)
@@ -135,23 +147,36 @@ def yahoo(ticker):
     # print(soup.prettify())
     # res = soup.find(string="Market Cap")
     # print(res.parent.parent.next_sibling)
-    res = soup.find(attrs={"data-test":"MARKET_CAP-value"})
-    # print(type(res.string))
-    return str(res.string)
+    res = soup.find(attrs={"data-test":"MARKET_CAP-value"}) # example res.string = '6.192B'
+    num = float(res.string[:-1])
+    multipliers = {
+      'T': pow(10, 12),
+      'B': pow(10, 9),
+      'M': pow(10, 6)
+    }
+    mult = multipliers[res.string[-1]]
+    cap = int(num * mult)
+    return cap
   except HttpError as error:
     print(f"An error occurred: {error}")
     return error
 
 
 def test_eodhd():
-  # EXCHANGE_CODE = 'US'
-  # url = f'https://eodhd.com/api/exchange-symbol-list/{EXCHANGE_CODE}?api_token=65b5850a9df356.73179775&fmt=json'
-  # data = requests.get(url).json()
+  EXCHANGE_CODE = 'US'
+  url = f'https://eodhd.com/api/exchange-symbol-list/{EXCHANGE_CODE}?api_token=65b5850a9df356.73179775&fmt=json'
+  data = requests.get(url).json()
 
-  # pprint.pprint(data)
+  pprint.pprint(data)
+
+
+def get_cik(ticker: str):
+  """
+  Returns the CIK corresponding to the given ticker
+  """
   mapper = StockMapper()
-  res = mapper.ticker_to_cik['ZS']
-  print(res)
+  cik = mapper.ticker_to_cik[ticker]
+  return cik
 
 
 def test_polygon(ticker):
@@ -162,7 +187,7 @@ def test_polygon(ticker):
   # print(f'url = {url}')
   # headers = {'user-agent': USER_EMAIL}
   try:
-    for t in client.list_tickers(market="stocks", type="CS", active=True, all_pages=True):
+    for t in client.list_tickers(market="stocks", type="CS", active=True):
       print(t)
     # r = requests.get(url)
     # yesterday = date.today() - timedelta(days=1)
