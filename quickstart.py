@@ -34,6 +34,7 @@ class Filing:
     self.fp = fp
     self.form = form
     self.filed = filed
+    self.financial_data = {}
   
   def __str__(self):
     out = (
@@ -52,6 +53,23 @@ def main():
   """ 
   Run trading robot.
   """
+  # tickers = ['AAPL'] # Eventually this will be a list of every ticker on the market
+  tickers = get_tickers()
+  for ticker in tickers:
+    cik = get_cik(ticker)
+    market_cap = get_market_cap(ticker)
+    data = edgar_get_data(cik)
+    filings = edgar_get_filings(data)
+    populate_earnings(data, filings)
+
+    try:
+      earnings22 = float((get_filing_by_year(filings, 2022)).financial_data['earnings'])
+      pe = float(market_cap) / earnings22
+    except KeyError:
+      earnings22 = 'Error'
+      pe = 'Error'
+    print(f'Ticker: {ticker}, CIK: {cik}, Cap: {market_cap}, Earnings: {earnings22}, PE: {pe}')
+
 
   """ GOOGLE SHEETS STUFF
   creds = None
@@ -74,28 +92,12 @@ def main():
       token.write(creds.to_json())
   """
 
-  try:
+  # try:
     # service = build("sheets", "v4", credentials=creds)
     # spreadsheet_id = create_spreadsheet("test-report", service)
     # create_sheets(spreadsheet_id, service)
     # company_data = edgar_get_company_metadata()
     # ticker = company_data['tickers'][0]
-
-    tickers = ['AAPL'] # Eventually this will be a list of every ticker on the market
-    for ticker in tickers:
-      cik = get_cik(ticker)
-      market_cap = get_market_cap(ticker)
-
-    # data = edgar_get_data()
-    # filings = edgar_get_filings(data)
-
-    # earnings = play(data, filings)
-    # mult = market_cap[-1]
-    # market_cap = float(market_cap[:-1])
-    # if mult == 'T':
-    #   market_cap *= pow(10, 12)
-    # # print(f'PE = {market_cap / earnings}')
-    # test_eodhd()
 
     # test_polygon(ticker)
     # assets = get_assets(data, filings)
@@ -112,26 +114,67 @@ def main():
     #     [data],
     #     service
     # )
-  except HttpError as err:
-    print(err)
+  # except HttpError as err:
+  #   print(err)
 
 
-def play(data, filings):
+def populate_earnings(data, filings) -> None:
+  """
+  Stores the integer earnings (net income) value in the corresponding Filing.
+  """
   # print(list(data['facts'].keys()))
   # print(str(data).replace("'", '"'))
-  year = 2022
-  items = data['facts']['us-gaap']
-  filing = get_filing_by_year(filings, year)
-  for name in items.keys():
-    if 'NetIncomeLoss' in name:
-      val = get_item_value_at_filing(data, name, filing)
-      # if not val:
-      #   continue
-      # print(f"Name: {name}")
-      # print(f"Label: {items[name]['label']}")
-      # print(f"Value: {val}\n")
-      # print(f"Description: {items[name]['description']}")
-      return val
+  # year = 2022
+  # filing = get_filing_by_year(filings, year)
+  line_items = data['facts']['us-gaap']
+
+  # Get the actual name of the line item
+  search_term = 'NetIncomeLoss'
+  for name in line_items.keys():
+    # For more complicated searches, may have to use FuzzyWuzzy
+    if search_term in name:
+      item_name = name
+      break
+
+  i = 0 # points to a Filing in filings
+  raw_item_filings = line_items[item_name]['units']['USD']
+  for raw_item_filing in raw_item_filings:
+    filing = filings[i]
+    if raw_item_filing['accn'] == filing.accn and raw_item_filing['end'] == str(filing.end):
+      filing.financial_data['earnings'] = int(raw_item_filing['val'])
+      i += 1
+      if i >= len(filings):
+        break
+  return 
+
+  #       val = get_item_value_at_filing(data, name, filing)
+  #       # if not val:
+  #       #   continue
+  #       # print(f"Name: {name}")
+  #       # print(f"Label: {items[name]['label']}")
+  #       # print(f"Value: {val}\n")
+  #       # print(f"Description: {items[name]['description']}")
+  #       return val
+
+
+# def get_item_value_at_filing(data: dict, item_name: str, filing: Filing) -> (int | None):
+#   """
+#   Returns the value of the given item_name for the given Filing.
+#   Returns None if no value is found.
+#   """
+#   if not filing:
+#     print(f'No filing found.')
+#     return None
+#   items = data['facts']['us-gaap']
+#   # pprint.pprint(items['Assets']['units']['USD'])
+#   if 'USD' in items[item_name]['units']:
+#     item_filings = items[item_name]['units']['USD']
+#     for item_filing in item_filings:
+#       if item_filing['accn'] == filing.accn and item_filing['end'] == str(filing.end):
+#         res = int(item_filing['val'])
+#         # print(res)
+#         return res
+#   return None
 
 
 def get_market_cap(ticker: str) -> int:
@@ -162,12 +205,28 @@ def get_market_cap(ticker: str) -> int:
     return error
 
 
-def test_eodhd():
-  EXCHANGE_CODE = 'US'
-  url = f'https://eodhd.com/api/exchange-symbol-list/{EXCHANGE_CODE}?api_token=65b5850a9df356.73179775&fmt=json'
-  data = requests.get(url).json()
+def get_tickers() -> list:
+  """
+  Returns a sorted list of all common stock tickers trading on the NYSE and the NASDAQ.
+  """
+  # exchange_code = 'US'
+  security_type = 'common_stock'
+  exchanges = ['NYSE', 'NASDAQ']
+  tickers = set()
+  for exchange in exchanges:
+    url = f'https://eodhd.com/api/exchange-symbol-list/{exchange}?type={security_type}&api_token=65b5850a9df356.73179775&fmt=json'
+    data = requests.get(url).json()
+    for stock in data:
+      tickers.add(stock['Code'])
+  tickers = sorted(list(tickers))
+  return tickers
+    # print(type(data))
+    # first = data[0]
+    # print(first)
+    # print(type(first))
 
-  pprint.pprint(data)
+
+  # pprint.pprint(data)
 
 
 def get_cik(ticker: str):
@@ -176,7 +235,7 @@ def get_cik(ticker: str):
   """
   mapper = StockMapper()
   cik = mapper.ticker_to_cik[ticker]
-  return cik
+  return format_cik(cik)
 
 
 def test_polygon(ticker):
@@ -321,16 +380,15 @@ def create_sheets(spreadsheet_id, service):
   return response
 
 
-def edgar_get_data():
+def edgar_get_data(cik: str) -> dict:
   """
-  Returns dictionary of the company data from EDGAR
+  Returns company data obtained from EDGAR.
   """
-  url = f'https://data.sec.gov/api/xbrl/companyfacts/CIK{format_CIK(CIK)}.json'
+  url = f'https://data.sec.gov/api/xbrl/companyfacts/CIK{cik}.json'
   headers = {'user-agent': USER_EMAIL}
   try:
     r = requests.get(url, headers=headers)
     json_data = r.json()
-    # print(json.dumps(json_data))
     return json_data
   except HttpError as error:
     print(f"An error occurred: {error}")
@@ -353,10 +411,10 @@ def edgar_get_company_metadata():
     return error
 
 
-def edgar_get_filings(data):
+def edgar_get_filings(data: dict) -> list[Filing]:
   """
-  Get the FYE filings from EDGAR and create Filing objects.
-  Returns a chronological list of Filing objects.
+  Returns a chronological list of FYE Filings. The last element in the list 
+  is the most recent partial year Filing, if applicable.
   """
   filings = data["facts"]["us-gaap"]["Assets"]["units"]["USD"]
   output = []
@@ -367,6 +425,7 @@ def edgar_get_filings(data):
       # Make sure fiscal year makes sense and time to file is less than half a year 
       if f['fy'] <= end_date.year and (filed_date - end_date).days < 180:
         output.append(Filing(end_date, f['accn'], int(f['fy']), f['fp'], f['form'], filed_date))
+  # Append the most recent partial year Filing, if applicable
   if filings[-1]["fp"] != "FY":
     output.append(Filing(end_date, f['accn'], int(f['fy']), f['fp'], f['form'], filed_date))
   return output
@@ -433,29 +492,7 @@ def get_filing_by_year(filings, year):
   return None
 
 
-def get_item_value_at_filing(data, item_name, filing):
-  """
-  Returns the value of the given item_name for the given filing object.
-  Returns none if no value is found for the given filing or if the filing is None.
-  """
-  if not filing:
-    print(f'No filing found.')
-    return None
-  items = data['facts']['us-gaap']
-  # pprint.pprint(items['Assets']['units']['USD'])
-  for name in items.keys():
-    if name == item_name:
-      if 'USD' in items[name]['units']:
-        item_filings = items[name]['units']['USD']
-        for item_filing in item_filings:
-          if item_filing['accn'] == filing.accn and item_filing['end'] == str(filing.end):
-            res = int(item_filing['val'])
-            # print(res)
-            return res
-  return None
-
-
-def format_CIK(cik):
+def format_cik(cik):
   """
   Returns a 10-digit string representation of a given CIK.
   """
