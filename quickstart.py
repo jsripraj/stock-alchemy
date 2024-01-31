@@ -27,6 +27,17 @@ ASSET_CUTOFF_PERCENTAGE = 0.05
 
 
 class Filing:
+  """
+  Represents a report filed with the SEC.
+
+  Attributes:
+    - end: end date of filing period
+    - accn: the filing's account number
+    - fy: fiscal year
+    - fp: fiscal period
+    - form: i.e. 10-K, 10-Q, etc.
+    - filed: filing date
+  """
   def __init__(self, end: date, accn: str, fy: int, fp: str, form: str, filed: date):
     self.end = end 
     self.accn = accn  
@@ -47,27 +58,35 @@ class Filing:
       f'  filed: {self.filed}\n'
     )
     return out
-  
+
 
 def main():
   """ 
   Run trading robot.
   """
-  # tickers = ['AAPL'] # Eventually this will be a list of every ticker on the market
-  tickers = get_tickers()
+  # Write tickers to file to avoid API calls when testing
+  # tickers = get_tickers()
+  # with open('tickers.txt', 'w') as f:
+  #   json.dump(tickers, f)
+  with open('tickers.txt', 'r') as f:
+    tickers = json.load(f)
+
   for ticker in tickers:
     cik = get_cik(ticker)
-    market_cap = get_market_cap(ticker)
+    try:
+      market_cap = get_market_cap(ticker)
+    except:
+      print(f'Ticker: {ticker} -> Error getting market cap ')
+      continue
     data = edgar_get_data(cik)
     filings = edgar_get_filings(data)
     populate_earnings(data, filings)
-
     try:
       earnings22 = float((get_filing_by_year(filings, 2022)).financial_data['earnings'])
-      pe = float(market_cap) / earnings22
-    except KeyError:
-      earnings22 = 'Error'
-      pe = 'Error'
+    except Exception as err:
+      print(f'Ticker: {ticker}, Error getting earnings, unexpected {err=}, {type(err)}')
+      continue
+    pe = float(market_cap) / earnings22
     print(f'Ticker: {ticker}, CIK: {cik}, Cap: {market_cap}, Earnings: {earnings22}, PE: {pe}')
 
 
@@ -118,43 +137,38 @@ def main():
   #   print(err)
 
 
-def populate_earnings(data, filings) -> None:
+def populate_earnings(data: dict, filings: list[Filing]) -> None:
   """
-  Stores the integer earnings (net income) value in the corresponding Filing.
+  Stores the earnings (net income) value as an integer in the corresponding Filing.
   """
-  # print(list(data['facts'].keys()))
-  # print(str(data).replace("'", '"'))
-  # year = 2022
-  # filing = get_filing_by_year(filings, year)
   line_items = data['facts']['us-gaap']
 
   # Get the actual name of the line item
   search_term = 'NetIncomeLoss'
   for name in line_items.keys():
     # For more complicated searches, may have to use FuzzyWuzzy
-    if search_term in name:
+    if name.startswith(search_term):
       item_name = name
       break
 
-  i = 0 # points to a Filing in filings
-  raw_item_filings = line_items[item_name]['units']['USD']
-  for raw_item_filing in raw_item_filings:
-    filing = filings[i]
-    if raw_item_filing['accn'] == filing.accn and raw_item_filing['end'] == str(filing.end):
-      filing.financial_data['earnings'] = int(raw_item_filing['val'])
-      i += 1
-      if i >= len(filings):
-        break
-  return 
+  # TODO need to raise an exception if search term not found
 
-  #       val = get_item_value_at_filing(data, name, filing)
-  #       # if not val:
-  #       #   continue
-  #       # print(f"Name: {name}")
-  #       # print(f"Label: {items[name]['label']}")
-  #       # print(f"Value: {val}\n")
-  #       # print(f"Description: {items[name]['description']}")
-  #       return val
+  f = 0 # points to a Filing in filings
+  r = 0 # points to a raw_item_filing
+  raw_item_filings = line_items[item_name]['units']['USD']
+  while f < len(filings) and r < len(raw_item_filings):
+    filing = filings[f]
+    raw_item_filing = raw_item_filings[r]
+    raw_date = edgar_date_string_to_date(raw_item_filing['end'])
+    if raw_item_filing['accn'] == filing.accn and raw_date == filing.end:
+      val = int(raw_item_filing['val'])
+      filing.financial_data['earnings'] = val
+      f += 1
+    elif raw_date < filing.end:
+      r += 1
+    else:
+      f += 1
+  return 
 
 
 # def get_item_value_at_filing(data: dict, item_name: str, filing: Filing) -> (int | None):
@@ -182,15 +196,19 @@ def get_market_cap(ticker: str) -> int:
   Returns the market cap of the given ticker. This function gets market cap 
   data by scraping Yahoo Finance with BeautifulSoup.
   """
+  url = f"https://finance.yahoo.com/quote/{ticker}"
   try:
-    url = f"https://finance.yahoo.com/quote/{ticker}"
     r = requests.get(url)
+  except HttpError as error:
+    print(f"An error occurred: {error}")
+    raise
     # print(r.text)
-    soup = BeautifulSoup(r.text, 'html.parser')
-    # print(soup.prettify())
-    # res = soup.find(string="Market Cap")
-    # print(res.parent.parent.next_sibling)
-    res = soup.find(attrs={"data-test":"MARKET_CAP-value"}) # example res.string = '6.192B'
+  soup = BeautifulSoup(r.text, 'html.parser')
+  # print(soup.prettify())
+  # res = soup.find(string="Market Cap")
+  # print(res.parent.parent.next_sibling)
+  res = soup.find(attrs={"data-test":"MARKET_CAP-value"}) # example res.string = '6.192B'
+  try:
     num = float(res.string[:-1])
     multipliers = {
       'T': pow(10, 12),
@@ -200,9 +218,9 @@ def get_market_cap(ticker: str) -> int:
     mult = multipliers[res.string[-1]]
     cap = int(num * mult)
     return cap
-  except HttpError as error:
-    print(f"An error occurred: {error}")
-    return error
+  except AttributeError as error:
+    print(f'Unable to scrape market cap: {error}')
+    raise
 
 
 def get_tickers() -> list:
@@ -413,22 +431,18 @@ def edgar_get_company_metadata():
 
 def edgar_get_filings(data: dict) -> list[Filing]:
   """
-  Returns a chronological list of FYE Filings. The last element in the list 
-  is the most recent partial year Filing, if applicable.
+  Returns a chronological list of FYE Filings. 
   """
-  filings = data["facts"]["us-gaap"]["Assets"]["units"]["USD"]
-  output = []
-  for f in filings:
-    if f['fp'] == 'FY':
-      end_date = edgar_date_string_to_date(f['end'])
-      filed_date = edgar_date_string_to_date(f['filed'])
+  raw_filings = data["facts"]["us-gaap"]["Assets"]["units"]["USD"]
+  output_filings = []
+  for raw_filing in raw_filings:
+    if raw_filing['fp'] == 'FY':
+      end_date = edgar_date_string_to_date(raw_filing['end'])
+      filed_date = edgar_date_string_to_date(raw_filing['filed'])
       # Make sure fiscal year makes sense and time to file is less than half a year 
-      if f['fy'] <= end_date.year and (filed_date - end_date).days < 180:
-        output.append(Filing(end_date, f['accn'], int(f['fy']), f['fp'], f['form'], filed_date))
-  # Append the most recent partial year Filing, if applicable
-  if filings[-1]["fp"] != "FY":
-    output.append(Filing(end_date, f['accn'], int(f['fy']), f['fp'], f['form'], filed_date))
-  return output
+      if raw_filing['fy'] <= end_date.year and (filed_date - end_date).days < 180:
+        output_filings.append(Filing(end_date, raw_filing['accn'], int(raw_filing['fy']), raw_filing['fp'], raw_filing['form'], filed_date))
+  return output_filings
 
 
 def get_assets(data, filings):
