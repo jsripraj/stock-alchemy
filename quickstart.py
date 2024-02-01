@@ -60,103 +60,33 @@ class Filing:
     return out
 
 
-def main():
-  """ 
-  Run trading robot.
-  """
-  # Write tickers to file to avoid API calls when testing
-  # tickers = get_tickers()
-  # with open('tickers.txt', 'w') as f:
-  #   json.dump(tickers, f)
-  
-  # with open('tickers.txt', 'r') as f:
-  #   tickers = json.load(f)
-  tickers = ['AACG']
-
-  for ticker in tickers:
-    cik = get_cik(ticker)
-    market_cap = get_market_cap_google(ticker, 'NASDAQ')
-    if not market_cap:
-      print(f'Ticker: {ticker}, CIK: {cik}, Cap: Error')
-      continue
-    market_cap = float(market_cap)
-    data = edgar_get_data(cik)
-    filings = edgar_get_filings(data)
-    populate_earnings(data, filings)
-    filing = get_filing_by_year(filings, 2022)
-    try:
-      earnings22 = float(filing.financial_data['earnings'])
-    except KeyError:
-      print(f'Ticker: {ticker}, CIK: {cik}, Earnings: Error')
-      continue
-    pe = market_cap / earnings22
-    print(f'Ticker: {ticker}, CIK: {cik}, Cap: {round(market_cap)}, Earnings: {round(earnings22)}, PE: {round(pe, 2)}')
-
-  """ GOOGLE SHEETS STUFF
-  creds = None
-  # The file token.json stores the user's access and refresh tokens, and is
-  # created automatically when the authorization flow completes for the first
-  # time.
-  if os.path.exists("token.json"):
-    creds = Credentials.from_authorized_user_file("token.json", SCOPES)
-  # If there are no (valid) credentials available, let the user log in.
-  if not creds or not creds.valid:
-    if creds and creds.expired and creds.refresh_token:
-      creds.refresh(Request())
-    else:
-      flow = InstalledAppFlow.from_client_secrets_file(
-          "desktop_credentials.json", SCOPES
-      )
-      creds = flow.run_local_server(port=0)
-    # Save the credentials for the next run
-    with open("token.json", "w") as token:
-      token.write(creds.to_json())
-  """
-
-  # try:
-    # service = build("sheets", "v4", credentials=creds)
-    # spreadsheet_id = create_spreadsheet("test-report", service)
-    # create_sheets(spreadsheet_id, service)
-    # company_data = edgar_get_company_metadata()
-    # ticker = company_data['tickers'][0]
-
-    # test_polygon(ticker)
-    # assets = get_assets(data, filings)
-    # line_items = filter_line_items(data, filings, assets)
-    # pprint.pprint(line_items)
-    # print(f'len of filtered line items = {len(line_items)}')
-    # print(*filings, sep="\n")
-    # test_chatgpt(line_items)
-    # # Pass: spreadsheet_id,  range_name, value_input_option, _values, and service
-    # update_values(
-    #     spreadsheet_id,
-    #     "A1",
-    #     "USER_ENTERED",
-    #     [data],
-    #     service
-    # )
-  # except HttpError as err:
-  #   print(err)
+class Ticker:
+  def __init__(self, code: str, name: str, country: str, exchange: str, currency: str, security_type: str):
+    self.code = code
+    self.name = name
+    self.country = country
+    self.exchange = exchange
+    self.currency = currency
+    self.security_type = security_type
 
 
 def get_market_cap_google(ticker: str, exchange: str) -> int:
   """
   Returns the market cap of the given ticker trading on the given exchange. 
   This function gets market cap data by scraping Google Finance with BeautifulSoup.
-  If the data cannot be found or processed, return None.
   """
-  url = "https://www.google.com/finance/quote/AACG:NASDAQ" 
+  CUTOFF = 250000000
+  url = f"https://www.google.com/finance/quote/{ticker}:{exchange}" 
   try:
     r = requests.get(url)
   except HttpError as error:
-    print(f"An error occurred: {error}")
+    print(f"There was a problem requesting data from Google Finance.")
     raise
   # print(r.text)
   soup = BeautifulSoup(r.text, 'html.parser')
   bs_string = soup.find(string="Market cap")
   if not bs_string:
-    print(f'Google Finance market cap data not found for {ticker}:{exchange}.')
-    return None
+    raise Exception(f'Google Finance market cap data not found for {ticker} on the {exchange}.')
   try:
     cap_tag = bs_string.parent.parent.next_sibling
     raw_cap_string = cap_tag.string # i.e. "34.23M USD"
@@ -169,10 +99,12 @@ def get_market_cap_google(ticker: str, exchange: str) -> int:
     }
     mult = multipliers[cap_string[-1]]
     cap = int(num * mult)
+    if cap < CUTOFF:
+      raise Exception(f'Market cap of {cap} below cutoff of {CUTOFF}.')
     return cap
-  except AttributeError as error:
-    print(f'Unable to process Google market cap data: {error=}')
-    return None
+  except AttributeError:
+    print(f'Unable to process Google market cap data.')
+    raise
 
 
 def populate_earnings(data: dict, filings: list[Filing]) -> None:
@@ -183,27 +115,38 @@ def populate_earnings(data: dict, filings: list[Filing]) -> None:
 
   # Get the actual name of the line item
   search_term = 'NetIncomeLoss'
+  item_name = None
   for name in line_items.keys():
     # For more complicated searches, may have to use FuzzyWuzzy
     if name.startswith(search_term):
       item_name = name
       break
+  if not item_name:
+    raise Exception(f'Could not find line item matching {search_term}')
 
   f = 0 # points to a Filing in filings
   r = 0 # points to a raw_item_filing
-  raw_item_filings = line_items[item_name]['units']['USD']
-  while f < len(filings) and r < len(raw_item_filings):
-    filing = filings[f]
-    raw_item_filing = raw_item_filings[r]
-    raw_date = edgar_date_string_to_date(raw_item_filing['end'])
-    if raw_item_filing['accn'] == filing.accn and raw_date == filing.end:
-      val = int(raw_item_filing['val'])
-      filing.financial_data['earnings'] = val
-      f += 1
-    elif raw_date < filing.end:
-      r += 1
-    else:
-      f += 1
+  found = False
+  try:
+    raw_item_filings = line_items[item_name]['units']['USD']
+    while f < len(filings) and r < len(raw_item_filings):
+      filing = filings[f]
+      raw_item_filing = raw_item_filings[r]
+      raw_date = edgar_date_string_to_date(raw_item_filing['end'])
+      if raw_item_filing['accn'] == filing.accn and raw_date == filing.end:
+        val = int(raw_item_filing['val'])
+        filing.financial_data['earnings'] = val
+        found = True
+        f += 1
+      elif raw_date < filing.end:
+        r += 1
+      else:
+        f += 1
+    if not found:
+      raise Exception(f'No FYE earnings data found.')
+  except KeyError:
+    print(f'Unexpected raw item filing format.')
+    raise
   return 
 
 
@@ -256,28 +199,27 @@ def get_market_cap_yahoo(ticker: str) -> int:
     raise
 
 
-def get_tickers() -> list:
+def get_tickers() -> dict:
   """
-  Returns a sorted list of all common stock tickers trading on the NYSE and the NASDAQ.
+  Returns a dict of all common stock tickers trading on the NYSE and the NASDAQ.
   """
-  # exchange_code = 'US'
   security_type = 'common_stock'
   exchanges = ['NYSE', 'NASDAQ']
-  tickers = set()
+  tickers = {}
   for exchange in exchanges:
     url = f'https://eodhd.com/api/exchange-symbol-list/{exchange}?type={security_type}&api_token=65b5850a9df356.73179775&fmt=json'
     data = requests.get(url).json()
-    for stock in data:
-      tickers.add(stock['Code'])
-  tickers = sorted(list(tickers))
+    for ticker in data:
+      if ticker['Exchange'] in exchanges:
+        tickers[ticker['Code']] = {
+          'code': ticker['Code'],
+          'name': ticker['Name'], 
+          'country': ticker['Country'], 
+          'exchange': ticker['Exchange'], 
+          'currency': ticker['Currency'], 
+          'type': ticker['Type']
+        }
   return tickers
-    # print(type(data))
-    # first = data[0]
-    # print(first)
-    # print(type(first))
-
-
-  # pprint.pprint(data)
 
 
 def get_cik(ticker: str):
@@ -285,7 +227,11 @@ def get_cik(ticker: str):
   Returns the CIK corresponding to the given ticker
   """
   mapper = StockMapper()
-  cik = mapper.ticker_to_cik[ticker]
+  try:
+    cik = mapper.ticker_to_cik[ticker]
+  except KeyError as err:
+    print(f'Unable to map ticker {ticker} to CIK')
+    raise
   return format_cik(cik)
 
 
@@ -441,9 +387,12 @@ def edgar_get_data(cik: str) -> dict:
     r = requests.get(url, headers=headers)
     json_data = r.json()
     return json_data
-  except HttpError as error:
-    print(f"An error occurred: {error}")
-    return error
+  except HttpError:
+    print(f"There was a problem requesting data from EDGAR.")
+    raise
+  except requests.exceptions.JSONDecodeError:
+    print(f'Unable to convert EDGAR data to JSON.')
+    raise
 
 
 def edgar_get_company_metadata():
@@ -466,15 +415,25 @@ def edgar_get_filings(data: dict) -> list[Filing]:
   """
   Returns a chronological list of FYE Filings. 
   """
-  raw_filings = data["facts"]["us-gaap"]["Assets"]["units"]["USD"]
+  try:
+    raw_filings = data["facts"]["us-gaap"]["Assets"]["units"]["USD"]
+  except KeyError:
+    print(f'Could not retrieve raw filings from data. Probably due to an unexpected currency.')
+    raise
   output_filings = []
   for raw_filing in raw_filings:
-    if raw_filing['fp'] == 'FY':
-      end_date = edgar_date_string_to_date(raw_filing['end'])
-      filed_date = edgar_date_string_to_date(raw_filing['filed'])
-      # Make sure fiscal year makes sense and time to file is less than half a year 
-      if raw_filing['fy'] <= end_date.year and (filed_date - end_date).days < 180:
-        output_filings.append(Filing(end_date, raw_filing['accn'], int(raw_filing['fy']), raw_filing['fp'], raw_filing['form'], filed_date))
+    try:
+      if raw_filing['fp'] == 'FY':
+        end_date = edgar_date_string_to_date(raw_filing['end'])
+        filed_date = edgar_date_string_to_date(raw_filing['filed'])
+        # Make sure fiscal year makes sense and time to file is less than half a year 
+        if raw_filing['fy'] <= end_date.year and (filed_date - end_date).days < 180:
+          output_filings.append(Filing(end_date, raw_filing['accn'], int(raw_filing['fy']), raw_filing['fp'], raw_filing['form'], filed_date))
+    except KeyError:
+      print(f'Raw filing data has unexpected format.')
+      raise
+  if not output_filings:
+    raise Exception(f'No FYE filings found.')
   return output_filings
 
 
@@ -528,15 +487,16 @@ def get_filing_by_accn(filings, accn):
   return None
 
 
-def get_filing_by_year(filings, year):
+def get_filing_by_year(filings: list[Filing], year: int) -> Filing:
   """
-  Returns the Filing object for the given year.
-  If no matching Filing is found, returns None.
+  Returns the Filing corresponding to the given year.
   """
+  if not filings:
+    raise Exception(f'Filing list is empty')
   for f in filings:
     if f.end.year == year:
       return f
-  return None
+  raise Exception(f'No filing for {year} found')
 
 
 def format_cik(cik):
@@ -584,6 +544,88 @@ def update_values(spreadsheet_id, range_name, value_input_option, _values, servi
   except HttpError as error:
     print(f"An error occurred: {error}")
     return error
+
+
+def main():
+  """ 
+  Run trading robot.
+  """
+  # Write tickers to file to avoid API calls when testing
+  # tickers = get_tickers()
+  # with open('tickers.txt', 'w') as f:
+  #   json.dump(tickers, f)
+  
+  with open('tickers.txt', 'r') as f:
+    ticker_objs = json.load(f)
+
+  target_year = 2022
+  n = len(ticker_objs)
+  i = 0
+  for code, ticker_obj in ticker_objs.items():
+    i += 1
+    print(f'({i}/{n}) Ticker: {code}')
+    try:
+      market_cap = get_market_cap_google(code, ticker_obj['exchange'])
+      market_cap = float(market_cap)
+      cik = get_cik(code)
+      data = edgar_get_data(cik)
+      filings = edgar_get_filings(data)
+      populate_earnings(data, filings)
+      filing = get_filing_by_year(filings, target_year)
+      if 'earnings' not in filing.financial_data:
+        print(f'No earnings for {target_year} found.')
+      earnings22 = float(filing.financial_data['earnings'])
+    except Exception as err:
+      print(f'Error: {err=}\n')
+      continue
+    pe = market_cap / earnings22
+    print(f'Ticker: {code}, CIK: {cik}, Cap: {round(market_cap)}, Earnings: {round(earnings22)}, PE: {round(pe, 2)}\n')
+
+  """ GOOGLE SHEETS STUFF
+  creds = None
+  # The file token.json stores the user's access and refresh tokens, and is
+  # created automatically when the authorization flow completes for the first
+  # time.
+  if os.path.exists("token.json"):
+    creds = Credentials.from_authorized_user_file("token.json", SCOPES)
+  # If there are no (valid) credentials available, let the user log in.
+  if not creds or not creds.valid:
+    if creds and creds.expired and creds.refresh_token:
+      creds.refresh(Request())
+    else:
+      flow = InstalledAppFlow.from_client_secrets_file(
+          "desktop_credentials.json", SCOPES
+      )
+      creds = flow.run_local_server(port=0)
+    # Save the credentials for the next run
+    with open("token.json", "w") as token:
+      token.write(creds.to_json())
+  """
+
+  # try:
+    # service = build("sheets", "v4", credentials=creds)
+    # spreadsheet_id = create_spreadsheet("test-report", service)
+    # create_sheets(spreadsheet_id, service)
+    # company_data = edgar_get_company_metadata()
+    # ticker = company_data['tickers'][0]
+
+    # test_polygon(ticker)
+    # assets = get_assets(data, filings)
+    # line_items = filter_line_items(data, filings, assets)
+    # pprint.pprint(line_items)
+    # print(f'len of filtered line items = {len(line_items)}')
+    # print(*filings, sep="\n")
+    # test_chatgpt(line_items)
+    # # Pass: spreadsheet_id,  range_name, value_input_option, _values, and service
+    # update_values(
+    #     spreadsheet_id,
+    #     "A1",
+    #     "USER_ENTERED",
+    #     [data],
+    #     service
+    # )
+  # except HttpError as err:
+  #   print(err)
 
 
 if __name__ == "__main__":
