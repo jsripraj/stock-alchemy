@@ -68,27 +68,29 @@ def main():
   # tickers = get_tickers()
   # with open('tickers.txt', 'w') as f:
   #   json.dump(tickers, f)
-  with open('tickers.txt', 'r') as f:
-    tickers = json.load(f)
+  
+  # with open('tickers.txt', 'r') as f:
+  #   tickers = json.load(f)
+  tickers = ['AACG']
 
   for ticker in tickers:
     cik = get_cik(ticker)
-    try:
-      market_cap = get_market_cap(ticker)
-    except:
-      print(f'Ticker: {ticker} -> Error getting market cap ')
+    market_cap = get_market_cap_google(ticker, 'NASDAQ')
+    if not market_cap:
+      print(f'Ticker: {ticker}, CIK: {cik}, Cap: Error')
       continue
+    market_cap = float(market_cap)
     data = edgar_get_data(cik)
     filings = edgar_get_filings(data)
     populate_earnings(data, filings)
+    filing = get_filing_by_year(filings, 2022)
     try:
-      earnings22 = float((get_filing_by_year(filings, 2022)).financial_data['earnings'])
-    except Exception as err:
-      print(f'Ticker: {ticker}, Error getting earnings, unexpected {err=}, {type(err)}')
+      earnings22 = float(filing.financial_data['earnings'])
+    except KeyError:
+      print(f'Ticker: {ticker}, CIK: {cik}, Earnings: Error')
       continue
-    pe = float(market_cap) / earnings22
-    print(f'Ticker: {ticker}, CIK: {cik}, Cap: {market_cap}, Earnings: {earnings22}, PE: {pe}')
-
+    pe = market_cap / earnings22
+    print(f'Ticker: {ticker}, CIK: {cik}, Cap: {round(market_cap)}, Earnings: {round(earnings22)}, PE: {round(pe, 2)}')
 
   """ GOOGLE SHEETS STUFF
   creds = None
@@ -137,6 +139,42 @@ def main():
   #   print(err)
 
 
+def get_market_cap_google(ticker: str, exchange: str) -> int:
+  """
+  Returns the market cap of the given ticker trading on the given exchange. 
+  This function gets market cap data by scraping Google Finance with BeautifulSoup.
+  If the data cannot be found or processed, return None.
+  """
+  url = "https://www.google.com/finance/quote/AACG:NASDAQ" 
+  try:
+    r = requests.get(url)
+  except HttpError as error:
+    print(f"An error occurred: {error}")
+    raise
+  # print(r.text)
+  soup = BeautifulSoup(r.text, 'html.parser')
+  bs_string = soup.find(string="Market cap")
+  if not bs_string:
+    print(f'Google Finance market cap data not found for {ticker}:{exchange}.')
+    return None
+  try:
+    cap_tag = bs_string.parent.parent.next_sibling
+    raw_cap_string = cap_tag.string # i.e. "34.23M USD"
+    cap_string = raw_cap_string.split(' ')[0]
+    num = float(cap_string[:-1])
+    multipliers = {
+      'T': pow(10, 12),
+      'B': pow(10, 9),
+      'M': pow(10, 6)
+    }
+    mult = multipliers[cap_string[-1]]
+    cap = int(num * mult)
+    return cap
+  except AttributeError as error:
+    print(f'Unable to process Google market cap data: {error=}')
+    return None
+
+
 def populate_earnings(data: dict, filings: list[Filing]) -> None:
   """
   Stores the earnings (net income) value as an integer in the corresponding Filing.
@@ -150,8 +188,6 @@ def populate_earnings(data: dict, filings: list[Filing]) -> None:
     if name.startswith(search_term):
       item_name = name
       break
-
-  # TODO need to raise an exception if search term not found
 
   f = 0 # points to a Filing in filings
   r = 0 # points to a raw_item_filing
@@ -191,7 +227,7 @@ def populate_earnings(data: dict, filings: list[Filing]) -> None:
 #   return None
 
 
-def get_market_cap(ticker: str) -> int:
+def get_market_cap_yahoo(ticker: str) -> int:
   """
   Returns the market cap of the given ticker. This function gets market cap 
   data by scraping Yahoo Finance with BeautifulSoup.
@@ -202,11 +238,8 @@ def get_market_cap(ticker: str) -> int:
   except HttpError as error:
     print(f"An error occurred: {error}")
     raise
-    # print(r.text)
+  # print(r.text)
   soup = BeautifulSoup(r.text, 'html.parser')
-  # print(soup.prettify())
-  # res = soup.find(string="Market Cap")
-  # print(res.parent.parent.next_sibling)
   res = soup.find(attrs={"data-test":"MARKET_CAP-value"}) # example res.string = '6.192B'
   try:
     num = float(res.string[:-1])
