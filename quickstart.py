@@ -29,7 +29,7 @@ class Filing:
     self.fp = fp
     self.form = form
     self.filed = filed
-    self.financial_data = {}
+    self.financial_data = Financial_Data()
   
   def __str__(self):
     out = (
@@ -44,12 +44,17 @@ class Filing:
     return out
 
 
-def get_market_cap_google(ticker: str, exchange: str) -> int:
+class Financial_Data():
+  def __init__(self, earnings: int=None, earnings_5yr_avg: int=None):
+    self.earnings = earnings
+    self.earnings_5yr_avg = earnings_5yr_avg
+
+
+def get_market_cap_google(ticker: str, exchange: str, cutoff: int) -> int:
   """
   Returns the market cap of the given ticker trading on the given exchange. 
   This function gets market cap data by scraping Google Finance with BeautifulSoup.
   """
-  CUTOFF = 250000000
   url = f"https://www.google.com/finance/quote/{ticker}:{exchange}" 
   try:
     r = requests.get(url)
@@ -72,12 +77,34 @@ def get_market_cap_google(ticker: str, exchange: str) -> int:
     }
     mult = multipliers[cap_string[-1]]
     cap = int(num * mult)
-    if cap < CUTOFF:
-      raise Exception(f'Market cap of {cap} below cutoff of {CUTOFF}.')
+    if cap < cutoff:
+      raise Exception(f'Market cap of {cap} below cutoff of {cutoff}.')
     return cap
   except AttributeError:
     print(f'Unable to process Google market cap data.')
     raise
+
+
+def populate_5yr_avg_earnings(data: dict, filings: list[Filing]) -> None:
+  """
+  Must call populate_earnings first.
+  Stores the 5-year average of earnings as an integer in the most recent Filing.
+  """
+  most_recent_year = filings[-1].end.year
+  current_year = date.today().year
+  if most_recent_year < current_year - 2:
+    raise Exception(f'Most recent filing ({most_recent_year}) is too old to compute average earnings.')
+  if len(filings) < 5:
+    raise Exception(f'{len(filings)} years of filings is not enough to compute average earnings.')
+  earnings_sum = 0
+  for i in range(-1, -6, -1):
+    earnings = filings[i].financial_data.earnings
+    if not earnings:
+      raise Exception(f'At least one filing in the last five years is missing earnings data.')
+    earnings_sum += filings[i].financial_data.earnings
+  earnings_avg = earnings_sum / 5
+  filings[-1].financial_data.earnings_5yr_avg = round(earnings_avg)
+  return
 
 
 def populate_earnings(data: dict, filings: list[Filing]) -> None:
@@ -108,7 +135,7 @@ def populate_earnings(data: dict, filings: list[Filing]) -> None:
       raw_date = edgar_date_string_to_date(raw_item_filing['end'])
       if raw_item_filing['accn'] == filing.accn and raw_date == filing.end:
         val = int(raw_item_filing['val'])
-        filing.financial_data['earnings'] = val
+        filing.financial_data.earnings = val
         found = True
         f += 1
       elif raw_date < filing.end:
@@ -280,6 +307,9 @@ def main():
   """ 
   Run trading robot.
   """
+  target_year = 2022
+  MARKET_CAP_CUTOFF = pow(10, 12)
+
   # Use this in production
   # tickers = get_tickers()
 
@@ -291,28 +321,27 @@ def main():
   # with open('tickers.txt', 'w') as f:
   #   json.dump(tickers, f)
 
-  target_year = 2022
   n = len(ticker_objs)
   i = 0
   for code, ticker_obj in ticker_objs.items():
     i += 1
     print(f'({i}/{n}) Ticker: {code}')
     try:
-      market_cap = get_market_cap_google(code, ticker_obj['exchange'])
+      market_cap = get_market_cap_google(code, ticker_obj['exchange'], MARKET_CAP_CUTOFF)
       market_cap = float(market_cap)
       cik = get_cik(code)
       data = edgar_get_data(cik)
       filings = edgar_get_filings(data)
       populate_earnings(data, filings)
-      filing = get_filing_by_year(filings, target_year)
-      if 'earnings' not in filing.financial_data:
-        print(f'No earnings for {target_year} found.')
-      earnings22 = float(filing.financial_data['earnings'])
+      populate_5yr_avg_earnings(data, filings)
+      # filing = get_filing_by_year(filings, target_year)
+      filing = filings[-1]
+      earnings_5yravg = float(filing.financial_data.earnings_5yr_avg)
     except Exception as err:
       print(f'Error: {err=}\n')
       continue
-    pe = market_cap / earnings22
-    print(f'Ticker: {code}, CIK: {cik}, Cap: {round(market_cap)}, Earnings: {round(earnings22)}, PE: {round(pe, 2)}\n')
+    pe = market_cap / earnings_5yravg
+    print(f'Ticker: {code}, CIK: {cik}, Cap: {round(market_cap)}, 5-Year Average Earnings: {round(earnings_5yravg)}, Price to 5-Year Average Earnings: {round(pe, 2)}\n')
 
 
 if __name__ == "__main__":
