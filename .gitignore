@@ -3,6 +3,7 @@ desktop_credentials.json
 service_account_credentials.json
 token.json
 .edgarenv*
+.edgar-venv*
 temp.txt
 out.txt
 out2.txt
