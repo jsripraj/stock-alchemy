@@ -5,6 +5,7 @@ import requests
 
 from bs4 import BeautifulSoup
 from sec_cik_mapper import StockMapper
+from alpaca.trading.client import TradingClient
 
 
 USER_EMAIL = 'jsripraj@gmail.com'
@@ -303,6 +304,18 @@ def edgar_date_string_to_date(date_str):
   return date(d[0], d[1], d[2])
 
 
+def play_with_alpaca():
+  with open('alpaca_keys.txt', 'r') as f:
+    line = f.readline()
+    api_key = line.strip().split('=')[1]
+    line = f.readline()
+    secret_key = line.strip().split('=')[1]
+  
+  trading_client = TradingClient(api_key=api_key, secret_key=secret_key, paper=True)
+  account = trading_client.get_account()
+  pprint.pprint(account)
+
+
 def main():
   """ 
   Run trading robot.
@@ -345,4 +358,5 @@ def main():
 
 
 if __name__ == "__main__":
-  main()
+  # main()
+  play_with_alpaca()
