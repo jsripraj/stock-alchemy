@@ -311,11 +311,11 @@ def main():
   MARKET_CAP_CUTOFF = pow(10, 12)
 
   # Use this in production
-  # tickers = get_tickers()
+  ticker_objs = get_tickers()
 
   # But in development, read tickers from file to avoid too many API calls
-  with open('tickers.txt', 'r') as f:
-    ticker_objs = json.load(f)
+  # with open('tickers.txt', 'r') as f:
+  #   ticker_objs = json.load(f)
 
   # Use this to write tickers to file
   # with open('tickers.txt', 'w') as f:
