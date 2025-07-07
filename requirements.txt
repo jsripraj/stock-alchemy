@@ -10,9 +10,9 @@ google-auth-oauthlib==1.2.0
 googleapis-common-protos==1.62.0
 httplib2==0.22.0
 idna==3.6
-numpy==1.26.4
+numpy==2.3.1
 oauthlib==3.2.2
-pandas==2.2.1
+pandas==2.3.0
 protobuf==4.25.1
 pyasn1==0.5.1
 pyasn1-modules==0.3.0
