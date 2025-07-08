@@ -5,7 +5,7 @@ import requests
 
 from bs4 import BeautifulSoup
 from sec_cik_mapper import StockMapper
-from alpaca.trading.client import TradingClient
+# from alpaca.trading.client import TradingClient
 
 
 USER_EMAIL = 'jsripraj@gmail.com'
@@ -79,7 +79,7 @@ def get_market_cap_google(ticker: str, exchange: str, cutoff: int) -> int:
     mult = multipliers[cap_string[-1]]
     cap = int(num * mult)
     if cap < cutoff:
-      raise Exception(f'Market cap of {cap} below cutoff of {cutoff}.')
+      raise Exception(f'Market cap of {cap/1000000000:.3f} billion below cutoff of {cutoff/1000000000:.3f} billion.')
     return cap
   except AttributeError:
     print(f'Unable to process Google market cap data.')
@@ -358,5 +358,5 @@ def main():
 
 
 if __name__ == "__main__":
-  # main()
-  play_with_alpaca()
+  main()
+  # play_with_alpaca()
