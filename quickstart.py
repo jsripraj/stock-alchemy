@@ -1,11 +1,10 @@
 from datetime import date
 import pprint
-import json
 import requests
+import time
 
 from bs4 import BeautifulSoup
 from sec_cik_mapper import StockMapper
-# from alpaca.trading.client import TradingClient
 
 
 USER_EMAIL = 'jsripraj@gmail.com'
@@ -56,6 +55,7 @@ def get_market_cap_google(ticker: str, exchange: str, cutoff: int) -> int:
   Returns the market cap of the given ticker trading on the given exchange. 
   This function gets market cap data by scraping Google Finance with BeautifulSoup.
   """
+  start = time.time()
   url = f"https://www.google.com/finance/quote/{ticker}:{exchange}" 
   try:
     r = requests.get(url)
@@ -78,8 +78,10 @@ def get_market_cap_google(ticker: str, exchange: str, cutoff: int) -> int:
     }
     mult = multipliers[cap_string[-1]]
     cap = int(num * mult)
+    print(f'cap time: {time.time() - start} seconds')
     if cap < cutoff:
-      raise Exception(f'Market cap of {cap/1000000000:.3f} billion below cutoff of {cutoff/1000000000:.3f} billion.')
+      # raise Exception(f'Market cap of {cap/1000000000:.3f} billion below cutoff of {cutoff/1000000000:.3f} billion.')
+      pass
     return cap
   except AttributeError:
     print(f'Unable to process Google market cap data.')
@@ -303,19 +305,6 @@ def edgar_date_string_to_date(date_str):
   d = [int(x) for x in date_str.split('-')]
   return date(d[0], d[1], d[2])
 
-
-def play_with_alpaca():
-  with open('alpaca_keys.txt', 'r') as f:
-    line = f.readline()
-    api_key = line.strip().split('=')[1]
-    line = f.readline()
-    secret_key = line.strip().split('=')[1]
-  
-  trading_client = TradingClient(api_key=api_key, secret_key=secret_key, paper=True)
-  account = trading_client.get_account()
-  pprint.pprint(account)
-
-
 def main():
   """ 
   Run trading robot.
@@ -340,9 +329,14 @@ def main():
     i += 1
     print(f'({i}/{n}) Ticker: {code}')
     try:
+      cap_start = time.time()
       market_cap = get_market_cap_google(code, ticker_obj['exchange'], MARKET_CAP_CUTOFF)
       market_cap = float(market_cap)
+      cap_end = time.time()
+      print(f'Time to get market cap: {cap_end - cap_start} seconds')
       cik = get_cik(code)
+      cik_end = time.time()
+      print(f'Time to get cik: {cik_end - cap_end} seconds')
       data = edgar_get_data(cik)
       filings = edgar_get_filings(data)
       populate_earnings(data, filings)
@@ -350,6 +344,9 @@ def main():
       # filing = get_filing_by_year(filings, target_year)
       filing = filings[-1]
       earnings_5yravg = float(filing.financial_data.earnings_5yr_avg)
+      edgar_end = time.time()
+      print(f'Time to get edgar: {edgar_end - cik_end} seconds')
+      print(f'Total time: {edgar_end - cap_start} seconds')
     except Exception as err:
       print(f'Error: {err=}\n')
       continue
