@@ -25,12 +25,12 @@ class Company:
     def __repr__(self):
         return self.__str__()
 
-email = config.email
-url = config.url_sec_tickers
-headers = {'User-Agent': email}
-response = requests.get(url, headers=headers)
+headers = {'User-Agent': config.email}
+response = requests.get(config.url_sec_tickers, headers=headers)
 data = response.json()
-data = list(data.values())[:100] # small sample for now
+
+# TODO remove when ready for full update
+data = list(data.values())[:100]
 
 companies = {
     entry['ticker']: Company(
@@ -41,7 +41,7 @@ companies = {
 }
 
 tickers = list(companies.keys())
-batch_size = 100
+batch_size = config.batch_size_sec_tickers
 for i in range(0, len(tickers), batch_size):
     batch = tickers[:batch_size]
     data = yf.download(batch, period='1d')['Close']
@@ -61,6 +61,7 @@ for company in companies.values():
                    "VALUES (%s, %s, %s, %s, %s)")
     data_company = (company.cik, company.ticker, company.name, company.priceDate, company.price)
     cursor.execute(add_company, data_company)
+
 cnx.commit()
 cursor.close()
 cnx.close()
