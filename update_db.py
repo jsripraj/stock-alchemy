@@ -3,6 +3,12 @@ import yfinance as yf
 from datetime import date
 import time
 from pprint import pp
+import mysql.connector
+from dotenv import load_dotenv
+import os
+import config
+
+load_dotenv()
 
 class Company:
     def __init__(self, cik: str, ticker: str, name: str):
@@ -19,8 +25,8 @@ class Company:
     def __repr__(self):
         return self.__str__()
 
-email = 'jsripraj@gmail.com'
-url = "https://www.sec.gov/files/company_tickers.json"
+email = config.email
+url = config.url_sec_tickers
 headers = {'User-Agent': email}
 response = requests.get(url, headers=headers)
 data = response.json()
@@ -47,4 +53,14 @@ for i in range(0, len(tickers), batch_size):
             companies[ticker].price = price
     time.sleep(1)
 
-pp(companies)
+cnx = mysql.connector.connect(host=config.mysql_host, database=config.mysql_database, user=os.getenv("MYSQL_USER"), password=os.getenv("MYSQL_PASSWORD"))
+cursor = cnx.cursor()
+for company in companies.values():
+    add_company = ("INSERT INTO companies "
+                   "(CIK, Ticker, CompanyName, PriceDate, Price) "
+                   "VALUES (%s, %s, %s, %s, %s)")
+    data_company = (company.cik, company.ticker, company.name, company.priceDate, company.price)
+    cursor.execute(add_company, data_company)
+cnx.commit()
+cursor.close()
+cnx.close()
