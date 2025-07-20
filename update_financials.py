@@ -29,12 +29,12 @@ class FiscalFinancial:
         self.form: str = form
         self.fy: str = fy
         self.fp: str = fp
-        self.revenue: list[FiscalValue] = []
+        self.values: dict[str, list[FiscalValue]] = defaultdict(list)
 
 def createFId(accn: str, end: str, periodType: Enum) -> str:
     return "_".join([accn, end, periodType.name])
 
-def createFIdToData(data: dict, cik: str) -> dict[str, dict]:
+def createFIdToData(data: dict, cik: str) -> dict[str, dict] | None:
     '''
     Returns dict mapping ID to data dict. 
     '''
@@ -82,17 +82,19 @@ def getConcepts(data: dict, fIdToFiscalFinancial: dict) -> None:
                 period = getPeriodType(start, end, form)
                 entryId = createFId(accn, end, period)
                 if entryId in fIdToFiscalFinancial:
-                    concept = concepts.aliasToConcept[alias]
+                    concept = concepts.aliasToConcept[alias].name
                     value = entry['val']
-                    fIdToFiscalFinancial[entryId].revenue.append(FiscalValue(concept, alias, value))
+                    fIdToFiscalFinancial[entryId].values[concept].append(FiscalValue(concept, alias, value))
 
     for fId, ff in fIdToFiscalFinancial.items():
-        if not ff.revenue:
-            print(f'ID {fId}: No values found')
-        elif len(ff.revenue) > 1:
-            print(f'ID {fId}: Too many values found: {ff.revenue}')
-        else:
-            print(f'ID {fId}: One value found: {ff.revenue[0]}')
+        for concept in concepts.Concepts:
+            values = ff.values[concept.name]
+            if not values:
+                print(f'ID {fId}: No values found')
+            elif len(values) > 1:
+                print(f'ID {fId}: Too many values found: {values}')
+            else:
+                print(f'ID {fId}: One value found: {values[0]}')
 
 def getPeriodType(startDate: str | None, endDate: str, form: str) -> Enum:
     if not startDate:
@@ -123,8 +125,7 @@ cursor.execute(query)
 cursor.fetchall()
 # for cik in cursor:
 #     cik = cik[0]
-for cik in ['0000320193']: # Apple
-
+for cik in ['0000320193', '0002011641']: # Apple, Ferguson Enterprises
     fname = 'CIK' + cik + '.json'
     with zipfile.ZipFile(config.ZIP_PATH, 'r') as z:
         with open("test.txt", 'w') as write_file:
@@ -134,8 +135,8 @@ for cik in ['0000320193']: # Apple
                     data = json.loads(content.decode('utf-8'))
                     fIdToData = createFIdToData(data, cik)
                     if fIdToData:
+                        print(f'\nCIK: {cik}')
                         getConcepts(data, fIdToData)
-                        # pp(financials)
             except KeyError as e:
                 print(f'KeyError: {e}')
 
