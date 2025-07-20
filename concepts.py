@@ -7,9 +7,11 @@ class PeriodType(Enum):
 
 class Concepts(Enum):
     Revenue = auto()
+    NetIncome = auto()
 
 aliasToConcept = {
     'RevenueFromContractWithCustomerExcludingAssessedTax': Concepts.Revenue,
     'Revenues': Concepts.Revenue,
-    'SalesRevenueNet': Concepts.Revenue
+    'SalesRevenueNet': Concepts.Revenue,
+    'NetIncomeLoss' : Concepts.NetIncome,
 }
