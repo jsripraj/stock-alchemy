@@ -18,6 +18,7 @@ aliasToConcept = {
     'RevenueFromContractWithCustomerExcludingAssessedTax': Concepts.Revenue,
     'Revenues': Concepts.Revenue,
     'SalesRevenueNet': Concepts.Revenue,
+    'NoninterestIncome': Concepts.Revenue,
     'NetIncomeLoss' : Concepts.NetIncome,
     'NetCashProvidedByUsedInOperatingActivities' : Concepts.CashFlowFromOperatingActivities,
     'NetCashProvidedByUsedInOperatingActivitiesContinuingOperations': Concepts.CashFlowFromOperatingActivities,
