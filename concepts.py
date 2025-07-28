@@ -20,7 +20,9 @@ aliasToConcept = {
     'SalesRevenueNet': Concepts.Revenue,
     'NetIncomeLoss' : Concepts.NetIncome,
     'NetCashProvidedByUsedInOperatingActivities' : Concepts.CashFlowFromOperatingActivities,
+    'NetCashProvidedByUsedInOperatingActivitiesContinuingOperations': Concepts.CashFlowFromOperatingActivities,
     'NetCashProvidedByUsedInInvestingActivities' : Concepts.CashFlowFromInvestingActivities,
+    'NetCashProvidedByUsedInInvestingActivitiesContinuingOperations': Concepts.CashFlowFromInvestingActivities,
     'NetCashProvidedByUsedInFinancingActivities' : Concepts.CashFlowFromFinancingActivities,
-
+    'NetCashProvidedByUsedInFinancingActivitiesContinuingOperations': Concepts.CashFlowFromFinancingActivities,
 }
