@@ -38,17 +38,20 @@ def strToDate(dateStr: str) -> datetime:
 def dateToStr(date: datetime.datetime) -> str:
     return date.strftime("%Y-%m-%d")
 
-def createFId(accn: str, end: str, duration: Enum) -> str:
-    '''
-    Returns a Fiscal ID: accn, end, and Duration, connected by underscores.
+def getCik(accn: str) -> str:
+    return accn.split('-')[0]
 
-    For example: 0000034088-23-000048_2023-06-30_Quarter
+def createFId(cik: str, end: str, duration: Enum) -> str:
     '''
-    return "_".join([accn, end, duration.name])
+    Returns a Fiscal ID: cik, end, and Duration, connected by underscores.
+
+    For example: 0000034088_2023-06-30_OneQuarter
+    '''
+    return "_".join([cik, end, duration.name])
 
 def deconstructFId(fId: str) -> tuple[str, str, str]:
     '''
-    Returns accn, end, Duration
+    Returns cik, end, Duration
     '''
     return fId.split('_')
 
@@ -89,12 +92,12 @@ def createFIdToFiscalFinancial(data: dict, cik: str) -> dict[str, dict] | None:
         start = entry['start'] if 'start' in entry else None
         end = entry['end']
         form = entry['form']
-        period = getDuration(start, end, form)
+        duration = getDuration(start, end, form)
         accn = entry['accn']
-        fId = createFId(accn, end, period)
+        fId = createFId(cik, end, duration)
         fiscalYear = entry['fy']
         fiscalPeriod = entry['fp']
-        fIdToFiscalFinancial[fId] = FiscalFinancial(cik, fId, period, start, end, accn, form, fiscalYear, fiscalPeriod)
+        fIdToFiscalFinancial[fId] = FiscalFinancial(cik, fId, duration, start, end, accn, form, fiscalYear, fiscalPeriod)
         ends.append(end)
     
     # Add the missing Q4s
@@ -110,7 +113,7 @@ def createFIdToFiscalFinancial(data: dict, cik: str) -> dict[str, dict] | None:
             startDate = priorQuarterEnd + datetime.timedelta(days=1)
             start = dateToStr(startDate)
             duration = concepts.Duration.OneQuarter
-            quarterId = createFId(ff.accn, ff.end, duration)
+            quarterId = createFId(ff.cik, ff.end, duration)
             fiscalPeriod = 'Q4'
             fIdToFiscalFinancial[quarterId] = FiscalFinancial(cik, quarterId, duration, start, ff.end, ff.accn, None, ff.fy, fiscalPeriod)
     return fIdToFiscalFinancial
@@ -121,12 +124,12 @@ def getConcepts(data: dict, fIdToFiscalFinancial: dict) -> None:
         if alias in concepts.aliasToConcept:
             entries = gaapData[alias]['units']['USD']
             for entry in entries:
-                accn = entry['accn']
+                cik = getCik(entry['accn'])
                 end = entry['end']
-                form = entry['form']
+                fiscalPeriod = entry['fp']
                 start = entry['start'] if 'start' in entry else None
-                period = getDuration(start, end, form)
-                entryId = createFId(accn, end, period)
+                duration = getDuration(start, end, fiscalPeriod)
+                entryId = createFId(cik, end, duration)
                 if entryId in fIdToFiscalFinancial:
                     concept = concepts.aliasToConcept[alias].name
                     value = entry['val']
@@ -148,12 +151,12 @@ def addMissingOneQuarterConcepts(fIdToFiscalFinancial: dict) -> None:
                 concept = concept.name
                 values = ff.values[concept]
                 if not values:
-                    value = getOneQuarterValue(fIdToFiscalFinancial, ff)
+                    value = getOneQuarterValue(fIdToFiscalFinancial, ff, concept)
                     if value != None:
                         values.append(value)
 
-def getOneQuarterValue(fIdToFf: dict[str, FiscalFinancial], ff: FiscalFinancial) -> FiscalValue | None:
-    accn, longEnd, _ = deconstructFId(ff.fId)
+def getOneQuarterValue(fIdToFf: dict[str, FiscalFinancial], ff: FiscalFinancial, concept: str) -> FiscalValue | None:
+    cik, longEnd, _ = deconstructFId(ff.fId)
     if ff.fp == 'Q4':
         longDuration = concepts.Duration.Year
         shortDuration = concepts.Duration.ThreeQuarters
@@ -165,14 +168,14 @@ def getOneQuarterValue(fIdToFf: dict[str, FiscalFinancial], ff: FiscalFinancial)
         shortDuration = concepts.Duration.OneQuarter
     else:
         return None
-    longId = createFId(accn, longEnd, longDuration)
+    longId = createFId(cik, longEnd, longDuration)
     shortEnd = dateToStr(strToDate(ff.start) - datetime.timedelta(days=1))
-    shortId = createFId(accn, shortEnd, shortDuration)
-    if longId in fIdToFf:
-        longValues = fIdToFf[longId].values
+    shortId = createFId(cik, shortEnd, shortDuration)
+    if longId in fIdToFf and concept in fIdToFf[longId].values:
+        longValues = fIdToFf[longId].values[concept]
         if len(longValues) == 1:
-            if shortId in fIdToFf:
-                shortValues = fIdToFf[shortId].values
+            if shortId in fIdToFf and concept in fIdToFf[shortId].values:
+                shortValues = fIdToFf[shortId].values[concept]
                 if len(shortValues) == 1:
                     longValue = longValues[0]
                     shortValue = shortValues[0]
@@ -198,9 +201,16 @@ def handleConceptIssues(fIdToFiscalFinancial: dict) -> None:
         fname = f'CIK{cik}.json'
         extractZipFileToJson(fname)
 
-def getDuration(startDate: str | None, endDate: str, form: str) -> Enum:
+def getDuration(startDate: str | None, endDate: str, fiscalPeriod: str) -> Enum:
     if not startDate:
-        return concepts.Duration.OneQuarter if form == "10-Q" else concepts.Duration.Year
+        if fiscalPeriod == 'Q1':
+            return concepts.Duration.OneQuarter
+        elif fiscalPeriod == 'Q2':
+            return concepts.Duration.TwoQuarters
+        elif fiscalPeriod == 'Q3':
+            return concepts.Duration.ThreeQuarters
+        else: # fiscalPeriod is 'FY'
+            return concepts.Duration.Year
     start = strToDate(startDate)
     end = strToDate(endDate)
     duration = (end - start).days
