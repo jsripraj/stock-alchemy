@@ -40,16 +40,25 @@ def dateToStr(date: datetime.datetime) -> str:
 
 def createFId(accn: str, end: str, duration: Enum) -> str:
     '''
-    Returns a Fiscal ID: <accn>_<end date yyyy-mm-dd>_<duration (see concepts.py)>
+    Returns a Fiscal ID: accn, end, and Duration, connected by underscores.
+
+    For example: 0000034088-23-000048_2023-06-30_Quarter
     '''
     return "_".join([accn, end, duration.name])
 
 def deconstructFId(fId: str) -> tuple[str, str, str]:
+    '''
+    Returns accn, end, Duration
+    '''
     return fId.split('_')
 
-def createFIdToData(data: dict, cik: str) -> dict[str, dict] | None:
+def createFIdToFiscalFinancial(data: dict, cik: str) -> dict[str, dict] | None:
     '''
-    Returns dict mapping ID to data dict. 
+    Returns a dictionary mapping Fiscal ID to a FiscalFinancial with empty values, or None if the 
+    dictionary cannot be created.
+
+    In addition to the expected (and company-reported) entries for FY, Q3, Q2, and Q1, this 
+    function also creates entries for Q4, which is not reported by companies. 
     '''
     if 'facts' not in data:
         print(f'{cik}: facts NOT FOUND')
@@ -93,7 +102,7 @@ def createFIdToData(data: dict, cik: str) -> dict[str, dict] | None:
     fIds = [fId for fId in fIdToFiscalFinancial.keys()]
     for fId in fIds:
         ff = fIdToFiscalFinancial[fId]
-        if ff.period == concepts.Duration.Year:
+        if ff.duration == concepts.Duration.Year:
             i = ends.index(ff.end)
             if i == 0:
                 continue
@@ -102,7 +111,8 @@ def createFIdToData(data: dict, cik: str) -> dict[str, dict] | None:
             start = dateToStr(startDate)
             duration = concepts.Duration.OneQuarter
             quarterId = createFId(ff.accn, ff.end, duration)
-            fIdToFiscalFinancial[quarterId] = FiscalFinancial(cik, quarterId, duration, start, ff.end, ff.accn, None, None, None)
+            fiscalPeriod = 'Q4'
+            fIdToFiscalFinancial[quarterId] = FiscalFinancial(cik, quarterId, duration, start, ff.end, ff.accn, None, ff.fy, fiscalPeriod)
     return fIdToFiscalFinancial
 
 def getConcepts(data: dict, fIdToFiscalFinancial: dict) -> None:
@@ -121,44 +131,56 @@ def getConcepts(data: dict, fIdToFiscalFinancial: dict) -> None:
                     concept = concepts.aliasToConcept[alias].name
                     value = entry['val']
                     fIdToFiscalFinancial[entryId].values[concept].append(FiscalValue(concept, alias, value))
-    getMissingOneQuarterConcepts(fIdToFiscalFinancial)
+    addMissingOneQuarterConcepts(fIdToFiscalFinancial)
     handleConceptIssues(fIdToFiscalFinancial)
 
-def getMissingOneQuarterConcepts(fIdToFiscalFinancial: dict) -> None:
+def addMissingOneQuarterConcepts(fIdToFiscalFinancial: dict) -> None:
+    '''
+    Add missing one-quarter-duration concepts. 
+
+    For example, all fourth quarter concepts will be missing since they are not reported and must 
+    be derived. Also, cash flow concepts will be missing for Q2 and Q3 since these are only 
+    reported in two- and three-quarter durations. 
+    '''
     for fId, ff in fIdToFiscalFinancial.items():
-        if fId.endswith(concepts.Duration.OneQuarter.name):
-            # find the concepts that OneQuarter is missing, should be cash flow concepts
+        if ff.duration == concepts.Duration.OneQuarter and ff.fp != 'Q1':
             for concept in concepts.Concepts:
                 concept = concept.name
-                data = ff.values[concept]
-                if not data:
-                    elif ff.fp == 'Q2':
-                        # get id of twoquarter
-                        threeQuarterId = idSub + concepts.Duration.ThreeQuarters.name
-                        twoQuarterId = idSub + concepts.Duration.ThreeQuarters.name
-                        threeQuarterId = idSub + concepts.Duration.ThreeQuarters.name
+                values = ff.values[concept]
+                if not values:
+                    value = getOneQuarterValue(fIdToFiscalFinancial, ff)
+                    if value != None:
+                        values.append(value)
 
-                    # try to calculate as TwoQuarter minus OneQuarter
-                    # get id of twoquarter w same end date
-                    # get onequarter end date
-                    # get id of onequarter
-
-def getOneQuarterValue(ff: FiscalFinancial):
-    if ff.fp == 'Q3':
-        # try to calculate as ThreeQuarter minus TwoQuarter
-        # get id of threequarter w same end date
-        # get accn from fId
-        # get date from fId
-        accn, q3End, _ = deconstructFId(fId)
-        # use ThreeQuarter
-        q3Id = createFId(accn, q3End, concepts.Duration.ThreeQuarters)
-        # get twoquarter end date
-        q2End = strToDate(ff.start) - datetime.timedelta(days=1)
-        q2Id = createFId(accn, q2End, concepts.Duration.TwoQuarters)
-        q3Value = fIdToFiscalFinancial[q3Id].values[concept][0].value
-        q2Value = fIdToFiscalFinancial[q2Id].values[concept][0].value
-        data.append(q3Value - q2Value)
-
+def getOneQuarterValue(fIdToFf: dict[str, FiscalFinancial], ff: FiscalFinancial) -> FiscalValue | None:
+    accn, longEnd, _ = deconstructFId(ff.fId)
+    if ff.fp == 'Q4':
+        longDuration = concepts.Duration.Year
+        shortDuration = concepts.Duration.ThreeQuarters
+    elif ff.fp == 'Q3':
+        longDuration = concepts.Duration.ThreeQuarters
+        shortDuration = concepts.Duration.TwoQuarters
+    elif ff.fp == 'Q2':
+        longDuration = concepts.Duration.TwoQuarters
+        shortDuration = concepts.Duration.OneQuarter
+    else:
+        return None
+    longId = createFId(accn, longEnd, longDuration)
+    shortEnd = dateToStr(strToDate(ff.start) - datetime.timedelta(days=1))
+    shortId = createFId(accn, shortEnd, shortDuration)
+    if longId in fIdToFf:
+        longValues = fIdToFf[longId].values
+        if len(longValues) == 1:
+            if shortId in fIdToFf:
+                shortValues = fIdToFf[shortId].values
+                if len(shortValues) == 1:
+                    longValue = longValues[0]
+                    shortValue = shortValues[0]
+                    resConcept = longValue.concept
+                    resAlias = longValue.alias
+                    resValue = str(int(longValue.value) - int(shortValue.value))
+                    return FiscalValue(resConcept, resAlias, resValue)
+    return None
 
 def handleConceptIssues(fIdToFiscalFinancial: dict) -> None:
     ciks = set()
@@ -216,9 +238,10 @@ def run():
     cursor = cnx.cursor()
     query = ("SELECT CIK FROM companies;")
     cursor.execute(query)
-    # cursor.fetchall()
-    # for cik in ['0000320193', '0002011641']: # Apple, Ferguson Enterprises
-    for cik in cursor:
+    cursor.fetchall() # Need to "use up" cursor
+    for cik in [('0000320193',)]: # Apple
+    # for cik in [('0000320193',), ('0002011641',)]: # Apple, Ferguson Enterprises
+    # for cik in cursor:
         cik = cik[0]
         print(f'\nCIK: {cik}')
         fname = 'CIK' + cik + '.json'
@@ -228,9 +251,9 @@ def run():
                     with z.open(fname) as f:
                         content = f.read()
                         data = json.loads(content.decode('utf-8'))
-                        fIdToData = createFIdToData(data, cik)
-                        if fIdToData:
-                            getConcepts(data, fIdToData)
+                        fIdToFiscalFinancial = createFIdToFiscalFinancial(data, cik)
+                        if fIdToFiscalFinancial:
+                            getConcepts(data, fIdToFiscalFinancial)
                 except KeyError as e:
                     print(f'KeyError: {e}')
 
