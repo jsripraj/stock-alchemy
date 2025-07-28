@@ -169,7 +169,6 @@ def getConcepts(cik: str, data: dict, fIdToFiscalFinancial: dict) -> None:
                     myFV = FiscalValue(concept, alias, value, filingFy)
                     addFiscalValues(existingValues, myFV)
     addMissingOneQuarterConcepts(fIdToFiscalFinancial)
-    handleConceptIssues(fIdToFiscalFinancial)
 
 def addFiscalValues(existing: list[FiscalValue], mine: FiscalValue) -> None:
     '''
@@ -238,24 +237,22 @@ def getOneQuarterValue(fIdToFf: dict[str, FiscalFinancial], ff: FiscalFinancial,
                     return FiscalValue(resConcept, resAlias, resValue)
     return None
 
-def handleConceptIssues(fIdToFiscalFinancial: dict) -> None:
-    ciks = set()
-    msgCount = 0
-    for fId, ff in fIdToFiscalFinancial.items():
-        values = ff.values
-        for c in concepts.Concepts:
-            concept = c.name
-            data = values[concept]
-            if len(data) != 1:
-                print(f'\nFID: {fId}, concept: {concept}, accn: {ff.accn}, Msg: {len(data)} values found => {data}')
-                ciks.add(ff.cik)
-                msgCount += 1
-            # if len(data) == 1:
-            #     print(f'ID {fId}: One value found: {data}')
-    print(f'\n{msgCount} messages')
-    for cik in ciks:
-        fname = f'CIK{cik}.json'
-        extractZipFileToJson(fname)
+def handleConceptIssues(cik: str, fIdToFiscalFinancial: dict) -> None:
+    logFile = os.path.join(config.LOG_DIR, f'CIK{cik}.log')
+    with open(logFile, "w") as lf:
+        msgCount = 0
+        for fId, ff in fIdToFiscalFinancial.items():
+            values = ff.values
+            for c in concepts.Concepts:
+                concept = c.name
+                data = values[concept]
+                if len(data) != 1:
+                    lf.write(f'\nFID: {fId}, concept: {concept}, accn: {ff.accn}, Msg: {len(data)} values found => {data}')
+                    msgCount += 1
+        if msgCount > 0:
+            lf.write(f'\n{msgCount} messages')
+            jsonFilename = f'CIK{cik}.json'
+            extractZipFileToJson(jsonFilename)
 
 def getDuration(startDate: str | None, endDate: str, fiscalPeriod: str) -> Enum:
     if not startDate:
@@ -279,7 +276,7 @@ def extractZipFileToJson(filename: str):
         with zf.open(filename) as inFile:
             content = inFile.read()
             data = json.loads(content.decode('utf-8'))
-            with open(os.path.join(config.DATA_DIR, filename), 'w') as outFile:
+            with open(os.path.join(config.LOG_DIR, filename), 'w') as outFile:
                 json.dump(data, outFile, indent=2)
 
 # Download companyfacts.zip
@@ -298,23 +295,27 @@ def run():
     query = ("SELECT CIK FROM companies;")
     cursor.execute(query)
     cursor.fetchall() # Need to "use up" cursor
-    # for cik in [('0000320193',)]: # Apple
-    for cik in [('0000320193',), ('0000004962',)]: # Apple, American Express
+    ciks = [
+        ('0000320193',), # Apple
+        ('0000004962',), # American Express
+        ('0000012927',), # Boeing
+        ('0000034088',), # Exxon Mobil
+    ]
+    for cik in ciks:
     # for cik in cursor:
         cik = cik[0]
-        print(f'\nCIK: {cik}')
         fname = 'CIK' + cik + '.json'
         with zipfile.ZipFile(config.ZIP_PATH, 'r') as z:
-            with open("test.txt", 'w') as write_file:
-                try:
-                    with z.open(fname) as f:
-                        content = f.read()
-                        data = json.loads(content.decode('utf-8'))
-                        fIdToFiscalFinancial = createFIdToFiscalFinancial(data, cik)
-                        if fIdToFiscalFinancial:
-                            getConcepts(cik, data, fIdToFiscalFinancial)
-                except KeyError as e:
-                    print(f'KeyError: {e}')
+            try:
+                with z.open(fname) as f:
+                    content = f.read()
+                    data = json.loads(content.decode('utf-8'))
+                    fIdToFiscalFinancial = createFIdToFiscalFinancial(data, cik)
+                    if fIdToFiscalFinancial:
+                        getConcepts(cik, data, fIdToFiscalFinancial)
+            except KeyError as e:
+                print(f'KeyError: {e}')
+        handleConceptIssues(cik, fIdToFiscalFinancial)
 
     cnx.commit()
     cursor.close()
