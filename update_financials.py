@@ -11,13 +11,14 @@ import concepts
 from enum import Enum
 
 class FiscalValue:
-    def __init__(self, concept: str, alias: str, value: str):
+    def __init__(self, concept: str, alias: str, value: str, filingFy: str = None):
         self.concept = concept
         self.alias = alias
         self.value = value
+        self.filingFy = filingFy
 
     def __repr__(self):
-        return f"FiscalValue('{self.concept}', '{self.alias}', '{self.value}')"
+        return f"FiscalValue('{self.concept}', '{self.alias}', '{self.value}', '{self.filingFy}')"
 
 class FiscalFinancial:
     def __init__(self, cik: str, fId: str, duration: Enum, start: str, end: str, accn: str, form: str, fy: str , fp: str):
@@ -164,15 +165,44 @@ def getConcepts(cik: str, data: dict, fIdToFiscalFinancial: dict) -> None:
                     concept = concepts.aliasToConcept[alias].name
                     value = entry['val']
                     existingValues = fIdToFiscalFinancial[entryId].values[concept]
-                    if not existingValues:
-                        existingValues.append(FiscalValue(concept, alias, value))
-                    else:
-                        for i in range(len(existingValues)):
-                            if existingValues[i].alias == alias:
-                                existingValues[i] = FiscalValue(concept, alias, value)
-                                break
+                    filingFy = entry['fy']
+                    myFV = FiscalValue(concept, alias, value, filingFy)
+                    addFiscalValues(existingValues, myFV)
     addMissingOneQuarterConcepts(fIdToFiscalFinancial)
     handleConceptIssues(fIdToFiscalFinancial)
+
+def addFiscalValues(existing: list[FiscalValue], mine: FiscalValue) -> None:
+    '''
+    Determines whether and how a FiscalValue should be added to a list, then adds it if necessary.
+    '''
+    # If the list is empty, append it
+    if not existing:
+        existing.append(mine)
+        return
+
+    # If your value is the same as an existing one, do nothing
+    for i in range(len(existing)):
+        if existing[i].value == mine.value:
+            return
+
+    # If your new value is "better" than an existing value, replace the existing
+    for i in range(len(existing)):
+        if replaceFiscalValue(existing[i], mine):
+            existing[i] = mine
+
+    return
+
+def replaceFiscalValue(A: FiscalValue, B: FiscalValue) -> bool:
+    '''
+    Returns True if FiscalValue A should be replaced by B. 
+    
+    A should be replaced by B if B is more recent (or at least not None).
+    '''
+    if B.filingFy and (not A.filingFy or B.filingFy > A.filingFy):
+        return True
+
+    return False
+
 
 def addMissingOneQuarterConcepts(fIdToFiscalFinancial: dict) -> None:
     '''
@@ -268,8 +298,8 @@ def run():
     query = ("SELECT CIK FROM companies;")
     cursor.execute(query)
     cursor.fetchall() # Need to "use up" cursor
-    for cik in [('0000320193',)]: # Apple
-    # for cik in [('0000320193',), ('0002011641',)]: # Apple, Ferguson Enterprises
+    # for cik in [('0000320193',)]: # Apple
+    for cik in [('0000320193',), ('0000004962',)]: # Apple, American Express
     # for cik in cursor:
         cik = cik[0]
         print(f'\nCIK: {cik}')
