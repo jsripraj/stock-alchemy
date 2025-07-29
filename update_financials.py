@@ -69,16 +69,25 @@ def createFIdToFiscalFinancial(data: dict, cik: str) -> dict[str, dict] | None:
     also creates one-quarter duration entries for Q4, Q3, and Q2. 
     '''
     if 'facts' not in data:
-        print(f'{cik}: facts NOT FOUND')
+        log(logging.debug, cik, f'"facts" not found in JSON')
+        # print(f'{cik}: facts NOT FOUND')
         return None
     if 'us-gaap' not in data['facts']:
-        print(f'{cik}: us-gaap NOT FOUND')
+        log(logging.debug, cik, f'"us-gaap" not found in JSON')
+        # print(f'{cik}: us-gaap NOT FOUND')
         return None
     # if 'Assets' not in data['facts']['us-gaap']:
     #     print(f'{cik}: Assets not found')
     #     return None
     if 'NetIncomeLoss' not in data['facts']['us-gaap']:
-        print(f'{cik}: NetIncomeLoss not found')
+        log(logging.debug, cik, f'"NetIncomeLoss" not found in JSON')
+        # print(f'{cik}: NetIncomeLoss not found')
+        return None
+    if 'units' not in data['facts']['us-gaap']['NetIncomeLoss']:
+        log(logging.debug, cik, f'"units" not found in JSON')
+        return None
+    if 'USD' not in data['facts']['us-gaap']['NetIncomeLoss']['units']:
+        log(logging.debug, cik, f'"USD" not found in JSON')
         return None
 
     accnToEntry = {}
@@ -132,7 +141,6 @@ def createFIdToFiscalFinancial(data: dict, cik: str) -> dict[str, dict] | None:
     return fIdToFiscalFinancial
 
 def getConcepts(cik: str, data: dict, fIdToFiscalFinancial: dict, logger: logging.Logger) -> None:
-    logger.debug(f'CIK {cik}: Getting concepts')
     gaapData = data['facts']['us-gaap']
     for alias in gaapData.keys():
         if alias in concepts.aliasToConcept:
@@ -238,7 +246,9 @@ def getLongShortOneQuarterFIds(ff: FiscalFinancial, logger: logging.Logger) -> t
         longDuration = concepts.Duration.TwoQuarters
         shortDuration = concepts.Duration.OneQuarter
     else:
-        logger.warning(f"CIK {ff.cik}, Msg: Cannot get long/short-duration FId of {ff.fp} fiscal period, FF: {ff}")
+        # logger.warning(f"CIK {ff.cik}, Msg: Cannot get long/short-duration FId of {ff.fp} fiscal period, FF: {ff}")
+        msg = f'Cannot get long/short-duration FId of {ff.fp} fiscal period, FF: {ff}'
+        log(logger.warning, ff.cik, msg)
         return None, None
     longId = createFId(cik, longEnd, longDuration)
     shortEnd = dateToStr(strToDate(ff.start) - datetime.timedelta(days=1))
@@ -246,18 +256,22 @@ def getLongShortOneQuarterFIds(ff: FiscalFinancial, logger: logging.Logger) -> t
     return longId, shortId
 
 def handleConceptIssues(cik: str, fIdToFiscalFinancial: dict, logger) -> None:
-        msgCount = 0
+        problemCount = 0
         for fId, ff in fIdToFiscalFinancial.items():
             values = ff.values
             for c in concepts.Concepts:
                 concept = c.name
                 data = values[concept]
                 if len(data) != 1:
-                    msg = "no values found" if not data else f"{len(data)} values found => {data}"
-                    logger.debug(f'CIK {cik}, concept: {concept}, Msg: {msg}, FF: {ff}')
-                    msgCount += 1
-        if msgCount > 0:
-            logger.debug(f'CIK {cik}: {msgCount} messages')
+                    issue = f"No values found" if not data else f"{len(data)} values found => {data}"
+                    msg = f"{ff.end} {ff.duration.name} {concept}: {issue}"
+                    log(logger.debug, cik, msg)
+                    # logger.debug(f'CIK {cik}, concept: {concept}, Msg: {msg}, FF: {ff}')
+                    problemCount += 1
+        if problemCount > 0:
+            msg = f'{problemCount} problematic values'
+            log(logger.debug, cik, msg)
+            # logger.debug(f'CIK {cik}: {problemCount} problematic concepts')
             jsonFilename = f'CIK{cik}.json'
             extractZipFileToJson(jsonFilename)
 
@@ -296,6 +310,9 @@ def configureLogger() -> logging.Logger:
                         filemode="w")
     return logger
 
+def log(fn, cik: str, msg: str):
+    fn(f'CIK {cik}: {msg}')
+
 # Download companyfacts.zip
 # headers = {'User-Agent': config.EMAIL}
 # with requests.get(config.URL_SEC_COMPANYFACTS, headers=headers, stream=True) as r:
@@ -330,17 +347,14 @@ def run():
 
         cik = cik[0]
         with zipfile.ZipFile(config.ZIP_PATH, 'r') as z:
-            try:
-                fname = 'CIK' + cik + '.json'
-                with z.open(fname) as f:
-                    content = f.read()
-                    data = json.loads(content.decode('utf-8'))
-                    fIdToFiscalFinancial = createFIdToFiscalFinancial(data, cik)
-                    if fIdToFiscalFinancial:
-                        getConcepts(cik, data, fIdToFiscalFinancial, logger)
-                        handleConceptIssues(cik, fIdToFiscalFinancial, logger)
-            except KeyError as e:
-                print(f'KeyError: {e}')
+            fname = 'CIK' + cik + '.json'
+            with z.open(fname) as f:
+                content = f.read()
+                data = json.loads(content.decode('utf-8'))
+                fIdToFiscalFinancial = createFIdToFiscalFinancial(data, cik)
+                if fIdToFiscalFinancial:
+                    getConcepts(cik, data, fIdToFiscalFinancial, logger)
+                    handleConceptIssues(cik, fIdToFiscalFinancial, logger)
 
     cnx.commit()
     cursor.close()
