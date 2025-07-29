@@ -2,13 +2,14 @@ import requests
 import os
 import zipfile
 import json
-from pprint import pp
+import pprint
 import mysql.connector
 from collections import defaultdict
 import datetime
 import config
 import concepts
 from enum import Enum
+import logging
 
 class FiscalValue:
     def __init__(self, concept: str, alias: str, value: str, filingFy: str = None):
@@ -32,6 +33,11 @@ class FiscalFinancial:
         self.fy: str = fy
         self.fp: str = fp
         self.values: dict[str, list[FiscalValue]] = defaultdict(list) # concept to values
+
+    def __repr__(self):
+        return f"FiscalFinancial(cik: {self.cik}, fId: {self.fId}, duration: {self.duration}, " + \
+               f"start: {self.start}, end: {self.end}, accn: {self.accn}, form: {self.form}, " + \
+               f"fy: {self.fy}, fp: {self.fp}, values: {pprint.pformat(self.values)}"
     
 def strToDate(dateStr: str) -> datetime:
     return datetime.datetime.strptime(dateStr, "%Y-%m-%d")
@@ -52,31 +58,6 @@ def deconstructFId(fId: str) -> tuple[str, str, str]:
     Returns cik, end, Duration
     '''
     return fId.split('_')
-
-def getLongShortOneQuarterFIds(ff: FiscalFinancial) -> tuple[str, str]:
-    '''
-    Returns long-duration fId and short-duration fId.
-
-    The long-duration fId ends on the same date as the given FiscalFinancial. The short-duration 
-    fId ends one quarter before. This function should not be used with FY or Q1 fiscal periods, and 
-    will raise an error.
-    '''
-    cik, longEnd, _ = deconstructFId(ff.fId)
-    if ff.fp == 'Q4':
-        longDuration = concepts.Duration.Year
-        shortDuration = concepts.Duration.ThreeQuarters
-    elif ff.fp == 'Q3':
-        longDuration = concepts.Duration.ThreeQuarters
-        shortDuration = concepts.Duration.TwoQuarters
-    elif ff.fp == 'Q2':
-        longDuration = concepts.Duration.TwoQuarters
-        shortDuration = concepts.Duration.OneQuarter
-    else:
-        raise Exception(f"Cannot get long- and short-duration Fiscal IDs of {ff.fp} fiscal period.")
-    longId = createFId(cik, longEnd, longDuration)
-    shortEnd = dateToStr(strToDate(ff.start) - datetime.timedelta(days=1))
-    shortId = createFId(cik, shortEnd, shortDuration)
-    return longId, shortId
 
 def createFIdToFiscalFinancial(data: dict, cik: str) -> dict[str, dict] | None:
     '''
@@ -150,7 +131,8 @@ def createFIdToFiscalFinancial(data: dict, cik: str) -> dict[str, dict] | None:
                                                               fy=ff.fy, fp=fiscalPeriod)
     return fIdToFiscalFinancial
 
-def getConcepts(cik: str, data: dict, fIdToFiscalFinancial: dict) -> None:
+def getConcepts(cik: str, data: dict, fIdToFiscalFinancial: dict, logger: logging.Logger) -> None:
+    logger.debug(f'CIK {cik}: Getting concepts')
     gaapData = data['facts']['us-gaap']
     for alias in gaapData.keys():
         if alias in concepts.aliasToConcept:
@@ -168,7 +150,7 @@ def getConcepts(cik: str, data: dict, fIdToFiscalFinancial: dict) -> None:
                     filingFy = entry['fy']
                     myFV = FiscalValue(concept, alias, value, filingFy)
                     addFiscalValues(existingValues, myFV)
-    addMissingOneQuarterConcepts(fIdToFiscalFinancial)
+    addMissingOneQuarterConcepts(fIdToFiscalFinancial, logger)
 
 def addFiscalValues(existing: list[FiscalValue], mine: FiscalValue) -> None:
     '''
@@ -203,7 +185,7 @@ def replaceFiscalValue(A: FiscalValue, B: FiscalValue) -> bool:
     return False
 
 
-def addMissingOneQuarterConcepts(fIdToFiscalFinancial: dict) -> None:
+def addMissingOneQuarterConcepts(fIdToFiscalFinancial: dict, logger: logging.Logger) -> None:
     '''
     Add missing one-quarter-duration concepts. 
 
@@ -217,12 +199,12 @@ def addMissingOneQuarterConcepts(fIdToFiscalFinancial: dict) -> None:
                 concept = concept.name
                 values = ff.values[concept]
                 if not values:
-                    value = getOneQuarterValue(fIdToFiscalFinancial, ff, concept)
+                    value = getOneQuarterValue(fIdToFiscalFinancial, ff, concept, logger)
                     if value != None:
                         values.append(value)
 
-def getOneQuarterValue(fIdToFf: dict[str, FiscalFinancial], ff: FiscalFinancial, concept: str) -> FiscalValue | None:
-    longId, shortId = getLongShortOneQuarterFIds(ff)
+def getOneQuarterValue(fIdToFf: dict[str, FiscalFinancial], ff: FiscalFinancial, concept: str, logger: logging.Logger) -> FiscalValue | None:
+    longId, shortId = getLongShortOneQuarterFIds(ff, logger)
     if longId in fIdToFf and concept in fIdToFf[longId].values:
         longValues = fIdToFf[longId].values[concept]
         if len(longValues) == 1:
@@ -237,9 +219,33 @@ def getOneQuarterValue(fIdToFf: dict[str, FiscalFinancial], ff: FiscalFinancial,
                     return FiscalValue(resConcept, resAlias, resValue)
     return None
 
-def handleConceptIssues(cik: str, fIdToFiscalFinancial: dict) -> None:
-    logFile = os.path.join(config.LOG_DIR, f'CIK{cik}.log')
-    with open(logFile, "w") as lf:
+def getLongShortOneQuarterFIds(ff: FiscalFinancial, logger: logging.Logger) -> tuple[str | None, str | None]:
+    '''
+    Returns long-duration fId and short-duration fId.
+
+    The long-duration fId ends on the same date as the given FiscalFinancial. The short-duration 
+    fId ends one quarter before. This function should not be used with FY or Q1 fiscal periods, and 
+    will raise an error.
+    '''
+    cik, longEnd, _ = deconstructFId(ff.fId)
+    if ff.fp == 'Q4':
+        longDuration = concepts.Duration.Year
+        shortDuration = concepts.Duration.ThreeQuarters
+    elif ff.fp == 'Q3':
+        longDuration = concepts.Duration.ThreeQuarters
+        shortDuration = concepts.Duration.TwoQuarters
+    elif ff.fp == 'Q2':
+        longDuration = concepts.Duration.TwoQuarters
+        shortDuration = concepts.Duration.OneQuarter
+    else:
+        logger.warning(f"CIK {ff.cik}, Msg: Cannot get long/short-duration FId of {ff.fp} fiscal period, FF: {ff}")
+        return None, None
+    longId = createFId(cik, longEnd, longDuration)
+    shortEnd = dateToStr(strToDate(ff.start) - datetime.timedelta(days=1))
+    shortId = createFId(cik, shortEnd, shortDuration)
+    return longId, shortId
+
+def handleConceptIssues(cik: str, fIdToFiscalFinancial: dict, logger) -> None:
         msgCount = 0
         for fId, ff in fIdToFiscalFinancial.items():
             values = ff.values
@@ -247,10 +253,11 @@ def handleConceptIssues(cik: str, fIdToFiscalFinancial: dict) -> None:
                 concept = c.name
                 data = values[concept]
                 if len(data) != 1:
-                    lf.write(f'\nFID: {fId}, concept: {concept}, accn: {ff.accn}, Msg: {len(data)} values found => {data}')
+                    msg = "no values found" if not data else f"{len(data)} values found => {data}"
+                    logger.debug(f'CIK {cik}, concept: {concept}, Msg: {msg}, FF: {ff}')
                     msgCount += 1
         if msgCount > 0:
-            lf.write(f'\n{msgCount} messages')
+            logger.debug(f'CIK {cik}: {msgCount} messages')
             jsonFilename = f'CIK{cik}.json'
             extractZipFileToJson(jsonFilename)
 
@@ -279,6 +286,16 @@ def extractZipFileToJson(filename: str):
             with open(os.path.join(config.LOG_DIR, filename), 'w') as outFile:
                 json.dump(data, outFile, indent=2)
 
+def configureLogger() -> logging.Logger:
+    logger = logging.getLogger(__name__)
+    logFile = os.path.join(config.LOG_DIR, f'update_financials.log')
+    logging.basicConfig(filename=logFile, 
+                        format='%(asctime)s %(levelname)s: %(message)s', 
+                        datefmt='%m/%d/%Y %I:%M:%S %p',
+                        level=logging.DEBUG,
+                        filemode="w")
+    return logger
+
 # Download companyfacts.zip
 # headers = {'User-Agent': config.EMAIL}
 # with requests.get(config.URL_SEC_COMPANYFACTS, headers=headers, stream=True) as r:
@@ -290,32 +307,40 @@ def extractZipFileToJson(filename: str):
 #                 f.write(chunk)
 
 def run():
+    logger = configureLogger()
     cnx = mysql.connector.connect(host=config.MYSQL_HOST, database=config.MYSQL_DATABASE, user=os.getenv("MYSQL_USER"), password=os.getenv("MYSQL_PASSWORD"))
     cursor = cnx.cursor()
-    query = ("SELECT CIK FROM companies;")
+    query = ("SELECT CIK FROM companies LIMIT 25;")
     cursor.execute(query)
-    cursor.fetchall() # Need to "use up" cursor
-    ciks = [
-        ('0000320193',), # Apple
-        ('0000004962',), # American Express
-        ('0000012927',), # Boeing
-        ('0000034088',), # Exxon Mobil
-    ]
-    for cik in ciks:
-    # for cik in cursor:
+
+    ### START A: Use cursor ###
+    for cik in cursor:
+    ### END A ###
+
+    # ### START B: Use list ###
+    # cursor.fetchall() # Need to "use up" cursor
+    # ciks = [
+    #     ('0000320193',), # Apple
+    #     ('0000004962',), # American Express
+    #     ('0000012927',), # Boeing
+    #     ('0000034088',), # Exxon Mobil
+    # ]
+    # for cik in ciks:
+    # ### END B ###
+
         cik = cik[0]
-        fname = 'CIK' + cik + '.json'
         with zipfile.ZipFile(config.ZIP_PATH, 'r') as z:
             try:
+                fname = 'CIK' + cik + '.json'
                 with z.open(fname) as f:
                     content = f.read()
                     data = json.loads(content.decode('utf-8'))
                     fIdToFiscalFinancial = createFIdToFiscalFinancial(data, cik)
                     if fIdToFiscalFinancial:
-                        getConcepts(cik, data, fIdToFiscalFinancial)
+                        getConcepts(cik, data, fIdToFiscalFinancial, logger)
+                        handleConceptIssues(cik, fIdToFiscalFinancial, logger)
             except KeyError as e:
                 print(f'KeyError: {e}')
-        handleConceptIssues(cik, fIdToFiscalFinancial)
 
     cnx.commit()
     cursor.close()
