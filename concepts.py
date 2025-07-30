@@ -1,11 +1,17 @@
 from enum import Enum, auto
 
 class Duration(Enum):
-    OneQuarter = auto()
-    TwoQuarters = auto()
-    ThreeQuarters = auto()
-    Year = auto()
-    Other = auto()
+    Other = 0
+    OneQuarter = 1
+    TwoQuarters = 2
+    ThreeQuarters = 3
+    Year = 4
+
+class FiscalPeriod(Enum):
+    Q1 = 1
+    Q2 = 2
+    Q3 = 3
+    FY = 4
 
 class Concepts(Enum):
     Revenue = auto()
