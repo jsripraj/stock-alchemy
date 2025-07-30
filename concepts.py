@@ -22,19 +22,25 @@ class Concepts(Enum):
     CashFlowFromFinancingActivities = auto()
 
 aliasToConcept = {
+    # Revenue
     'RevenueFromContractWithCustomerExcludingAssessedTax': Concepts.Revenue,
     'Revenues': Concepts.Revenue,
     'SalesRevenueNet': Concepts.Revenue,
     'NoninterestIncome': Concepts.Revenue,
     'SalesRevenueGoodsNet': Concepts.Revenue,
-    'NetIncomeLoss' : Concepts.NetIncome,
-    'ProfitLoss' : Concepts.NetIncome,
-    'IncomeLossFromContinuingOperations' : Concepts.NetIncome,
-    'NetIncomeLossAvailableToCommonStockholdersBasic' : Concepts.NetIncome,
-    'NetCashProvidedByUsedInOperatingActivities' : Concepts.CashFlowFromOperatingActivities,
+    'SalesRevenueServicesNet': Concepts.Revenue,
+    # Net Income
+    'NetIncomeLoss': Concepts.NetIncome,
+    'ProfitLoss': Concepts.NetIncome,
+    'IncomeLossFromContinuingOperations': Concepts.NetIncome,
+    'NetIncomeLossAvailableToCommonStockholdersBasic': Concepts.NetIncome,
+    # Cash Flow from Operating Activities
+    'NetCashProvidedByUsedInOperatingActivities': Concepts.CashFlowFromOperatingActivities,
     'NetCashProvidedByUsedInOperatingActivitiesContinuingOperations': Concepts.CashFlowFromOperatingActivities,
-    'NetCashProvidedByUsedInInvestingActivities' : Concepts.CashFlowFromInvestingActivities,
+    # Cash Flow from Investing Activities
+    'NetCashProvidedByUsedInInvestingActivities': Concepts.CashFlowFromInvestingActivities,
     'NetCashProvidedByUsedInInvestingActivitiesContinuingOperations': Concepts.CashFlowFromInvestingActivities,
-    'NetCashProvidedByUsedInFinancingActivities' : Concepts.CashFlowFromFinancingActivities,
+    # Cash Flow from Financing Activities
+    'NetCashProvidedByUsedInFinancingActivities': Concepts.CashFlowFromFinancingActivities,
     'NetCashProvidedByUsedInFinancingActivitiesContinuingOperations': Concepts.CashFlowFromFinancingActivities,
 }
