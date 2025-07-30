@@ -12,6 +12,7 @@ class FiscalPeriod(Enum):
     Q2 = 2
     Q3 = 3
     FY = 4
+    Q4 = 4
 
 class Concepts(Enum):
     Revenue = auto()

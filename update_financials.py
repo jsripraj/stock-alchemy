@@ -10,6 +10,7 @@ import config
 import concepts
 from enum import Enum
 import logging
+import time
 
 class FiscalValue:
     def __init__(self, concept: str, alias: str, value: str, fiscalYearOfFiling: str = None):
@@ -102,7 +103,7 @@ def createFIdToFiscalFinancial(data: dict, cik: str) -> dict[str, dict] | None:
         accn = entry['accn']
         fiscalYear = entry['fy']
         fiscalPeriod = concepts.FiscalPeriod[entry['fp']]
-        duration = getDurationFromFiscalPeriod(fiscalPeriod)
+        duration = getLongDurationFromFiscalPeriod(fiscalPeriod)
         fId = createFId(cik, fiscalYear, fiscalPeriod, duration)
         fIdToFiscalFinancial[fId] = FiscalFinancial(cik, fId, duration, end, accn, form, fiscalYear, fiscalPeriod)
 
@@ -242,8 +243,8 @@ def handleConceptIssues(cik: str, fIdToFiscalFinancial: dict, logger) -> None:
             jsonFilename = f'CIK{cik}.json'
             extractZipFileToJson(jsonFilename)
         
-def getDurationFromFiscalPeriod(fp: Enum) -> Enum:
-    if fp == concepts.FiscalPeriod.FY:
+def getLongDurationFromFiscalPeriod(fp: Enum) -> Enum:
+    if fp == concepts.FiscalPeriod.FY or fp == concepts.FiscalPeriod.Q4:
         return concepts.Duration.Year
     if fp == concepts.FiscalPeriod.Q3:
         return concepts.Duration.ThreeQuarters
@@ -302,10 +303,11 @@ def log(fn, cik: str, msg: str):
 #                 f.write(chunk)
 
 def run():
+    start_time = time.perf_counter()
     logger = configureLogger()
     cnx = mysql.connector.connect(host=config.MYSQL_HOST, database=config.MYSQL_DATABASE, user=os.getenv("MYSQL_USER"), password=os.getenv("MYSQL_PASSWORD"))
     cursor = cnx.cursor()
-    query = ("SELECT CIK FROM companies LIMIT 25;")
+    query = ("SELECT CIK FROM companies LIMIT 50;")
     cursor.execute(query)
 
     ### START A: Use cursor ###
@@ -334,10 +336,12 @@ def run():
                 if fIdToFiscalFinancial:
                     getConcepts(cik, data, fIdToFiscalFinancial, logger)
                     handleConceptIssues(cik, fIdToFiscalFinancial, logger)
-
     cnx.commit()
     cursor.close()
     cnx.close()
+    end_time = time.perf_counter()
+    elapsed_time = end_time - start_time
+    logger.info(f'Elapsed time: {elapsed_time:.2f} seconds')
 
 if __name__ == "__main__":
     run()
