@@ -103,7 +103,7 @@ def createFIdToFiscalFinancial(data: dict, cik: str) -> dict[str, dict] | None:
         accn = entry['accn']
         fiscalYear = entry['fy']
         fiscalPeriod = concepts.FiscalPeriod[entry['fp']]
-        duration = getLongDurationFromFiscalPeriod(fiscalPeriod)
+        duration = getMaxDurationFromFiscalPeriod(fiscalPeriod)
         fId = createFId(cik, fiscalYear, fiscalPeriod, duration)
         fIdToFiscalFinancial[fId] = FiscalFinancial(cik, fId, duration, end, accn, form, fiscalYear, fiscalPeriod)
 
@@ -111,7 +111,9 @@ def createFIdToFiscalFinancial(data: dict, cik: str) -> dict[str, dict] | None:
         if duration.value > concepts.Duration.OneQuarter.value:
             newDuration = concepts.Duration.OneQuarter
             newFId = createFId(cik, fiscalYear, fiscalPeriod, newDuration)
-            fIdToFiscalFinancial[fId] = FiscalFinancial(cik, newFId, newDuration, end, None, None, fiscalYear, fiscalPeriod)
+            fIdToFiscalFinancial[newFId] = FiscalFinancial(cik, newFId, newDuration, end, None, None, fiscalYear, fiscalPeriod)
+        else:
+            pass
     return fIdToFiscalFinancial
 
 def getConcepts(cik: str, data: dict, fIdToFiscalFinancial: dict, logger: logging.Logger) -> None:
@@ -177,9 +179,9 @@ def addMissingOneQuarterConcepts(fIdToFiscalFinancial: dict, logger: logging.Log
     '''
     Add missing one-quarter-duration concepts. 
 
-    For example, all fourth quarter concepts will be missing since they are not reported and must 
-    be derived. Also, cash flow concepts will be missing for Q2 and Q3 since these are only 
-    reported in two- and three-quarter durations. 
+    For example, fourth quarter concepts could be missing if they are not reported and must 
+    be derived. Also, cash flow concepts could be missing for Q2 and Q3 since they might be 
+    reported only in two- and three-quarter durations. 
     '''
     for fId, ff in fIdToFiscalFinancial.items():
         if ff.duration == concepts.Duration.OneQuarter and ff.fp != concepts.FiscalPeriod.Q1:
@@ -219,9 +221,10 @@ def getLongShortOneQuarterFIds(ff: FiscalFinancial, logger: logging.Logger) -> t
         msg = f'Cannot get long/short-duration FId of {ff.fp.name} fiscal period, FF: {ff}'
         log(logger.warning, ff.cik, msg)
         return None, None
-    longId = createFId(ff.cik, ff.fy, ff.fp, ff.duration)
+    longDuration = getMaxDurationFromFiscalPeriod(ff.fp)
+    longId = createFId(ff.cik, ff.fy, ff.fp, longDuration)
     shortFp = concepts.FiscalPeriod(ff.fp.value - 1)
-    shortDuration = concepts.Duration(ff.duration.value - 1)
+    shortDuration = getMaxDurationFromFiscalPeriod(shortFp)
     shortId = createFId(ff.cik, ff.fy, shortFp, shortDuration)
     return longId, shortId
 
@@ -243,7 +246,7 @@ def handleConceptIssues(cik: str, fIdToFiscalFinancial: dict, logger) -> None:
             jsonFilename = f'CIK{cik}.json'
             extractZipFileToJson(jsonFilename)
         
-def getLongDurationFromFiscalPeriod(fp: Enum) -> Enum:
+def getMaxDurationFromFiscalPeriod(fp: Enum) -> Enum:
     if fp == concepts.FiscalPeriod.FY or fp == concepts.FiscalPeriod.Q4:
         return concepts.Duration.Year
     if fp == concepts.FiscalPeriod.Q3:
@@ -260,13 +263,13 @@ def getDurationFromDates(startDate: str | None, endDate: str) -> Enum:
     start = strToDate(startDate)
     end = strToDate(endDate)
     duration = (end - start).days
-    if 80 < duration < 100:
+    if 70 < duration < 110:
         return concepts.Duration.OneQuarter
-    if 170 < duration < 190:
+    if 160 < duration < 200:
         return concepts.Duration.TwoQuarters
-    if 260 < duration < 280:
+    if 250 < duration < 290:
         return concepts.Duration.ThreeQuarters
-    if 330 < duration < 380:
+    if 320 < duration < 390:
         return concepts.Duration.Year
     return concepts.Duration.Other
 
@@ -311,19 +314,20 @@ def run():
     cursor.execute(query)
 
     ### START A: Use cursor ###
-    for cik in cursor:
+    # for cik in cursor:
     ### END A ###
 
     # ### START B: Use list ###
-    # cursor.fetchall() # Need to "use up" cursor
-    # ciks = [
-    #     ('0000320193',), # Apple
-    #     ('0000004962',), # American Express
-    #     ('0000012927',), # Boeing
-    #     ('0000034088',), # Exxon Mobil
-    #     ('0001551152',), # AbbVie
-    # ]
-    # for cik in ciks:
+    cursor.fetchall() # Need to "use up" cursor
+    ciks = [
+        # ('0000320193',), # Apple
+        # ('0000004962',), # American Express
+        # ('0000012927',), # Boeing
+        # ('0000034088',), # Exxon Mobil
+        # ('0001551152',), # AbbVie
+        ('0000909832',), # Costco
+    ]
+    for cik in ciks:
     # ### END B ###
 
         cik = cik[0]
