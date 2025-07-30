@@ -233,7 +233,7 @@ def handleConceptIssues(cik: str, fIdToFiscalFinancial: dict, logger) -> None:
                 data = values[concept]
                 if len(data) != 1:
                     issue = f"No values found" if not data else f"{len(data)} values found => {data}"
-                    msg = f"{ff.end} {ff.duration.name} {concept}: {issue}"
+                    msg = f"{ff.end} {ff.fp.name} {ff.duration.name} {concept}: {issue}"
                     log(logger.debug, cik, msg)
                     problemCount += 1
         if problemCount > 0:
@@ -319,6 +319,7 @@ def run():
     #     ('0000004962',), # American Express
     #     ('0000012927',), # Boeing
     #     ('0000034088',), # Exxon Mobil
+    #     ('0001551152',), # AbbVie
     # ]
     # for cik in ciks:
     # ### END B ###
