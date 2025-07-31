@@ -24,12 +24,14 @@ class Concepts(Enum):
 aliasToConcept = {
     # Revenue
     'RevenueFromContractWithCustomerExcludingAssessedTax': Concepts.Revenue,
+    'RevenueFromContractWithCustomerIncludingAssessedTax': Concepts.Revenue,
     'Revenues': Concepts.Revenue,
     'SalesRevenueNet': Concepts.Revenue,
     'NoninterestIncome': Concepts.Revenue,
     'SalesRevenueGoodsNet': Concepts.Revenue,
     'SalesRevenueServicesNet': Concepts.Revenue,
     'RevenuesNetOfInterestExpense': Concepts.Revenue,
+    'RegulatedAndUnregulatedOperatingRevenue': Concepts.Revenue,
     # Net Income
     'NetIncomeLoss': Concepts.NetIncome,
     'ProfitLoss': Concepts.NetIncome,
