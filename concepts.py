@@ -29,6 +29,7 @@ aliasToConcept = {
     'NoninterestIncome': Concepts.Revenue,
     'SalesRevenueGoodsNet': Concepts.Revenue,
     'SalesRevenueServicesNet': Concepts.Revenue,
+    'RevenuesNetOfInterestExpense': Concepts.Revenue,
     # Net Income
     'NetIncomeLoss': Concepts.NetIncome,
     'ProfitLoss': Concepts.NetIncome,
