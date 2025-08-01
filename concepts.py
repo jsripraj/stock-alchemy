@@ -7,11 +7,10 @@ class Duration(Enum):
     ThreeQuarters = 3
     Year = 4
 
-class FiscalPeriod(Enum):
+class Period(Enum):
     Q1 = 1
     Q2 = 2
     Q3 = 3
-    FY = 4
     Q4 = 4
 
 class Concepts(Enum):

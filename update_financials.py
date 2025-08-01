@@ -5,14 +5,14 @@ import json
 import pprint
 import mysql.connector
 from collections import defaultdict
-import datetime
+from datetime import datetime, timedelta
 import config
 import concepts
 from enum import Enum
 import logging
 import time
 
-class FiscalValue:
+class FinancialValue:
     def __init__(self, concept: str, alias: str, value: str, fiscalYearOfFiling: str = None):
         self.concept = concept
         self.alias = alias
@@ -20,32 +20,32 @@ class FiscalValue:
         self.fiscalYearOfFiling = fiscalYearOfFiling
 
     def __repr__(self):
-        return f"FiscalValue('{self.concept}', '{self.alias}', '{self.value}', '{self.fiscalYearOfFiling}')"
+        return f"FinancialValue('{self.concept}', '{self.alias}', '{self.value}', '{self.fiscalYearOfFiling}')"
 
-class FiscalFinancial:
-    def __init__(self, cik: str, fId: str, duration: Enum, end: str, accn: str, form: str, fy: str , fp: Enum):
+class TimespanFinancials:
+    def __init__(self, cik: str, cid: str, duration: Enum, end: datetime, accn: str, form: str, fy: str , fp: str):
         self.cik: str = cik
-        self.fId: str = fId # fiscal ID
+        self.cid: str = cid # Calendar ID: <calendar year>_<calendar period>_<duration>
         self.duration: Enum = duration
-        self.end: str = end
+        self.end: datetime = end
         self.accn: str = accn # Accession number
         self.form: str = form
         self.fy: str = fy # Fiscal year
-        self.fp: Enum = fp # Fiscal period (indicates end of period, does NOT indicate duration)
-        self.values: dict[str, list[FiscalValue]] = defaultdict(list) # concept to values
+        self.fp: str = fp # Fiscal period (indicates end of period, does NOT indicate duration)
+        self.values: dict[str, list[FinancialValue]] = defaultdict(list) # concept to values
 
     def __repr__(self):
-        return f"FiscalFinancial(cik: {self.cik}, fId: {self.fId}, duration: {self.duration.name}, " + \
+        return f"TimespanFinancials(cik: {self.cik}, cid: {self.cid}, duration: {self.duration.name}, " + \
                f"end: {self.end}, accn: {self.accn}, form: {self.form}, " + \
-               f"fy: {self.fy}, fp: {self.fp.name}, values: {pprint.pformat(self.values)}"
+               f"fy: {self.fy}, fp: {self.fp}, values: {pprint.pformat(self.values)}"
     
 def strToDate(dateStr: str) -> datetime:
-    return datetime.datetime.strptime(dateStr, "%Y-%m-%d")
+    return datetime.strptime(dateStr, "%Y-%m-%d")
 
-def dateToStr(date: datetime.datetime) -> str:
-    return date.strftime("%Y-%m-%d")
+def dateToStr(d: datetime) -> str:
+    return d.strftime("%Y-%m-%d")
 
-def createFId(cik: str, fy: int, fp: Enum, duration: Enum) -> str:
+def createCid(cik: str, fy: int, fp: Enum, duration: Enum) -> str:
     '''
     Returns a Fiscal ID: cik, fy, fp, and Duration, connected by underscores.
 
@@ -57,21 +57,7 @@ def createFId(cik: str, fy: int, fp: Enum, duration: Enum) -> str:
         log(logging.debug, cik, f'createFId: {e}')
         return None
 
-# def deconstructFId(fId: str) -> tuple[str, str, str, str]:
-#     '''
-#     Returns cik, fy, fp, Duration
-#     '''
-#     return fId.split('_')
-
-def createFIdToFiscalFinancial(data: dict, cik: str) -> dict[str, dict] | None:
-    '''
-    Returns a dictionary mapping Fiscal ID to a FiscalFinancial with empty values, or None if the 
-    dictionary cannot be created.
-
-    In addition to the company-reported entries for FY with full year duration, Q3 with three 
-    quarter duration, Q2 with two quarter duration, and Q1 with one quarter duration, this function 
-    also creates one-quarter duration entries for Q4, Q3, and Q2. 
-    '''
+def createEndToEntry(data: dict, cik: str) -> dict[datetime, dict] | None:
     if 'facts' not in data:
         log(logging.debug, cik, f'"facts" not found in JSON')
         return None
@@ -88,35 +74,110 @@ def createFIdToFiscalFinancial(data: dict, cik: str) -> dict[str, dict] | None:
         log(logging.debug, cik, f'"USD" not found in JSON')
         return None
 
-    accnToEntry = {}
+    endToEntry = {}
     for entry in data['facts']['us-gaap']['Assets']['units']['USD']:
         if isDesiredForm(entry['form']):
-            accn = entry['accn']
-            # Use the most recent entry for each accn
-            if (accn not in accnToEntry) or (entry['end'] > accnToEntry[accn]['end']):
-                accnToEntry[accn] = entry
+            end = strToDate(entry['end'])
+            # Use the most recent fiscal year's entry for each end date
+            if (end not in endToEntry) or (entry['fy'] > endToEntry[end]['fy']):
+                endToEntry[end] = entry
+    return endToEntry
 
-    fIdToFiscalFinancial = {}
-    for entry in accnToEntry.values():
+def createCidToTimespanFinancials(data: dict, cik: str) -> tuple[dict[datetime, str] | None, dict[str, TimespanFinancials] | None]:
+    '''
+    Returns two dictionaries: end date to CID, and CID to a TimespanFinancials with empty values. 
+    Returns (None, None) if the dictionaries cannot be created.
+
+    Creates OneQuarter, TwoQuarters, ThreeQuarters, and Year items for Q1 - Q4, as well as 
+    OneQuarter entries for Q2 - Q4. 
+    '''
+    if 'facts' not in data:
+        log(logging.debug, cik, f'"facts" not found in JSON')
+        return None, None
+    if 'us-gaap' not in data['facts']:
+        log(logging.debug, cik, f'"us-gaap" not found in JSON')
+        return None, None
+    if 'Assets' not in data['facts']['us-gaap']:
+        log(logging.debug, cik, f'"Assets" not found in JSON')
+        return None, None
+    if 'units' not in data['facts']['us-gaap']['Assets']:
+        log(logging.debug, cik, f'"units" not found in JSON')
+        return None, None
+    if 'USD' not in data['facts']['us-gaap']['Assets']['units']:
+        log(logging.debug, cik, f'"USD" not found in JSON')
+        return None, None
+
+    endDateToEntry = {}
+    for entry in data['facts']['us-gaap']['Assets']['units']['USD']:
+        if isDesiredForm(entry['form']):
+            end = strToDate(entry['end'])
+            # Use the most recent fiscal year's entry for each end date
+            if (end not in endDateToEntry) or (entry['fy'] > endDateToEntry[end]['fy']):
+                endDateToEntry[accn] = entry
+    
+    # Create end date to cid
+    
+    # Create cid to timespan financial
+
+    endToCid: dict[str, str] = {}
+    cidToTimespanFinancials: dict[str, TimespanFinancials] = {}
+    for entry in endDateToEntry.values():
         end = entry['end']
         form = entry['form']
         accn = entry['accn']
         fiscalYear = entry['fy']
-        fiscalPeriod = concepts.FiscalPeriod[entry['fp']]
+        fiscalPeriod = entry['fp']
+        cid = createCid(cik, fiscalYear, fiscalPeriod, duration)
+        # fiscalPeriod = concepts.FiscalPeriod[entry['fp']]
         duration = getMaxDurationFromFiscalPeriod(fiscalPeriod)
-        fId = createFId(cik, fiscalYear, fiscalPeriod, duration)
-        fIdToFiscalFinancial[fId] = FiscalFinancial(cik, fId, duration, end, accn, form, fiscalYear, fiscalPeriod)
+        cidToTimespanFinancials[cid] = TimespanFinancials(cik, cid, duration, end, accn, form, fiscalYear, fiscalPeriod)
 
         # for FY, Q3, Q2, create another entry with a OneQuarter duration
         if duration.value > concepts.Duration.OneQuarter.value:
             newDuration = concepts.Duration.OneQuarter
-            newFId = createFId(cik, fiscalYear, fiscalPeriod, newDuration)
-            fIdToFiscalFinancial[newFId] = FiscalFinancial(cik, newFId, newDuration, end, None, None, fiscalYear, fiscalPeriod)
+            newcid = createcid(cik, fiscalYear, fiscalPeriod, newDuration)
+            cidToTimespanFinancials[newcid] = TimespanFinancials(cik, newcid, newDuration, end, None, None, fiscalYear, fiscalPeriod)
         else:
             pass
-    return fIdToFiscalFinancial
+    return cidToTimespanFinancials
 
-def getConcepts(cik: str, data: dict, fIdToFiscalFinancial: dict, logger: logging.Logger) -> None:
+def isDesiredForm(form: str) -> bool:
+    return form == '10-K' or form == '10-Q'
+
+def createEndToCyqe(endToEntry: dict[str, dict]) -> dict[str, str] | None:
+    if not endToEntry:
+        return None
+    ends: list[datetime] = [end for end in endToEntry.keys()]
+    ends.sort(reverse=True)
+    cyqes: list[datetime] = [None] * len(ends) # Calendar year quarter ends
+    cyqes[0] = getMostRecentCyqe(ends[0])
+    for i in range(1, len(ends)):
+        cyqe = getPrecedingCyqe(cyqes[i-1])
+        if (ends[i] - cyqe).days > 90:
+            cyqe = getMostRecentCyqe(ends[i])
+        cyqes[i] = cyqe
+    endToCyqe = {ends[i]: cyqes[i] for i in range(len(ends))}
+    return endToCyqe
+
+def getMostRecentCyqe(date: datetime) -> datetime:
+    y = date.year
+    if date < datetime(y, 3, 31):
+        return datetime(y-1, 12, 31)
+    if date < datetime(y, 6, 30):
+        return datetime(y, 3, 31)
+    if date < datetime(y, 9, 30):
+        return datetime(y, 6, 30)
+    if date < datetime(y, 12, 31):
+        return datetime(y, 9, 30)
+    return datetime(y, 12, 31)
+
+def getPrecedingCyqe(cyqe: datetime) -> datetime:
+    return getMostRecentCyqe(cyqe - timedelta(days=1))
+
+def createEndToCid(endToCyqe: dict[datetime, datetime]) -> dict[datetime, str]:
+    pass
+
+def getConcepts(cik: str, data: dict, fIdToTimespanFinancials: dict, logger: logging.Logger) -> None:
     gaapData = data['facts']['us-gaap']
     for alias in gaapData.keys():
         if alias in concepts.aliasToConcept:
@@ -130,21 +191,17 @@ def getConcepts(cik: str, data: dict, fIdToFiscalFinancial: dict, logger: loggin
                 start = entry['start'] if 'start' in entry else None
                 duration = getDurationFromDates(start, end)
                 entryId = createFId(cik, fy, fp, duration)
-                if entryId in fIdToFiscalFinancial:
+                if entryId in fIdToTimespanFinancials:
                     concept = concepts.aliasToConcept[alias].name
                     value = entry['val']
-                    existingValues = fIdToFiscalFinancial[entryId].values[concept]
+                    existingValues = fIdToTimespanFinancials[entryId].values[concept]
                     fiscalYearOfFiling = entry['fy']
-                    newValue = FiscalValue(concept, alias, value, fiscalYearOfFiling)
-                    addFiscalValue(existingValues, newValue)
-    addMissingOneQuarterConcepts(fIdToFiscalFinancial, logger)
-
-def isDesiredForm(form: str) -> bool:
-    return form == '10-K' or form == '10-Q'
-
-def addFiscalValue(existingValues: list[FiscalValue], newValue: FiscalValue) -> None:
+                    newValue = FinancialValue(concept, alias, value, fiscalYearOfFiling)
+                    addFinancialValue(existingValues, newValue)
+    addMissingOneQuarterConcepts(fIdToTimespanFinancials, logger)
+def addFinancialValue(existingValues: list[FinancialValue], newValue: FinancialValue) -> None:
     '''
-    Determines whether and how a FiscalValue should be added to a list, then adds it if necessary.
+    Determines whether and how a FinancialValue should be added to a list, then adds it if necessary.
     '''
     # If the list is empty, append it
     if not existingValues:
@@ -158,14 +215,14 @@ def addFiscalValue(existingValues: list[FiscalValue], newValue: FiscalValue) -> 
 
     # If the new value is "better" than an existing value, replace the existing
     for i in range(len(existingValues)):
-        if replaceFiscalValue(existingValues[i], newValue):
+        if replaceFinancialValue(existingValues[i], newValue):
             existingValues[i] = newValue
 
     return
 
-def replaceFiscalValue(A: FiscalValue, B: FiscalValue) -> bool:
+def replaceFinancialValue(A: FinancialValue, B: FinancialValue) -> bool:
     '''
-    Returns True if FiscalValue A should be replaced by B. 
+    Returns True if FinancialValue A should be replaced by B. 
     
     A should be replaced by B if B is more recent (or at least not None).
     '''
@@ -175,7 +232,7 @@ def replaceFiscalValue(A: FiscalValue, B: FiscalValue) -> bool:
     return False
 
 
-def addMissingOneQuarterConcepts(fIdToFiscalFinancial: dict, logger: logging.Logger) -> None:
+def addMissingOneQuarterConcepts(fIdToTimespanFinancials: dict, logger: logging.Logger) -> None:
     '''
     Add missing one-quarter-duration concepts. 
 
@@ -183,17 +240,17 @@ def addMissingOneQuarterConcepts(fIdToFiscalFinancial: dict, logger: logging.Log
     be derived. Also, cash flow concepts could be missing for Q2 and Q3 since they might be 
     reported only in two- and three-quarter durations. 
     '''
-    for fId, ff in fIdToFiscalFinancial.items():
+    for fId, ff in fIdToTimespanFinancials.items():
         if ff.duration == concepts.Duration.OneQuarter and ff.fp != concepts.FiscalPeriod.Q1:
             for concept in concepts.Concepts:
                 concept = concept.name
                 values = ff.values[concept]
                 if not values:
-                    value = getOneQuarterValue(fIdToFiscalFinancial, ff, concept, logger)
+                    value = getOneQuarterValue(fIdToTimespanFinancials, ff, concept, logger)
                     if value != None:
                         values.append(value)
 
-def getOneQuarterValue(fIdToFf: dict[str, FiscalFinancial], ff: FiscalFinancial, concept: str, logger: logging.Logger) -> FiscalValue | None:
+def getOneQuarterValue(fIdToFf: dict[str, TimespanFinancials], ff: TimespanFinancials, concept: str, logger: logging.Logger) -> FinancialValue | None:
     longId, shortId = getLongShortOneQuarterFIds(ff, logger)
     if longId in fIdToFf and concept in fIdToFf[longId].values:
         longValues = fIdToFf[longId].values[concept]
@@ -206,16 +263,16 @@ def getOneQuarterValue(fIdToFf: dict[str, FiscalFinancial], ff: FiscalFinancial,
                     resConcept = longValue.concept
                     resAlias = longValue.alias
                     resValue = str(int(longValue.value) - int(shortValue.value))
-                    return FiscalValue(resConcept, resAlias, resValue)
+                    return FinancialValue(resConcept, resAlias, resValue)
     return None
 
-def getLongShortOneQuarterFIds(ff: FiscalFinancial, logger: logging.Logger) -> tuple[str | None, str | None]:
+def getLongShortOneQuarterFIds(ff: TimespanFinancials, logger: logging.Logger) -> tuple[str | None, str | None]:
     '''
     Returns long-duration fId and short-duration fId.
 
-    For example, if the given FiscalFinancial is for Q3, the long-duration will fId have Q3 and 
+    For example, if the given TimespanFinancials is for Q3, the long-duration will fId have Q3 and 
     ThreeQuarter duration. The short-duration fId will have Q2 and TwoQuarter duration. 
-    This function should only be used on one-quarter duration FiscalFinancials.
+    This function should only be used on one-quarter duration TimespanFinancialss.
     '''
     if ff.duration != concepts.Duration.OneQuarter:
         msg = f'Cannot get long/short-duration FId of {ff.fp.name} fiscal period, FF: {ff}'
@@ -228,9 +285,9 @@ def getLongShortOneQuarterFIds(ff: FiscalFinancial, logger: logging.Logger) -> t
     shortId = createFId(ff.cik, ff.fy, shortFp, shortDuration)
     return longId, shortId
 
-def handleConceptIssues(cik: str, fIdToFiscalFinancial: dict, logger) -> None:
+def handleConceptIssues(cik: str, fIdToTimespanFinancials: dict, logger) -> None:
         problemCount = 0
-        for fId, ff in fIdToFiscalFinancial.items():
+        for fId, ff in fIdToTimespanFinancials.items():
             values = ff.values
             for c in concepts.Concepts:
                 concept = c.name
@@ -323,9 +380,9 @@ def run():
         # ('0000320193',), # Apple
         # ('0000004962',), # American Express
         # ('0000012927',), # Boeing
-        ('0000034088',), # Exxon Mobil
+        # ('0000034088',), # Exxon Mobil
         # ('0001551152',), # AbbVie
-        # ('0000909832',), # Costco
+        ('0000909832',), # Costco
     ]
     for cik in ciks:
     # ### END B ###
@@ -337,10 +394,12 @@ def run():
                 with z.open(fname) as f:
                     content = f.read()
                     data = json.loads(content.decode('utf-8'))
-                    fIdToFiscalFinancial = createFIdToFiscalFinancial(data, cik)
-                    if fIdToFiscalFinancial:
-                        getConcepts(cik, data, fIdToFiscalFinancial, logger)
-                        handleConceptIssues(cik, fIdToFiscalFinancial, logger)
+                    endToEntry = createEndToEntry(data, cik)
+                    endToCyqe = createEndToCyqe(endToEntry)
+                    fIdToTimespanFinancials = createFIdToTimespanFinancials(data, cik)
+                    if fIdToTimespanFinancials:
+                        getConcepts(cik, data, fIdToTimespanFinancials, logger)
+                        handleConceptIssues(cik, fIdToTimespanFinancials, logger)
             except KeyError as ke:
                 log(logging.debug, cik, ke)
     cnx.commit()
