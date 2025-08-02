@@ -23,19 +23,22 @@ class FinancialValue:
         return f"FinancialValue('{self.concept}', '{self.alias}', '{self.value}', '{self.fiscalYearOfFiling}')"
 
 class TimespanFinancials:
-    def __init__(self, cik: str, cid: str, duration: Enum, end: datetime, accn: str, form: str, fy: str , fp: str):
+    def __init__(self, cik: str, cid: str, cy: int, cp: concepts.Period, duration: Enum, end: datetime, accn: str, form: str, fy: str , fp: str):
         self.cik: str = cik
         self.cid: str = cid # Calendar ID: <calendar year>_<calendar period>_<duration>
+        self.cy: int = cy, # calendar year
+        self.cp: concepts.Period = cp, # calendar period (indicates end of period, does NOT indicate duration)
         self.duration: Enum = duration
         self.end: datetime = end
         self.accn: str = accn # Accession number
         self.form: str = form
-        self.fy: str = fy # Fiscal year
+        self.fy: int = fy # Fiscal year
         self.fp: str = fp # Fiscal period (indicates end of period, does NOT indicate duration)
         self.values: dict[str, list[FinancialValue]] = defaultdict(list) # concept to values
 
     def __repr__(self):
-        return f"TimespanFinancials(cik: {self.cik}, cid: {self.cid}, duration: {self.duration.name}, " + \
+        return f"TimespanFinancials(cik: {self.cik}, cid: {self.cid}, cy: {self.cy}, cp: {self.cp}, " + \
+               f"duration: {self.duration.name}, " + \
                f"end: {self.end}, accn: {self.accn}, form: {self.form}, " + \
                f"fy: {self.fy}, fp: {self.fp}, values: {pprint.pformat(self.values)}"
     
@@ -44,18 +47,6 @@ def strToDate(dateStr: str) -> datetime:
 
 def dateToStr(d: datetime) -> str:
     return d.strftime("%Y-%m-%d")
-
-def createCid(cik: str, fy: int, fp: Enum, duration: Enum) -> str:
-    '''
-    Returns a Fiscal ID: cik, fy, fp, and Duration, connected by underscores.
-
-    For example: 0000034088_2023_Q3_OneQuarter
-    '''
-    try:
-        return "_".join([cik, str(fy), fp.name, duration.name])
-    except TypeError as e:
-        log(logging.debug, cik, f'createFId: {e}')
-        return None
 
 def createEndToEntry(data: dict, cik: str) -> dict[datetime, dict] | None:
     if 'facts' not in data:
@@ -83,63 +74,63 @@ def createEndToEntry(data: dict, cik: str) -> dict[datetime, dict] | None:
                 endToEntry[end] = entry
     return endToEntry
 
-def createCidToTimespanFinancials(data: dict, cik: str) -> tuple[dict[datetime, str] | None, dict[str, TimespanFinancials] | None]:
+def createCidToTimespanFinancials(endToEntry: dict[datetime, dict], endToCyqe: dict[datetime, datetime], cik: str) -> dict[str, TimespanFinancials]:
     '''
-    Returns two dictionaries: end date to CID, and CID to a TimespanFinancials with empty values. 
-    Returns (None, None) if the dictionaries cannot be created.
+    Returns dictionary of CID to a TimespanFinancials with empty values. 
+    Returns None if the dictionary cannot be created.
 
     Creates OneQuarter, TwoQuarters, ThreeQuarters, and Year items for Q1 - Q4, as well as 
     OneQuarter entries for Q2 - Q4. 
     '''
-    if 'facts' not in data:
-        log(logging.debug, cik, f'"facts" not found in JSON')
-        return None, None
-    if 'us-gaap' not in data['facts']:
-        log(logging.debug, cik, f'"us-gaap" not found in JSON')
-        return None, None
-    if 'Assets' not in data['facts']['us-gaap']:
-        log(logging.debug, cik, f'"Assets" not found in JSON')
-        return None, None
-    if 'units' not in data['facts']['us-gaap']['Assets']:
-        log(logging.debug, cik, f'"units" not found in JSON')
-        return None, None
-    if 'USD' not in data['facts']['us-gaap']['Assets']['units']:
-        log(logging.debug, cik, f'"USD" not found in JSON')
-        return None, None
-
-    endDateToEntry = {}
-    for entry in data['facts']['us-gaap']['Assets']['units']['USD']:
-        if isDesiredForm(entry['form']):
-            end = strToDate(entry['end'])
-            # Use the most recent fiscal year's entry for each end date
-            if (end not in endDateToEntry) or (entry['fy'] > endDateToEntry[end]['fy']):
-                endDateToEntry[accn] = entry
-    
-    # Create end date to cid
-    
-    # Create cid to timespan financial
-
-    endToCid: dict[str, str] = {}
     cidToTimespanFinancials: dict[str, TimespanFinancials] = {}
-    for entry in endDateToEntry.values():
-        end = entry['end']
-        form = entry['form']
-        accn = entry['accn']
-        fiscalYear = entry['fy']
-        fiscalPeriod = entry['fp']
-        cid = createCid(cik, fiscalYear, fiscalPeriod, duration)
+    for entry in endToEntry.values():
+        end: datetime = strToDate(entry['end'])
+        form: str = entry['form']
+        accn: str = entry['accn']
+        fy: int = entry['fy']
+        fp: concepts.Period = concepts.Period[entry['fp']] if entry['fp'] else None
         # fiscalPeriod = concepts.FiscalPeriod[entry['fp']]
-        duration = getMaxDurationFromFiscalPeriod(fiscalPeriod)
-        cidToTimespanFinancials[cid] = TimespanFinancials(cik, cid, duration, end, accn, form, fiscalYear, fiscalPeriod)
+        duration: concepts.Duration = getMaxDurationFromPeriod(fp)
+        cyqe: datetime = endToCyqe[end]
+        cy: int = cyqe.year
+        cp: concepts.Period = getPeriod(cyqe)
+        cid = createCid(cy, cp, duration, cik)
+        cidToTimespanFinancials[cid] = TimespanFinancials(cik, cid, cy, cp, duration, end, accn, form, fy, fp)
 
-        # for FY, Q3, Q2, create another entry with a OneQuarter duration
+        # for Q4, Q3, Q2, create another entry with a OneQuarter duration
         if duration.value > concepts.Duration.OneQuarter.value:
             newDuration = concepts.Duration.OneQuarter
-            newcid = createcid(cik, fiscalYear, fiscalPeriod, newDuration)
-            cidToTimespanFinancials[newcid] = TimespanFinancials(cik, newcid, newDuration, end, None, None, fiscalYear, fiscalPeriod)
+            newCid = createCid(cy, cp, newDuration, cik)
+            cidToTimespanFinancials[newCid] = TimespanFinancials(cik, newCid, cy, cp, newDuration, end, None, None, fy, fp)
         else:
             pass
     return cidToTimespanFinancials
+
+def getMaxDurationFromPeriod(fp: concepts.Period | None) -> concepts.Duration:
+    if fp == concepts.Period.FY or fp == concepts.Period.Q4:
+        return concepts.Duration.Year
+    if fp == concepts.Period.Q3:
+        return concepts.Duration.ThreeQuarters
+    if fp == concepts.Period.Q2:
+        return concepts.Duration.TwoQuarters
+    if fp == concepts.Period.Q1:
+        return concepts.Duration.OneQuarter
+    return concepts.Duration.Other
+
+def getPeriod(cyqe: datetime) -> concepts.Period:
+    return concepts.Period(cyqe.month // 3)
+
+def createCid(cy: int, cp: concepts.Period, duration: concepts.Duration, cik: str) -> str:
+    '''
+    Returns a Calendar ID (cid): <calendar year>_<calendar period>_<duration>
+
+    For example: 2023_Q3_OneQuarter
+    '''
+    try:
+        return "_".join([str(cy), cp.name, duration.name])
+    except TypeError as e:
+        log(logging.debug, cik, f'createFId: {e}')
+        return None
 
 def isDesiredForm(form: str) -> bool:
     return form == '10-K' or form == '10-Q'
@@ -153,7 +144,9 @@ def createEndToCyqe(endToEntry: dict[str, dict]) -> dict[str, str] | None:
     cyqes[0] = getMostRecentCyqe(ends[0])
     for i in range(1, len(ends)):
         cyqe = getPrecedingCyqe(cyqes[i-1])
-        if (ends[i] - cyqe).days > 90:
+        end = ends[i]
+        diff = (end - cyqe).days
+        if diff < 0 or diff > 90:
             cyqe = getMostRecentCyqe(ends[i])
         cyqes[i] = cyqe
     endToCyqe = {ends[i]: cyqes[i] for i in range(len(ends))}
@@ -173,9 +166,6 @@ def getMostRecentCyqe(date: datetime) -> datetime:
 
 def getPrecedingCyqe(cyqe: datetime) -> datetime:
     return getMostRecentCyqe(cyqe - timedelta(days=1))
-
-def createEndToCid(endToCyqe: dict[datetime, datetime]) -> dict[datetime, str]:
-    pass
 
 def getConcepts(cik: str, data: dict, fIdToTimespanFinancials: dict, logger: logging.Logger) -> None:
     gaapData = data['facts']['us-gaap']
@@ -199,6 +189,7 @@ def getConcepts(cik: str, data: dict, fIdToTimespanFinancials: dict, logger: log
                     newValue = FinancialValue(concept, alias, value, fiscalYearOfFiling)
                     addFinancialValue(existingValues, newValue)
     addMissingOneQuarterConcepts(fIdToTimespanFinancials, logger)
+
 def addFinancialValue(existingValues: list[FinancialValue], newValue: FinancialValue) -> None:
     '''
     Determines whether and how a FinancialValue should be added to a list, then adds it if necessary.
@@ -278,10 +269,10 @@ def getLongShortOneQuarterFIds(ff: TimespanFinancials, logger: logging.Logger) -
         msg = f'Cannot get long/short-duration FId of {ff.fp.name} fiscal period, FF: {ff}'
         log(logger.warning, ff.cik, msg)
         return None, None
-    longDuration = getMaxDurationFromFiscalPeriod(ff.fp)
+    longDuration = getMaxDurationFromPeriod(ff.fp)
     longId = createFId(ff.cik, ff.fy, ff.fp, longDuration)
     shortFp = concepts.FiscalPeriod(ff.fp.value - 1)
-    shortDuration = getMaxDurationFromFiscalPeriod(shortFp)
+    shortDuration = getMaxDurationFromPeriod(shortFp)
     shortId = createFId(ff.cik, ff.fy, shortFp, shortDuration)
     return longId, shortId
 
@@ -303,17 +294,6 @@ def handleConceptIssues(cik: str, fIdToTimespanFinancials: dict, logger) -> None
             jsonFilename = f'CIK{cik}.json'
             extractZipFileToJson(jsonFilename)
         
-def getMaxDurationFromFiscalPeriod(fp: Enum) -> Enum:
-    if fp == concepts.FiscalPeriod.FY or fp == concepts.FiscalPeriod.Q4:
-        return concepts.Duration.Year
-    if fp == concepts.FiscalPeriod.Q3:
-        return concepts.Duration.ThreeQuarters
-    if fp == concepts.FiscalPeriod.Q2:
-        return concepts.Duration.TwoQuarters
-    if fp == concepts.FiscalPeriod.Q1:
-        return concepts.Duration.OneQuarter
-    return concepts.Duration.Other
-
 def getDurationFromDates(startDate: str | None, endDate: str) -> Enum:
     if not startDate:
         return concepts.Duration.OneQuarter
@@ -394,9 +374,12 @@ def run():
                 with z.open(fname) as f:
                     content = f.read()
                     data = json.loads(content.decode('utf-8'))
-                    endToEntry = createEndToEntry(data, cik)
-                    endToCyqe = createEndToCyqe(endToEntry)
-                    fIdToTimespanFinancials = createFIdToTimespanFinancials(data, cik)
+                    endToEntry: dict[datetime, dict] = createEndToEntry(data, cik)
+                    if not endToEntry:
+                        continue
+                    endToCyqe: dict[datetime, datetime] = createEndToCyqe(endToEntry)
+                    cidToTimespanFinancials: dict[str, TimespanFinancials] = createCidToTimespanFinancials(endToEntry, endToCyqe, cik)
+                    # fIdToTimespanFinancials = createFIdToTimespanFinancials(data, cik)
                     if fIdToTimespanFinancials:
                         getConcepts(cik, data, fIdToTimespanFinancials, logger)
                         handleConceptIssues(cik, fIdToTimespanFinancials, logger)
