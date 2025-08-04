@@ -48,7 +48,7 @@ def strToDate(dateStr: str) -> datetime:
 def dateToStr(d: datetime) -> str:
     return d.strftime("%Y-%m-%d")
 
-def createEndToEntry(data: dict, cik: str) -> dict[datetime, dict] | None:
+def createAccnToEntry(data: dict, cik: str) -> dict[datetime, dict] | None:
     if 'facts' not in data:
         log(logging.debug, cik, f'"facts" not found in JSON')
         return None
@@ -65,16 +65,16 @@ def createEndToEntry(data: dict, cik: str) -> dict[datetime, dict] | None:
         log(logging.debug, cik, f'"USD" not found in JSON')
         return None
 
-    endToEntry = {}
+    accnToEntry = {}
     for entry in data['facts']['us-gaap']['Assets']['units']['USD']:
         if isDesiredForm(entry['form']):
-            end = strToDate(entry['end'])
-            # Use the most recent fiscal year's entry for each end date
-            if (end not in endToEntry) or (entry['fy'] > endToEntry[end]['fy']):
-                endToEntry[end] = entry
-    return endToEntry
+            accn = entry['accn']
+            # Use the most recent fiscal year's entry for each accn
+            if (accn not in accnToEntry) or (entry['end'] > accnToEntry[accn]['end']):
+                accnToEntry[accn] = entry
+    return accnToEntry
 
-def createCidToTimespanFinancials(endToEntry: dict[datetime, dict], endToCyqe: dict[datetime, datetime], cik: str) -> dict[str, TimespanFinancials]:
+def createCidToTimespanFinancials(accnToEntry: dict[str, dict], endToCid: dict[datetime, str], cik: str) -> dict[str, TimespanFinancials]:
     '''
     Returns dictionary of CID to a TimespanFinancials with empty values. 
     Returns None if the dictionary cannot be created.
@@ -83,25 +83,21 @@ def createCidToTimespanFinancials(endToEntry: dict[datetime, dict], endToCyqe: d
     OneQuarter entries for Q2 - Q4. 
     '''
     cidToTimespanFinancials: dict[str, TimespanFinancials] = {}
-    for entry in endToEntry.values():
+    for entry in accnToEntry.values():
         end: datetime = strToDate(entry['end'])
-        form: str = entry['form']
+        cid = endToCid[end]
+        cy, cp, duration = splitCid(cid)
         accn: str = entry['accn']
+        form: str = entry['form']
         fy: int = entry['fy']
-        fp: concepts.Period = concepts.Period[entry['fp']] if entry['fp'] else None
-        # fiscalPeriod = concepts.FiscalPeriod[entry['fp']]
-        duration: concepts.Duration = getMaxDurationFromPeriod(fp)
-        cyqe: datetime = endToCyqe[end]
-        cy: int = cyqe.year
-        cp: concepts.Period = getPeriod(cyqe)
-        cid = createCid(cy, cp, duration, cik)
+        fp: concepts.Period = concepts.Period[entry['fp']]
         cidToTimespanFinancials[cid] = TimespanFinancials(cik, cid, cy, cp, duration, end, accn, form, fy, fp)
 
         # for Q4, Q3, Q2, create another entry with a OneQuarter duration
         if duration.value > concepts.Duration.OneQuarter.value:
-            newDuration = concepts.Duration.OneQuarter
-            newCid = createCid(cy, cp, newDuration, cik)
-            cidToTimespanFinancials[newCid] = TimespanFinancials(cik, newCid, cy, cp, newDuration, end, None, None, fy, fp)
+            altDuration = concepts.Duration.OneQuarter
+            altCid = createCid(cy, cp, altDuration, cik)
+            cidToTimespanFinancials[altCid] = TimespanFinancials(cik, altCid, cy, cp, altDuration, end, None, None, fy, fp)
         else:
             pass
     return cidToTimespanFinancials
@@ -132,13 +128,15 @@ def createCid(cy: int, cp: concepts.Period, duration: concepts.Duration, cik: st
         log(logging.debug, cik, f'createFId: {e}')
         return None
 
+def splitCid(cid: str) -> tuple[int, concepts.Period, concepts.Duration]:
+    cy, cp, duration = cid.split("_")
+    return int(cy), concepts.Period[cp], concepts.Duration[duration]
+
 def isDesiredForm(form: str) -> bool:
     return form == '10-K' or form == '10-Q'
 
-def createEndToCyqe(endToEntry: dict[str, dict]) -> dict[str, str] | None:
-    if not endToEntry:
-        return None
-    ends: list[datetime] = [end for end in endToEntry.keys()]
+def createEndToCid(accnToEntry: dict[str, dict], cik: str) -> dict[datetime, datetime] | None:
+    ends: list[datetime] = [strToDate(entry['end']) for entry in accnToEntry.values()]
     ends.sort(reverse=True)
     cyqes: list[datetime] = [None] * len(ends) # Calendar year quarter ends
     cyqes[0] = getMostRecentCyqe(ends[0])
@@ -149,8 +147,21 @@ def createEndToCyqe(endToEntry: dict[str, dict]) -> dict[str, str] | None:
         if diff < 0 or diff > 90:
             cyqe = getMostRecentCyqe(ends[i])
         cyqes[i] = cyqe
-    endToCyqe = {ends[i]: cyqes[i] for i in range(len(ends))}
-    return endToCyqe
+    endToCyqe: dict[datetime, datetime] = {ends[i]: cyqes[i] for i in range(len(ends))}
+
+    endToCid: dict[datetime, str] = {}
+    for accn, entry in accnToEntry.items():
+        end: datetime = strToDate(entry['end'])
+        cyqe: datetime = endToCyqe[end]
+        fp: concepts.Period = concepts.Period[entry['fp']]
+        if not fp:
+            log(logging.debug, cik, f'fp is None for {end} Assets in accn {accn}')
+        duration: concepts.Duration = getMaxDurationFromPeriod(fp)
+        cy: int = cyqe.year
+        cp: concepts.Period = getPeriod(cyqe)
+        cid = createCid(cy, cp, duration, cik)
+        endToCid[end] = cid
+    return endToCid
 
 def getMostRecentCyqe(date: datetime) -> datetime:
     y = date.year
@@ -374,11 +385,11 @@ def run():
                 with z.open(fname) as f:
                     content = f.read()
                     data = json.loads(content.decode('utf-8'))
-                    endToEntry: dict[datetime, dict] = createEndToEntry(data, cik)
-                    if not endToEntry:
+                    accnToEntry = createAccnToEntry(data, cik)
+                    if not accnToEntry:
                         continue
-                    endToCyqe: dict[datetime, datetime] = createEndToCyqe(endToEntry)
-                    cidToTimespanFinancials: dict[str, TimespanFinancials] = createCidToTimespanFinancials(endToEntry, endToCyqe, cik)
+                    endToCid: dict[datetime, str] = createEndToCid(accnToEntry, cik)
+                    cidToTimespanFinancials: dict[str, TimespanFinancials] = createCidToTimespanFinancials(accnToEntry, endToCid, cik)
                     # fIdToTimespanFinancials = createFIdToTimespanFinancials(data, cik)
                     if fIdToTimespanFinancials:
                         getConcepts(cik, data, fIdToTimespanFinancials, logger)
