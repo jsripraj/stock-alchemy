@@ -74,33 +74,6 @@ def createAccnToEntry(data: dict, cik: str) -> dict[datetime, dict] | None:
                 accnToEntry[accn] = entry
     return accnToEntry
 
-def createCidToTimespanFinancials(accnToEntry: dict[str, dict], endToCid: dict[datetime, str], cik: str) -> dict[str, TimespanFinancials]:
-    '''
-    Returns dictionary of CID to a TimespanFinancials with empty values. 
-
-    Creates OneQuarter, TwoQuarters, ThreeQuarters, and Year items for Q1 - Q4, as well as 
-    OneQuarter entries for Q2 - Q4. 
-    '''
-    cidToTimespanFinancials: dict[str, TimespanFinancials] = {}
-    for entry in accnToEntry.values():
-        end: datetime = strToDate(entry['end'])
-        cid = endToCid[end]
-        cy, cp, duration = splitCid(cid)
-        accn: str = entry['accn']
-        form: str = entry['form']
-        fy: int = entry['fy']
-        fp: concepts.Period = concepts.Period[entry['fp']]
-        cidToTimespanFinancials[cid] = TimespanFinancials(cik, cid, cy, cp, duration, end, accn, form, fy, fp)
-
-        # for Q4, Q3, Q2, create another entry with a OneQuarter duration
-        if duration.value > concepts.Duration.OneQuarter.value:
-            altDuration = concepts.Duration.OneQuarter
-            altCid = createCid(cy, cp, altDuration, cik)
-            cidToTimespanFinancials[altCid] = TimespanFinancials(cik, altCid, cy, cp, altDuration, end, None, None, fy, fp)
-        else:
-            pass
-    return cidToTimespanFinancials
-
 def getMaxDurationFromPeriod(fp: concepts.Period | None) -> concepts.Duration:
     if fp == concepts.Period.FY or fp == concepts.Period.Q4:
         return concepts.Duration.Year
@@ -152,7 +125,7 @@ def createEndToCid(accnToEntry: dict[str, dict], cik: str) -> dict[datetime, dat
         cyqe = getPrecedingCyqe(cyqes[i-1])
         end = ends[i]
         diff = (end - cyqe).days
-        if diff < 0 or diff > 90:
+        if diff < 0 or diff > 180:
             cyqe = getMostRecentCyqe(ends[i])
         cyqes[i] = cyqe
     endToCyqe: dict[datetime, datetime] = {ends[i]: cyqes[i] for i in range(len(ends))}
@@ -185,6 +158,33 @@ def getMostRecentCyqe(date: datetime) -> datetime:
 
 def getPrecedingCyqe(cyqe: datetime) -> datetime:
     return getMostRecentCyqe(cyqe - timedelta(days=1))
+
+def createCidToTimespanFinancials(accnToEntry: dict[str, dict], endToCid: dict[datetime, str], cik: str) -> dict[str, TimespanFinancials]:
+    '''
+    Returns dictionary of CID to a TimespanFinancials with empty values. 
+
+    Creates OneQuarter, TwoQuarters, ThreeQuarters, and Year items for Q1 - Q4, as well as 
+    OneQuarter entries for Q2 - Q4. 
+    '''
+    cidToTimespanFinancials: dict[str, TimespanFinancials] = {}
+    for entry in accnToEntry.values():
+        end: datetime = strToDate(entry['end'])
+        cid = endToCid[end]
+        cy, cp, duration = splitCid(cid)
+        accn: str = entry['accn']
+        form: str = entry['form']
+        fy: int = entry['fy']
+        fp: concepts.Period = concepts.Period[entry['fp']]
+        cidToTimespanFinancials[cid] = TimespanFinancials(cik, cid, cy, cp, duration, end, accn, form, fy, fp)
+
+        # for Q4, Q3, Q2, create another entry with a OneQuarter duration
+        if duration.value > concepts.Duration.OneQuarter.value:
+            altDuration = concepts.Duration.OneQuarter
+            altCid = createCid(cy, cp, altDuration, cik)
+            cidToTimespanFinancials[altCid] = TimespanFinancials(cik, altCid, cy, cp, altDuration, end, None, None, fy, fp)
+        else:
+            pass
+    return cidToTimespanFinancials
 
 def getConcepts(cik: str, data: dict, cidToTimespanFinancials: dict[str, TimespanFinancials], endToCid: dict[datetime, str], logger: logging.Logger) -> None:
     # Get max-duration financials
@@ -402,7 +402,7 @@ def run():
     logger = configureLogger()
     cnx = mysql.connector.connect(host=config.MYSQL_HOST, database=config.MYSQL_DATABASE, user=os.getenv("MYSQL_USER"), password=os.getenv("MYSQL_PASSWORD"))
     cursor = cnx.cursor()
-    query = ("SELECT CIK FROM companies;")
+    query = ("SELECT CIK FROM companies LIMIT 25;")
     cursor.execute(query)
 
     ### START A: Use cursor ###
@@ -412,12 +412,12 @@ def run():
     # ### START B: Use list ###
     cursor.fetchall() # Need to "use up" cursor
     ciks = [
-        # ('0000320193',), # Apple
+        ('0000320193',), # Apple
         # ('0000004962',), # American Express
         # ('0000012927',), # Boeing
         # ('0000034088',), # Exxon Mobil
         # ('0001551152',), # AbbVie
-        ('0000909832',), # Costco
+        # ('0000909832',), # Costco
     ]
     for cik in ciks:
     # ### END B ###
