@@ -13,11 +13,11 @@ import logging
 import time
 
 class FinancialValue:
-    def __init__(self, concept: str, alias: str, value: str, fiscalYearOfFiling: str = None):
-        self.concept = concept
-        self.alias = alias
-        self.value = value
-        self.fiscalYearOfFiling = fiscalYearOfFiling
+    def __init__(self, concept: str, alias: str, value: str, fiscalYearOfFiling: int = None):
+        self.concept: str = concept
+        self.alias: str = alias
+        self.value: str = value
+        self.fiscalYearOfFiling: int = fiscalYearOfFiling
 
     def __repr__(self):
         return f"FinancialValue('{self.concept}', '{self.alias}', '{self.value}', '{self.fiscalYearOfFiling}')"
@@ -77,7 +77,6 @@ def createAccnToEntry(data: dict, cik: str) -> dict[datetime, dict] | None:
 def createCidToTimespanFinancials(accnToEntry: dict[str, dict], endToCid: dict[datetime, str], cik: str) -> dict[str, TimespanFinancials]:
     '''
     Returns dictionary of CID to a TimespanFinancials with empty values. 
-    Returns None if the dictionary cannot be created.
 
     Creates OneQuarter, TwoQuarters, ThreeQuarters, and Year items for Q1 - Q4, as well as 
     OneQuarter entries for Q2 - Q4. 
@@ -129,13 +128,22 @@ def createCid(cy: int, cp: concepts.Period, duration: concepts.Duration, cik: st
         return None
 
 def splitCid(cid: str) -> tuple[int, concepts.Period, concepts.Duration]:
+    '''
+    Returns calendar year (cp), calendar period (cp), duration
+    '''
     cy, cp, duration = cid.split("_")
     return int(cy), concepts.Period[cp], concepts.Duration[duration]
 
 def isDesiredForm(form: str) -> bool:
     return form == '10-K' or form == '10-Q'
 
-def createEndToCid(accnToEntry: dict[str, dict], cik: str) -> dict[datetime, datetime] | None:
+def createEndToCid(accnToEntry: dict[str, dict], cik: str) -> dict[datetime, datetime]:
+    '''
+    Returns a dictionary mapping end date to CID.
+
+    This function uses the maximum duration (e.g. ThreeQuarters for a Q3 period, not OneQuarter).
+    CID is <calendar year>_<calendar period>_<duration>. 
+    '''
     ends: list[datetime] = [strToDate(entry['end']) for entry in accnToEntry.values()]
     ends.sort(reverse=True)
     cyqes: list[datetime] = [None] * len(ends) # Calendar year quarter ends
@@ -178,7 +186,8 @@ def getMostRecentCyqe(date: datetime) -> datetime:
 def getPrecedingCyqe(cyqe: datetime) -> datetime:
     return getMostRecentCyqe(cyqe - timedelta(days=1))
 
-def getConcepts(cik: str, data: dict, fIdToTimespanFinancials: dict, logger: logging.Logger) -> None:
+def getConcepts(cik: str, data: dict, cidToTimespanFinancials: dict[str, TimespanFinancials], endToCid: dict[datetime, str], logger: logging.Logger) -> None:
+    # Get max-duration financials
     gaapData = data['facts']['us-gaap']
     for alias in gaapData.keys():
         if alias in concepts.aliasToConcept:
@@ -186,24 +195,40 @@ def getConcepts(cik: str, data: dict, fIdToTimespanFinancials: dict, logger: log
             for entry in entries:
                 if not isDesiredForm(entry['form']):
                     continue
-                end = entry['end']
-                fy = entry['fy']
-                fp = concepts.FiscalPeriod[entry['fp']]
-                start = entry['start'] if 'start' in entry else None
-                duration = getDurationFromDates(start, end)
-                entryId = createFId(cik, fy, fp, duration)
-                if entryId in fIdToTimespanFinancials:
+
+                # create CID from entry
+                end = strToDate(entry['end'])
+                if 'start' in entry: 
+                    start = strToDate(entry['start'])
+                    duration = getDurationFromDates(start, end)
+                    if duration == concepts.Duration.Other:
+                        log(logging.debug, cik, f'for {dateToStr(end)} {alias} (alias), got an "other" duration')
+                    if end in endToCid:
+                        cy, cp, _ = splitCid(endToCid[end])
+                    else:
+                        cyqe = getMostRecentCyqe(end)
+                        cy, cp = cyqe.year, getPeriod(cyqe)
+                    cid = createCid(cy, cp, duration, cik)
+                else: 
+                    cid = endToCid[end]
+
+                # if CID matches, add the data
+                if cid in cidToTimespanFinancials:
                     concept = concepts.aliasToConcept[alias].name
                     value = entry['val']
-                    existingValues = fIdToTimespanFinancials[entryId].values[concept]
-                    fiscalYearOfFiling = entry['fy']
+                    existingValues = cidToTimespanFinancials[cid].values[concept]
+                    fiscalYearOfFiling = int(entry['fy'])
                     newValue = FinancialValue(concept, alias, value, fiscalYearOfFiling)
-                    addFinancialValue(existingValues, newValue)
-    addMissingOneQuarterConcepts(fIdToTimespanFinancials, logger)
+                    conditionallyAddFinancialValue(existingValues, newValue)
+    
+    # Get OneQuarter duration financials
+    addMissingOneQuarterConcepts(cidToTimespanFinancials, endToCid, cik, logger)
 
-def addFinancialValue(existingValues: list[FinancialValue], newValue: FinancialValue) -> None:
+def conditionallyAddFinancialValue(existingValues: list[FinancialValue], newValue: FinancialValue) -> None:
     '''
-    Determines whether and how a FinancialValue should be added to a list, then adds it if necessary.
+    Determines how a FinancialValue should be added to a list, then does it. 
+    
+    The new value can be appended, skipped, or replace an existing element.
     '''
     # If the list is empty, append it
     if not existingValues:
@@ -234,31 +259,25 @@ def replaceFinancialValue(A: FinancialValue, B: FinancialValue) -> bool:
     return False
 
 
-def addMissingOneQuarterConcepts(fIdToTimespanFinancials: dict, logger: logging.Logger) -> None:
-    '''
-    Add missing one-quarter-duration concepts. 
-
-    For example, fourth quarter concepts could be missing if they are not reported and must 
-    be derived. Also, cash flow concepts could be missing for Q2 and Q3 since they might be 
-    reported only in two- and three-quarter durations. 
-    '''
-    for fId, ff in fIdToTimespanFinancials.items():
-        if ff.duration == concepts.Duration.OneQuarter and ff.fp != concepts.FiscalPeriod.Q1:
+def addMissingOneQuarterConcepts(cidToTimespanFinancials: dict[str, TimespanFinancials], endToCid: dict[datetime, str], cik: str, logger: logging.Logger) -> None:
+    for cid, tf in cidToTimespanFinancials.items():
+        if tf.duration == concepts.Duration.OneQuarter:
             for concept in concepts.Concepts:
                 concept = concept.name
-                values = ff.values[concept]
+                values = tf.values[concept]
                 if not values:
-                    value = getOneQuarterValue(fIdToTimespanFinancials, ff, concept, logger)
-                    if value != None:
-                        values.append(value)
+                    newVal = getOneQuarterValue(cidToTimespanFinancials, endToCid, tf, concept, cik, logger)
+                    if newVal != None:
+                        values.append(newVal)
 
-def getOneQuarterValue(fIdToFf: dict[str, TimespanFinancials], ff: TimespanFinancials, concept: str, logger: logging.Logger) -> FinancialValue | None:
-    longId, shortId = getLongShortOneQuarterFIds(ff, logger)
-    if longId in fIdToFf and concept in fIdToFf[longId].values:
-        longValues = fIdToFf[longId].values[concept]
+def getOneQuarterValue(cidToTf: dict[str, TimespanFinancials], endToCid: dict[datetime, str], tf: TimespanFinancials, concept: str, cik: str, logger: logging.Logger) -> FinancialValue | None:
+    longCid = endToCid[tf.end]
+    shortCid = getShortCid(longCid, concepts.Duration.OneQuarter, cik, logger)
+    if longCid in cidToTf and concept in cidToTf[longCid].values:
+        longValues = cidToTf[longCid].values[concept]
         if len(longValues) == 1:
-            if shortId in fIdToFf and concept in fIdToFf[shortId].values:
-                shortValues = fIdToFf[shortId].values[concept]
+            if shortCid in cidToTf and concept in cidToTf[shortCid].values:
+                shortValues = cidToTf[shortCid].values[concept]
                 if len(shortValues) == 1:
                     longValue = longValues[0]
                     shortValue = shortValues[0]
@@ -268,24 +287,52 @@ def getOneQuarterValue(fIdToFf: dict[str, TimespanFinancials], ff: TimespanFinan
                     return FinancialValue(resConcept, resAlias, resValue)
     return None
 
-def getLongShortOneQuarterFIds(ff: TimespanFinancials, logger: logging.Logger) -> tuple[str | None, str | None]:
+def getShortCid(longCid: str, delta: concepts.Duration, cik: str, logger: logging.Logger) -> str | None:
     '''
-    Returns long-duration fId and short-duration fId.
+    Returns the short CID, or the CID from the same calendar year and delta duration before the longCid. 
+    Returns None if the short CID cannot be calculated.
 
-    For example, if the given TimespanFinancials is for Q3, the long-duration will fId have Q3 and 
-    ThreeQuarter duration. The short-duration fId will have Q2 and TwoQuarter duration. 
-    This function should only be used on one-quarter duration TimespanFinancialss.
+    For example, given a longCid of 2024_Q3_ThreeQuarters and a delta of OneQuarter, return a CID 
+    of 2024_Q2_TwoQuarters. Recall that a CID is <calendar year>_<calendar period>_<duration>
     '''
-    if ff.duration != concepts.Duration.OneQuarter:
-        msg = f'Cannot get long/short-duration FId of {ff.fp.name} fiscal period, FF: {ff}'
-        log(logger.warning, ff.cik, msg)
-        return None, None
-    longDuration = getMaxDurationFromPeriod(ff.fp)
-    longId = createFId(ff.cik, ff.fy, ff.fp, longDuration)
-    shortFp = concepts.FiscalPeriod(ff.fp.value - 1)
-    shortDuration = getMaxDurationFromPeriod(shortFp)
-    shortId = createFId(ff.cik, ff.fy, shortFp, shortDuration)
-    return longId, shortId
+    cy, longCp, longDur = splitCid(longCid)
+    if delta.value >= longDur.value:
+        return None
+    _, shortCp = cyMinus(cy, longCp, delta)
+    shortDur = concepts.Duration(longDur.value - delta.value)
+    shortCid = createCid(cy, shortCp, shortDur, cik)
+    return shortCid
+
+def cyMinus(cy: int, cp: concepts.Period, delta: concepts.Duration) -> tuple[int, concepts.Period]:
+    '''
+    Returns the calendar year (cy) and calendar period (cp) from delta before the given cy and cp:
+    '''
+    outCp: int = cp.value - delta.value
+    if outCp < 0:
+        return cy-1, concepts.Period(outCp % 4)
+    elif outCp == 0:
+        return cy-1, concepts.Period['FY']
+    else:
+        return cy, concepts.Period(outCp)
+
+# def getLongShortOneQuarterCids(tf: TimespanFinancials, endToCid: dict[datetime, str], logger: logging.Logger) -> tuple[str | None, str | None]:
+#     '''
+#     Returns long-duration CID and short-duration CID. Returns None, None if given tf does not have 
+#     OneQuarter duration.
+
+#     For example, if the given TimespanFinancials is for Q3, the long-duration CID will have Q3 and 
+#     ThreeQuarter duration. The short-duration CID will have Q2 and TwoQuarter duration. 
+#     Recall that a CID is <calendar year>_<calendar period>_<duration>
+#     '''
+#     if tf.duration != concepts.Duration.OneQuarter:
+#         msg = f'Cannot get long/short-duration CIDs for tf ending {dateToStr(tf.end)}, tf: {tf}'
+#         log(logger.warning, tf.cik, msg)
+#         return None, None
+#     longCid = endToCid[tf.end]
+#     shortFp = concepts.FiscalPeriod(ff.fp.value - 1)
+#     shortDuration = getMaxDurationFromPeriod(shortFp)
+#     shortId = createFId(ff.cik, ff.fy, shortFp, shortDuration)
+#     return longId, shortId
 
 def handleConceptIssues(cik: str, fIdToTimespanFinancials: dict, logger) -> None:
         problemCount = 0
@@ -305,11 +352,7 @@ def handleConceptIssues(cik: str, fIdToTimespanFinancials: dict, logger) -> None
             jsonFilename = f'CIK{cik}.json'
             extractZipFileToJson(jsonFilename)
         
-def getDurationFromDates(startDate: str | None, endDate: str) -> Enum:
-    if not startDate:
-        return concepts.Duration.OneQuarter
-    start = strToDate(startDate)
-    end = strToDate(endDate)
+def getDurationFromDates(start: datetime, end: datetime) -> concepts.Duration:
     duration = (end - start).days
     if 70 < duration < 110:
         return concepts.Duration.OneQuarter
@@ -390,12 +433,10 @@ def run():
                         continue
                     endToCid: dict[datetime, str] = createEndToCid(accnToEntry, cik)
                     cidToTimespanFinancials: dict[str, TimespanFinancials] = createCidToTimespanFinancials(accnToEntry, endToCid, cik)
-                    # fIdToTimespanFinancials = createFIdToTimespanFinancials(data, cik)
-                    if fIdToTimespanFinancials:
-                        getConcepts(cik, data, fIdToTimespanFinancials, logger)
-                        handleConceptIssues(cik, fIdToTimespanFinancials, logger)
+                    getConcepts(cik, data, cidToTimespanFinancials, endToCid, logger)
+                    handleConceptIssues(cik, fIdToTimespanFinancials, logger)
             except KeyError as ke:
-                log(logging.debug, cik, ke)
+                log(logging.debug, cik, f'KeyError: {ke}')
     cnx.commit()
     cursor.close()
     cnx.close()
