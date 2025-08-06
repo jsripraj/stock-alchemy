@@ -404,24 +404,26 @@ def run():
     logger = configureLogger()
     cnx = mysql.connector.connect(host=config.MYSQL_HOST, database=config.MYSQL_DATABASE, user=os.getenv("MYSQL_USER"), password=os.getenv("MYSQL_PASSWORD"))
     cursor = cnx.cursor()
-    query = ("SELECT CIK FROM companies LIMIT 25;")
+    query = ("SELECT CIK FROM companies LIMIT 50;")
     cursor.execute(query)
 
     ### START A: Use cursor ###
-    for cik in cursor:
+    # for cik in cursor:
     ### END A ###
 
     # ### START B: Use list ###
-    # cursor.fetchall() # Need to "use up" cursor
-    # ciks = [
-    #     ('0000320193',), # Apple
-    #     # ('0000004962',), # American Express
-    #     # ('0000012927',), # Boeing
-    #     # ('0000034088',), # Exxon Mobil
-    #     # ('0001551152',), # AbbVie
-    #     # ('0000909832',), # Costco
-    # ]
-    # for cik in ciks:
+    cursor.fetchall() # Need to "use up" cursor
+    ciks = [
+        # ('0000320193',), # Apple
+        # ('0000004962',), # American Express
+        # ('0000012927',), # Boeing
+        # ('0000034088',), # Exxon Mobil
+        # ('0001551152',), # AbbVie
+        # ('0000909832',), # Costco
+        # ('0001393818',), # BlackStone
+        ('0001744489',), # Disney
+    ]
+    for cik in ciks:
     # ### END B ###
 
         cik = cik[0]
