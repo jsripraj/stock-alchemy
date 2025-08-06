@@ -26,8 +26,8 @@ class TimespanFinancials:
     def __init__(self, cik: str, cid: str, cy: int, cp: concepts.Period, duration: Enum, end: datetime, accn: str, form: str, fy: str , fp: str):
         self.cik: str = cik
         self.cid: str = cid # Calendar ID: <calendar year>_<calendar period>_<duration>
-        self.cy: int = cy, # calendar year
-        self.cp: concepts.Period = cp, # calendar period (indicates end of period, does NOT indicate duration)
+        self.cy: int = int(cy) # calendar year
+        self.cp: concepts.Period = cp # calendar period (indicates end of period, does NOT indicate duration)
         self.duration: Enum = duration
         self.end: datetime = end
         self.accn: str = accn # Accession number
@@ -339,6 +339,8 @@ def cyMinus(cy: int, cp: concepts.Period, delta: concepts.Duration) -> tuple[int
 def handleConceptIssues(cik: str, cidToTf: dict[str, TimespanFinancials], logger) -> None:
         problemCount = 0
         for cid, tf in cidToTf.items():
+            if tf.cy < 2015:
+                continue
             values = tf.values
             for c in concepts.Concepts:
                 concept = c.name
@@ -406,20 +408,20 @@ def run():
     cursor.execute(query)
 
     ### START A: Use cursor ###
-    # for cik in cursor:
+    for cik in cursor:
     ### END A ###
 
     # ### START B: Use list ###
-    cursor.fetchall() # Need to "use up" cursor
-    ciks = [
-        ('0000320193',), # Apple
-        # ('0000004962',), # American Express
-        # ('0000012927',), # Boeing
-        # ('0000034088',), # Exxon Mobil
-        # ('0001551152',), # AbbVie
-        # ('0000909832',), # Costco
-    ]
-    for cik in ciks:
+    # cursor.fetchall() # Need to "use up" cursor
+    # ciks = [
+    #     ('0000320193',), # Apple
+    #     # ('0000004962',), # American Express
+    #     # ('0000012927',), # Boeing
+    #     # ('0000034088',), # Exxon Mobil
+    #     # ('0001551152',), # AbbVie
+    #     # ('0000909832',), # Costco
+    # ]
+    # for cik in ciks:
     # ### END B ###
 
         cik = cik[0]
