@@ -290,18 +290,19 @@ def getOneQuarterValue(cidToTf: dict[str, TimespanFinancials], endToCid: dict[da
 
 def getShortCid(longCid: str, delta: concepts.Duration, cik: str, logger: logging.Logger) -> str | None:
     '''
-    Returns the short CID, or the CID from the same calendar year and delta duration before the longCid. 
+    Returns the CID from delta duration before the longCid. 
     Returns None if the short CID cannot be calculated.
 
+    delta cannot be greater than or equal to the duration in the longCid.
     For example, given a longCid of 2024_Q3_ThreeQuarters and a delta of OneQuarter, return a CID 
     of 2024_Q2_TwoQuarters. Recall that a CID is <calendar year>_<calendar period>_<duration>
     '''
-    cy, longCp, longDur = splitCid(longCid)
+    longCy, longCp, longDur = splitCid(longCid)
     if delta.value >= longDur.value:
         return None
-    _, shortCp = cyMinus(cy, longCp, delta)
+    shortCy, shortCp = cyMinus(longCy, longCp, delta)
     shortDur = concepts.Duration(longDur.value - delta.value)
-    shortCid = createCid(cy, shortCp, shortDur, cik)
+    shortCid = createCid(shortCy, shortCp, shortDur, cik)
     return shortCid
 
 def cyMinus(cy: int, cp: concepts.Period, delta: concepts.Duration) -> tuple[int, concepts.Period]:
@@ -335,20 +336,19 @@ def cyMinus(cy: int, cp: concepts.Period, delta: concepts.Duration) -> tuple[int
 #     shortId = createFId(ff.cik, ff.fy, shortFp, shortDuration)
 #     return longId, shortId
 
-def handleConceptIssues(cik: str, fIdToTimespanFinancials: dict, logger) -> None:
+def handleConceptIssues(cik: str, cidToTf: dict[str, TimespanFinancials], logger) -> None:
         problemCount = 0
-        for fId, ff in fIdToTimespanFinancials.items():
-            values = ff.values
+        for cid, tf in cidToTf.items():
+            values = tf.values
             for c in concepts.Concepts:
                 concept = c.name
-                data = values[concept]
-                if len(data) != 1:
-                    issue = f"No values found" if not data else f"{len(data)} values found => {data}"
-                    msg = f"{ff.end} {ff.fp.name} {ff.duration.name} {concept}: {issue}"
+                if len(values[concept]) != 1:
+                    msg = f"CID {cid}: at least one concept has zero or multiple values\n{tf}"
                     log(logger.debug, cik, msg)
                     problemCount += 1
+                    break
         if problemCount > 0:
-            msg = f'{problemCount} problematic values'
+            msg = f'{problemCount} problems'
             log(logger.debug, cik, msg)
             jsonFilename = f'CIK{cik}.json'
             extractZipFileToJson(jsonFilename)
@@ -435,7 +435,7 @@ def run():
                     endToCid: dict[datetime, str] = createEndToCid(accnToEntry, cik)
                     cidToTimespanFinancials: dict[str, TimespanFinancials] = createCidToTimespanFinancials(accnToEntry, endToCid, cik)
                     getConcepts(cik, data, cidToTimespanFinancials, endToCid, logger)
-                    handleConceptIssues(cik, fIdToTimespanFinancials, logger)
+                    handleConceptIssues(cik, cidToTimespanFinancials, logger)
             except KeyError as ke:
                 log(logging.debug, cik, f'KeyError: {ke}')
     cnx.commit()
