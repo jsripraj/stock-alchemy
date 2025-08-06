@@ -200,6 +200,7 @@ def getConcepts(cik: str, data: dict, cidToTimespanFinancials: dict[str, Timespa
                 end = strToDate(entry['end'])
                 if 'start' in entry: 
                     start = strToDate(entry['start'])
+                    days = (end - start).days
                     duration = getDurationFromDates(start, end)
                     if duration == concepts.Duration.Other:
                         log(logging.debug, cik, f'for {dateToStr(end)} {alias} (alias), got an "other" duration')
@@ -353,14 +354,14 @@ def handleConceptIssues(cik: str, fIdToTimespanFinancials: dict, logger) -> None
             extractZipFileToJson(jsonFilename)
         
 def getDurationFromDates(start: datetime, end: datetime) -> concepts.Duration:
-    duration = (end - start).days
-    if 70 < duration < 110:
+    days = (end - start).days
+    if 60 < days < 120:
         return concepts.Duration.OneQuarter
-    if 160 < duration < 200:
+    if 150 < days < 210:
         return concepts.Duration.TwoQuarters
-    if 250 < duration < 290:
+    if 240 < days < 300:
         return concepts.Duration.ThreeQuarters
-    if 320 < duration < 390:
+    if 310 < days < 400:
         return concepts.Duration.Year
     return concepts.Duration.Other
 
