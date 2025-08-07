@@ -128,22 +128,7 @@ def createEndToCid(accnToEntry: dict[str, dict], cik: str) -> dict[datetime, dat
         if diff < 0 or diff > 180:
             cyqe = getMostRecentCyqe(end)
         entries[i]['cyqe'] = cyqe
-
-        # use most recent 10-K to get duration (more reliable than fp)
-        found = False
-        for j in range(i+1, len(entries)):
-            if entries[j]['form'] == '10-K':
-                found = True
-                start = strToDate(entries[j]['end']) + timedelta(days=1)
-                duration = getDurationFromDates(start, end)
-                break
-        # otherwise use fp (can be mislabeled or None)
-        if not found:
-            if entries[i]['fp']:
-                duration = getMaxDurationFromPeriod(concepts.Period[entries[i]['fp']])
-            else:
-                log(logging.debug, cik, f'Unable to get duration for {end} entry, accn {entries[i]['accn']}')
-                continue
+        # duration = getDuration() # TODO
         cy: int = cyqe.year
         cp: concepts.Period = getPeriod(cyqe)
         cid = createCid(cy, cp, duration, cik)
@@ -164,6 +149,40 @@ def getMostRecentCyqe(date: datetime) -> datetime:
 
 def getPrecedingCyqe(cyqe: datetime) -> datetime:
     return getMostRecentCyqe(cyqe - timedelta(days=1))
+
+def getDuration(entries: list[dict], i: int, cik: str) -> concepts.Duration:
+    '''
+    Returns a duration for the i'th entry in entries.
+    
+    Obtaining the correct duration can sometimes be tricky when data is mislabeled or missing. 
+    This function uses multiple different methods to get a duration, and returns the most popular result.
+
+    Parameters
+    entries: list[dict]
+        A list of a concept's data entries, sorted in reverse chronological order by 'end'.
+    
+    i: int
+        The index of the entry to find the duration for.
+    '''
+    points: dict[concepts.Duration, int] = defaultdict(int)
+    end = strToDate(entries[i]['end'])
+
+    # use most recent 10-K to get duration (form can be mislabeled, but more reliable than fp)
+    for j in range(i+1, len(entries)):
+        if entries[j]['form'] == '10-K':
+            start = strToDate(entries[j]['end']) + timedelta(days=1)
+            duration = getDurationFromDates(start, end)
+            points[duration] += 1
+            break
+
+    # use fp (can be mislabeled or None)
+    if entries[i]['fp']:
+        duration = getMaxDurationFromPeriod(concepts.Period[entries[i]['fp']])
+        points[duration] += 1
+    
+    # use 
+        log(logging.debug, cik, f'Unable to get duration for {end} entry, accn {entries[i]['accn']}')
+        continue
 
 def createCidToTimespanFinancials(accnToEntry: dict[str, dict], endToCid: dict[datetime, str], cik: str) -> dict[str, TimespanFinancials]:
     '''
@@ -416,7 +435,7 @@ def run():
     logger = configureLogger()
     cnx = mysql.connector.connect(host=config.MYSQL_HOST, database=config.MYSQL_DATABASE, user=os.getenv("MYSQL_USER"), password=os.getenv("MYSQL_PASSWORD"))
     cursor = cnx.cursor()
-    query = ("SELECT CIK FROM companies LIMIT 50;")
+    query = ("SELECT CIK FROM companies LIMIT 100;")
     cursor.execute(query)
 
     ### START A: Use cursor ###
@@ -435,7 +454,8 @@ def run():
         # ('0001393818',), # BlackStone
         # ('0001744489',), # Disney
         # ('0001551182',), # Eaton
-        ('0000886982',), # Goldman Sachs
+        # ('0000886982',), # Goldman Sachs
+        ('0000064040',), # S&P Global
     ]
     for cik in ciks:
     # ### END B ###
