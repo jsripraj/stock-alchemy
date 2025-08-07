@@ -213,15 +213,17 @@ def getConcepts(cik: str, data: dict, cidToTimespanFinancials: dict[str, Timespa
                     days = (end - start).days
                     duration = getDurationFromDates(start, end)
                     if duration == concepts.Duration.Other:
-                        log(logging.debug, cik, f'for {dateToStr(end)} {alias} (alias), got an "other" duration')
+                        log(logging.debug, cik, f'in getConcepts {dateToStr(end)} alias {alias} got an "other" duration')
                     if end in endToCid:
                         cy, cp, _ = splitCid(endToCid[end])
                     else:
                         cyqe = getMostRecentCyqe(end)
                         cy, cp = cyqe.year, getPeriod(cyqe)
                     cid = createCid(cy, cp, duration, cik)
-                else: 
+                elif end in endToCid: 
                     cid = endToCid[end]
+                else:
+                    continue
 
                 # if CID matches, add the data
                 if cid in cidToTimespanFinancials:
@@ -431,7 +433,9 @@ def run():
         # ('0001551152',), # AbbVie
         # ('0000909832',), # Costco
         # ('0001393818',), # BlackStone
-        ('0001744489',), # Disney
+        # ('0001744489',), # Disney
+        # ('0001551182',), # Eaton
+        ('0000886982',), # Goldman Sachs
     ]
     for cik in ciks:
     # ### END B ###
