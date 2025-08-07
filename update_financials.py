@@ -23,7 +23,7 @@ class FinancialValue:
         return f"FinancialValue('{self.concept}', '{self.alias}', '{self.value}', '{self.fiscalYearOfFiling}')"
 
 class TimespanFinancials:
-    def __init__(self, cik: str, cid: str, cy: int, cp: concepts.Period, duration: Enum, end: datetime, accn: str, form: str, fy: str , fp: str):
+    def __init__(self, cik: str, cid: str, cy: int, cp: concepts.Period, duration: Enum, end: datetime, accn: str, form: str, fy: str , fp: str, earliest: bool = False):
         self.cik: str = cik
         self.cid: str = cid # Calendar ID: <calendar year>_<calendar period>_<duration>
         self.cy: int = int(cy) # calendar year
@@ -34,13 +34,14 @@ class TimespanFinancials:
         self.form: str = form
         self.fy: int = fy # Fiscal year
         self.fp: str = fp # Fiscal period (indicates end of period, does NOT indicate duration)
+        self.earliest: bool = earliest # indicates whether the period is the earliest reported
         self.values: dict[str, list[FinancialValue]] = defaultdict(list) # concept to values
 
     def __repr__(self):
         return f"TimespanFinancials(cik: {self.cik}, cid: {self.cid}, cy: {self.cy}, cp: {self.cp}, " + \
                f"duration: {self.duration.name}, " + \
                f"end: {self.end}, accn: {self.accn}, form: {self.form}, " + \
-               f"fy: {self.fy}, fp: {self.fp}, values: {pprint.pformat(self.values)}"
+               f"fy: {self.fy}, fp: {self.fp}, earliest: {self.earliest}, values: {pprint.pformat(self.values)}"
     
 def strToDate(dateStr: str) -> datetime:
     return datetime.strptime(dateStr, "%Y-%m-%d")
@@ -172,7 +173,10 @@ def createCidToTimespanFinancials(accnToEntry: dict[str, dict], endToCid: dict[d
     OneQuarter entries for Q2 - Q4. 
     '''
     cidToTimespanFinancials: dict[str, TimespanFinancials] = {}
-    for entry in accnToEntry.values():
+    entries = [entry for entry in accnToEntry.values()]
+    entries.sort(key=lambda entry: entry['end'])
+    earliest = True
+    for entry in entries:
         end: datetime = strToDate(entry['end'])
         cid = endToCid[end]
         cy, cp, duration = splitCid(cid)
@@ -180,15 +184,16 @@ def createCidToTimespanFinancials(accnToEntry: dict[str, dict], endToCid: dict[d
         form: str = entry['form']
         fy: int = entry['fy']
         fp: concepts.Period = concepts.Period[entry['fp']]
-        cidToTimespanFinancials[cid] = TimespanFinancials(cik, cid, cy, cp, duration, end, accn, form, fy, fp)
+        cidToTimespanFinancials[cid] = TimespanFinancials(cik, cid, cy, cp, duration, end, accn, form, fy, fp, earliest)
 
         # for Q4, Q3, Q2, create another entry with a OneQuarter duration
         if duration.value > concepts.Duration.OneQuarter.value:
             altDuration = concepts.Duration.OneQuarter
             altCid = createCid(cy, cp, altDuration, cik)
-            cidToTimespanFinancials[altCid] = TimespanFinancials(cik, altCid, cy, cp, altDuration, end, None, None, fy, fp)
+            cidToTimespanFinancials[altCid] = TimespanFinancials(cik, altCid, cy, cp, altDuration, end, None, None, fy, fp, earliest)
         else:
             pass
+            earliest = False
     return cidToTimespanFinancials
 
 def getConcepts(cik: str, data: dict, cidToTimespanFinancials: dict[str, TimespanFinancials], endToCid: dict[datetime, str], logger: logging.Logger) -> None:
@@ -344,7 +349,7 @@ def cyMinus(cy: int, cp: concepts.Period, delta: concepts.Duration) -> tuple[int
 def handleConceptIssues(cik: str, cidToTf: dict[str, TimespanFinancials], logger) -> None:
         problemCount = 0
         for cid, tf in cidToTf.items():
-            if tf.cy < 2015:
+            if tf.cy < 2015 or tf.earliest:
                 continue
             values = tf.values
             for c in concepts.Concepts:
