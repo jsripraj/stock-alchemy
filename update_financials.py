@@ -117,27 +117,32 @@ def createEndToCid(accnToEntry: dict[str, dict], cik: str) -> dict[datetime, dat
     This function uses the maximum duration (e.g. ThreeQuarters for a Q3 period, not OneQuarter).
     CID is <calendar year>_<calendar period>_<duration>. 
     '''
-    ends: list[datetime] = [strToDate(entry['end']) for entry in accnToEntry.values()]
-    ends.sort(reverse=True)
-    cyqes: list[datetime] = [None] * len(ends) # Calendar year quarter ends
-    cyqes[0] = getMostRecentCyqe(ends[0])
-    for i in range(1, len(ends)):
-        cyqe = getPrecedingCyqe(cyqes[i-1])
-        end = ends[i]
+    endToCid: dict[datetime, str] = {}
+    entries = [entry for entry in accnToEntry.values()]
+    entries.sort(key=lambda e: e['end'], reverse=True)
+    for i in range(len(entries)):
+        end = strToDate(entries[i]['end'])
+        cyqe = getPrecedingCyqe(entries[i-1]['cyqe']) if i > 0 else getMostRecentCyqe(end)
         diff = (end - cyqe).days
         if diff < 0 or diff > 180:
-            cyqe = getMostRecentCyqe(ends[i])
-        cyqes[i] = cyqe
-    endToCyqe: dict[datetime, datetime] = {ends[i]: cyqes[i] for i in range(len(ends))}
+            cyqe = getMostRecentCyqe(end)
+        entries[i]['cyqe'] = cyqe
 
-    endToCid: dict[datetime, str] = {}
-    for accn, entry in accnToEntry.items():
-        end: datetime = strToDate(entry['end'])
-        cyqe: datetime = endToCyqe[end]
-        fp: concepts.Period = concepts.Period[entry['fp']]
-        if not fp:
-            log(logging.debug, cik, f'fp is None for {end} Assets in accn {accn}')
-        duration: concepts.Duration = getMaxDurationFromPeriod(fp)
+        # use most recent 10-K to get duration (more reliable than fp)
+        found = False
+        for j in range(i+1, len(entries)):
+            if entries[j]['form'] == '10-K':
+                found = True
+                start = strToDate(entries[j]['end']) + timedelta(days=1)
+                duration = getDurationFromDates(start, end)
+                break
+        # otherwise use fp (can be mislabeled or None)
+        if not found:
+            if entries[i]['fp']:
+                duration = getMaxDurationFromPeriod(concepts.Period[entries[i]['fp']])
+            else:
+                log(logging.debug, cik, f'Unable to get duration for {end} entry, accn {entries[i]['accn']}')
+                continue
         cy: int = cyqe.year
         cp: concepts.Period = getPeriod(cyqe)
         cid = createCid(cy, cp, duration, cik)
