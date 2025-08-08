@@ -273,7 +273,7 @@ def getConcepts(cik: str, data: dict, cidToTimespanFinancials: dict[str, Timespa
                 # if CID matches, add the data
                 if cid in cidToTimespanFinancials:
                     concept = concepts.aliasToConcept[alias].name
-                    value = entry['val']
+                    value = int(entry['val'])
                     existingValues = cidToTimespanFinancials[cid].values[concept]
                     fiscalYearOfFiling = int(entry['fy'])
                     newValue = FinancialValue(concept, alias, value, fiscalYearOfFiling)
@@ -342,7 +342,7 @@ def getOneQuarterValue(cidToTf: dict[str, TimespanFinancials], endToCid: dict[da
                     shortValue = shortValues[0]
                     resConcept = longValue.concept
                     resAlias = longValue.alias
-                    resValue = str(int(longValue.value) - int(shortValue.value))
+                    resValue = longValue.value - shortValue.value
                     return FinancialValue(resConcept, resAlias, resValue)
     return None
 
