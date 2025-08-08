@@ -103,7 +103,7 @@ def createCid(cy: int, cp: concepts.Period, duration: concepts.Duration, cik: st
 
 def splitCid(cid: str) -> tuple[int, concepts.Period, concepts.Duration]:
     '''
-    Returns calendar year (cp), calendar period (cp), duration
+    Returns calendar year (cy), calendar period (cp), duration
     '''
     cy, cp, duration = cid.split("_")
     return int(cy), concepts.Period[cp], concepts.Duration[duration]
@@ -120,7 +120,7 @@ def createEndToCid(accnToEntry: dict[str, dict], cik: str) -> dict[datetime, dat
     '''
     endToCid: dict[datetime, str] = {}
     entries = [entry for entry in accnToEntry.values()]
-    entries.sort(key=lambda e: e['end'], reverse=True)
+    entries.sort(key=lambda e: e['end'])
     for i in range(len(entries)):
         end = strToDate(entries[i]['end'])
         cyqe = getPrecedingCyqe(entries[i-1]['cyqe']) if i > 0 else getMostRecentCyqe(end)
@@ -128,7 +128,7 @@ def createEndToCid(accnToEntry: dict[str, dict], cik: str) -> dict[datetime, dat
         if diff < 0 or diff > 180:
             cyqe = getMostRecentCyqe(end)
         entries[i]['cyqe'] = cyqe
-        # duration = getDuration() # TODO
+        duration = getDuration(entries, i, endToCid, cik)
         cy: int = cyqe.year
         cp: concepts.Period = getPeriod(cyqe)
         cid = createCid(cy, cp, duration, cik)
@@ -150,7 +150,7 @@ def getMostRecentCyqe(date: datetime) -> datetime:
 def getPrecedingCyqe(cyqe: datetime) -> datetime:
     return getMostRecentCyqe(cyqe - timedelta(days=1))
 
-def getDuration(entries: list[dict], i: int, cik: str) -> concepts.Duration:
+def getDuration(entries: list[dict], i: int, endToCid: dict[datetime, str], cik: str) -> concepts.Duration:
     '''
     Returns a duration for the i'th entry in entries.
     
@@ -159,30 +159,56 @@ def getDuration(entries: list[dict], i: int, cik: str) -> concepts.Duration:
 
     Parameters
     entries: list[dict]
-        A list of a concept's data entries, sorted in reverse chronological order by 'end'.
+        A list of a concept's data entries, sorted in chronological order by 'end'.
     
     i: int
         The index of the entry to find the duration for.
+    
+    endToCid: dict[datetime, str]
+        Maps from end to CID.
     '''
     points: dict[concepts.Duration, int] = defaultdict(int)
     end = strToDate(entries[i]['end'])
 
     # use most recent 10-K to get duration (form can be mislabeled, but more reliable than fp)
-    for j in range(i+1, len(entries)):
+    for j in range(i-1, -1, -1):
         if entries[j]['form'] == '10-K':
             start = strToDate(entries[j]['end']) + timedelta(days=1)
-            duration = getDurationFromDates(start, end)
-            points[duration] += 1
+            tenKduration = getDurationFromDates(start, end)
+            points[tenKduration] += 1
             break
+
+    # use most recent period to get duration
+    if i > 0:
+        prevCid = endToCid[strToDate(entries[i-1]['end'])]
+        _, _, prevDur = splitCid(prevCid)
+        if prevDur == concepts.Duration.ThreeQuarters:
+            mrpDuration = concepts.Duration.Year
+        else:
+            mrpDuration = concepts.Duration((prevDur.value + 1) % 4)
+        points[mrpDuration] += 1
 
     # use fp (can be mislabeled or None)
     if entries[i]['fp']:
-        duration = getMaxDurationFromPeriod(concepts.Period[entries[i]['fp']])
-        points[duration] += 1
+        fpDuration = getMaxDurationFromPeriod(concepts.Period[entries[i]['fp']])
+        points[fpDuration] += 1
     
-    # use 
-        log(logging.debug, cik, f'Unable to get duration for {end} entry, accn {entries[i]['accn']}')
-        continue
+    # find strict max
+    # find max points
+    maxPoints = max(points.values())
+    # find the duration with that many points
+    # if there are two durations, there is no strict max
+    finalDur = None
+    for dur, pts in points.items():
+        if pts == maxPoints:
+            if finalDur == None:
+                finalDur = dur
+            else:
+                msg = f'in getDuration, unable to calculate duration, returning "other" for {end} entry, accn {entries[i]['accn']}'
+                log(logging.debug, cik, msg)
+                return concepts.Duration.Other
+    
+    return finalDur
 
 def createCidToTimespanFinancials(accnToEntry: dict[str, dict], endToCid: dict[datetime, str], cik: str) -> dict[str, TimespanFinancials]:
     '''
