@@ -15,7 +15,7 @@ class Period(Enum):
     Q4 = 4
     FY = 4
 
-class Concepts(Enum):
+class Concept(Enum):
     Revenue = auto()
     NetIncome = auto()
     CashFlowFromOperatingActivities = auto()
@@ -24,27 +24,27 @@ class Concepts(Enum):
 
 aliasToConcept = {
     # Revenue
-    'RevenueFromContractWithCustomerExcludingAssessedTax': Concepts.Revenue,
-    'RevenueFromContractWithCustomerIncludingAssessedTax': Concepts.Revenue,
-    'Revenues': Concepts.Revenue,
-    'SalesRevenueNet': Concepts.Revenue,
-    'NoninterestIncome': Concepts.Revenue,
-    'SalesRevenueGoodsNet': Concepts.Revenue,
-    'SalesRevenueServicesNet': Concepts.Revenue,
-    'RevenuesNetOfInterestExpense': Concepts.Revenue,
-    'RegulatedAndUnregulatedOperatingRevenue': Concepts.Revenue,
+    'RevenueFromContractWithCustomerExcludingAssessedTax': Concept.Revenue,
+    'RevenueFromContractWithCustomerIncludingAssessedTax': Concept.Revenue,
+    'Revenues': Concept.Revenue,
+    'SalesRevenueNet': Concept.Revenue,
+    'NoninterestIncome': Concept.Revenue,
+    'SalesRevenueGoodsNet': Concept.Revenue,
+    'SalesRevenueServicesNet': Concept.Revenue,
+    'RevenuesNetOfInterestExpense': Concept.Revenue,
+    'RegulatedAndUnregulatedOperatingRevenue': Concept.Revenue,
     # Net Income
-    'NetIncomeLoss': Concepts.NetIncome,
-    'ProfitLoss': Concepts.NetIncome,
-    'IncomeLossFromContinuingOperations': Concepts.NetIncome,
-    'NetIncomeLossAvailableToCommonStockholdersBasic': Concepts.NetIncome,
+    'NetIncomeLoss': Concept.NetIncome,
+    'ProfitLoss': Concept.NetIncome,
+    'IncomeLossFromContinuingOperations': Concept.NetIncome,
+    'NetIncomeLossAvailableToCommonStockholdersBasic': Concept.NetIncome,
     # Cash Flow from Operating Activities
-    'NetCashProvidedByUsedInOperatingActivities': Concepts.CashFlowFromOperatingActivities,
-    'NetCashProvidedByUsedInOperatingActivitiesContinuingOperations': Concepts.CashFlowFromOperatingActivities,
+    'NetCashProvidedByUsedInOperatingActivities': Concept.CashFlowFromOperatingActivities,
+    'NetCashProvidedByUsedInOperatingActivitiesContinuingOperations': Concept.CashFlowFromOperatingActivities,
     # Cash Flow from Investing Activities
-    'NetCashProvidedByUsedInInvestingActivities': Concepts.CashFlowFromInvestingActivities,
-    'NetCashProvidedByUsedInInvestingActivitiesContinuingOperations': Concepts.CashFlowFromInvestingActivities,
+    'NetCashProvidedByUsedInInvestingActivities': Concept.CashFlowFromInvestingActivities,
+    'NetCashProvidedByUsedInInvestingActivitiesContinuingOperations': Concept.CashFlowFromInvestingActivities,
     # Cash Flow from Financing Activities
-    'NetCashProvidedByUsedInFinancingActivities': Concepts.CashFlowFromFinancingActivities,
-    'NetCashProvidedByUsedInFinancingActivitiesContinuingOperations': Concepts.CashFlowFromFinancingActivities,
+    'NetCashProvidedByUsedInFinancingActivities': Concept.CashFlowFromFinancingActivities,
+    'NetCashProvidedByUsedInFinancingActivitiesContinuingOperations': Concept.CashFlowFromFinancingActivities,
 }
