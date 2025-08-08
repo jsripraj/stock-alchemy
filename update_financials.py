@@ -13,35 +13,31 @@ import logging
 import time
 
 class FinancialValue:
-    def __init__(self, concept: str, alias: str, value: int, fiscalYearOfFiling: int = None):
+    def __init__(self, concept: str, alias: str, value: int, filingFiscalYear: int = None, duration: concepts.Duration = None):
         self.concept: str = concept
         self.alias: str = alias
         self.value: int = value
-        self.fiscalYearOfFiling: int = fiscalYearOfFiling
+        self.filingFiscalYear: int = filingFiscalYear
+        self.duration: concepts.Duration = duration
 
     def __repr__(self):
-        return f"FinancialValue('{self.concept}', '{self.alias}', '{self.value}', '{self.fiscalYearOfFiling}')"
+        return f"FinancialValue(concept: {self.concept}, alias: {self.alias}, value: {self.value}, " \
+            f"filing FY: {self.filingFiscalYear}, duration: {self.duration.name})"
 
 class TimespanFinancials:
-    def __init__(self, cik: str, cid: str, cy: int, cp: concepts.Period, duration: Enum, end: datetime, accn: str, form: str, fy: str , fp: str, earliest: bool = False):
+    def __init__(self, cik: str, cy: int, cp: concepts.Period, end: datetime, earliest: bool = False):
         self.cik: str = cik
-        self.cid: str = cid # Calendar ID: <calendar year>_<calendar period>_<duration>
         self.cy: int = int(cy) # calendar year
         self.cp: concepts.Period = cp # calendar period (indicates end of period, does NOT indicate duration)
-        self.duration: Enum = duration
         self.end: datetime = end
-        self.accn: str = accn # Accession number
-        self.form: str = form
-        self.fy: int = fy # Fiscal year
-        self.fp: str = fp # Fiscal period (indicates end of period, does NOT indicate duration)
         self.earliest: bool = earliest # indicates whether the period is the earliest reported
-        self.values: dict[str, list[FinancialValue]] = defaultdict(list) # concept to values
+        self.conceptToFinancialValues: dict[str, list[FinancialValue]] = defaultdict(list)
 
     def __repr__(self):
-        return f"TimespanFinancials(cik: {self.cik}, cid: {self.cid}, cy: {self.cy}, cp: {self.cp}, " + \
+        return f"TimespanFinancials(cik: {self.cik}, cy: {self.cy}, cp: {self.cp}, " + \
                f"duration: {self.duration.name}, " + \
                f"end: {self.end}, accn: {self.accn}, form: {self.form}, " + \
-               f"fy: {self.fy}, fp: {self.fp}, earliest: {self.earliest}, values: {pprint.pformat(self.values)}"
+               f"fy: {self.fy}, fp: {self.fp}, earliest: {self.earliest}, values: {pprint.pformat(self.conceptToFinancialValues)}"
     
 def strToDate(dateStr: str) -> datetime:
     return datetime.strptime(dateStr, "%Y-%m-%d")
@@ -74,39 +70,6 @@ def createAccnToEntry(data: dict, cik: str) -> dict[datetime, dict] | None:
             if (accn not in accnToEntry) or (entry['end'] > accnToEntry[accn]['end']):
                 accnToEntry[accn] = entry
     return accnToEntry
-
-def getMaxDurationFromPeriod(fp: concepts.Period | None) -> concepts.Duration:
-    if fp == concepts.Period.FY or fp == concepts.Period.Q4:
-        return concepts.Duration.Year
-    if fp == concepts.Period.Q3:
-        return concepts.Duration.ThreeQuarters
-    if fp == concepts.Period.Q2:
-        return concepts.Duration.TwoQuarters
-    if fp == concepts.Period.Q1:
-        return concepts.Duration.OneQuarter
-    return concepts.Duration.Other
-
-def getPeriod(cyqe: datetime) -> concepts.Period:
-    return concepts.Period(cyqe.month // 3)
-
-def createCid(cy: int, cp: concepts.Period, duration: concepts.Duration, cik: str) -> str:
-    '''
-    Returns a Calendar ID (cid): <calendar year>_<calendar period>_<duration>
-
-    For example: 2023_Q3_OneQuarter
-    '''
-    try:
-        return "_".join([str(cy), cp.name, duration.name])
-    except TypeError as e:
-        log(logging.debug, cik, f'createFId: {e}')
-        return None
-
-def splitCid(cid: str) -> tuple[int, concepts.Period, concepts.Duration]:
-    '''
-    Returns calendar year (cy), calendar period (cp), duration
-    '''
-    cy, cp, duration = cid.split("_")
-    return int(cy), concepts.Period[cp], concepts.Duration[duration]
 
 def isDesiredForm(form: str) -> bool:
     return form == '10-K' or form == '10-Q'
@@ -209,6 +172,39 @@ def getDuration(entries: list[dict], i: int, endToCid: dict[datetime, str], cik:
                 return concepts.Duration.Other
     
     return finalDur
+
+def getMaxDurationFromPeriod(fp: concepts.Period | None) -> concepts.Duration:
+    if fp == concepts.Period.FY or fp == concepts.Period.Q4:
+        return concepts.Duration.Year
+    if fp == concepts.Period.Q3:
+        return concepts.Duration.ThreeQuarters
+    if fp == concepts.Period.Q2:
+        return concepts.Duration.TwoQuarters
+    if fp == concepts.Period.Q1:
+        return concepts.Duration.OneQuarter
+    return concepts.Duration.Other
+
+def getPeriod(cyqe: datetime) -> concepts.Period:
+    return concepts.Period(cyqe.month // 3)
+
+def createCid(cy: int, cp: concepts.Period, duration: concepts.Duration, cik: str) -> str:
+    '''
+    Returns a Calendar ID (cid): <calendar year>_<calendar period>_<duration>
+
+    For example: 2023_Q3_OneQuarter
+    '''
+    try:
+        return "_".join([str(cy), cp.name, duration.name])
+    except TypeError as e:
+        log(logging.debug, cik, f'createFId: {e}')
+        return None
+
+def splitCid(cid: str) -> tuple[int, concepts.Period, concepts.Duration]:
+    '''
+    Returns calendar year (cy), calendar period (cp), duration
+    '''
+    cy, cp, duration = cid.split("_")
+    return int(cy), concepts.Period[cp], concepts.Duration[duration]
 
 def createCidToTimespanFinancials(accnToEntry: dict[str, dict], endToCid: dict[datetime, str], cik: str) -> dict[str, TimespanFinancials]:
     '''
