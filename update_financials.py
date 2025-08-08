@@ -13,10 +13,10 @@ import logging
 import time
 
 class FinancialValue:
-    def __init__(self, concept: str, alias: str, value: str, fiscalYearOfFiling: int = None):
+    def __init__(self, concept: str, alias: str, value: int, fiscalYearOfFiling: int = None):
         self.concept: str = concept
         self.alias: str = alias
-        self.value: str = value
+        self.value: int = value
         self.fiscalYearOfFiling: int = fiscalYearOfFiling
 
     def __repr__(self):
@@ -281,6 +281,7 @@ def getConcepts(cik: str, data: dict, cidToTimespanFinancials: dict[str, Timespa
     
     # Get OneQuarter duration financials
     addMissingOneQuarterConcepts(cidToTimespanFinancials, endToCid, cik, logger)
+    return
 
 def conditionallyAddFinancialValue(existingValues: list[FinancialValue], newValue: FinancialValue) -> None:
     '''
@@ -481,7 +482,8 @@ def run():
         # ('0001744489',), # Disney
         # ('0001551182',), # Eaton
         # ('0000886982',), # Goldman Sachs
-        ('0000064040',), # S&P Global
+        # ('0000064040',), # S&P Global
+        ('0000002488',), # Advanced Micro Devices
     ]
     for cik in ciks:
     # ### END B ###
