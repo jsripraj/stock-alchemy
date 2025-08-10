@@ -41,28 +41,24 @@ class FinancialPeriod:
                f"conceptToFinancialValues: {pprint.pformat(self.conceptToFinancialValues)}"
 
 def createFinancialPeriods(data: dict, cik: str, logger) -> list[FinancialPeriod] | None:
-    if 'facts' not in data:
-        log(logging.debug, cik, f'"facts" not found in JSON')
+    if not checkData(data, cik, logger):
         return None
-    if 'us-gaap' not in data['facts']:
-        log(logging.debug, cik, f'"us-gaap" not found in JSON')
-        return None
-    if 'Assets' not in data['facts']['us-gaap']:
-        log(logging.debug, cik, f'"Assets" not found in JSON')
-        return None
-    if 'units' not in data['facts']['us-gaap']['Assets']:
-        log(logging.debug, cik, f'"units" not found in JSON')
-        return None
-    if 'USD' not in data['facts']['us-gaap']['Assets']['units']:
-        log(logging.debug, cik, f'"USD" not found in JSON')
-        return None
-    
-    # create list of FinancialPeriods sorted chronologically
+
+    # Create list of FinancialPeriods sorted chronologically
     entries = data['facts']['us-gaap']['Assets']['units']['USD']
     endToFinancialPeriod = {strToDate(e['end']): FinancialPeriod(cik, strToDate(e['end'])) for e in entries}
     financialPeriods = [fp for fp in endToFinancialPeriod.values()]
     financialPeriods.sort(key=lambda fp: fp.end)
+    # for fp in financialPeriods:
+    #     cyqe = getPrecedingCyqe(entries[i-1]['cyqe']) if i > 0 else getMostRecentCyqe(end)
+    #     diff = (end - cyqe).days
+    #     if diff < 0 or diff > 180:
+    #         cyqe = getMostRecentCyqe(end)
+    #     entries[i]['cyqe'] = cyqe
+    #     cy: int = cyqe.year
+    #     cp: concepts.Period = getPeriod(cyqe)
 
+    # Add FinancialValues
     for alias, metadata in data['facts']['us-gaap'].items():
         if alias not in concepts.aliasToConcept:
             continue
@@ -75,21 +71,12 @@ def createFinancialPeriods(data: dict, cik: str, logger) -> list[FinancialPeriod
             if end not in endToFinancialPeriod:
                 continue
             fp = endToFinancialPeriod[end]
-
-            # make sure end matches that of the financialPeriod
-            # while end > financialPeriods[i].end:
-            #     i += 1
-            # if end < financialPeriods[i].end:
-            #     continue
-
-            # Create FinancialValue
             concept: concepts.Concept = concepts.aliasToConcept[alias]
             value = int(entry['val'])
             filingFY = int(entry['fy']) if entry['fy'] else None
             value = FinancialValue(concept, alias, value, filingFY)
             if 'start' in entry:
                 value.duration = getDurationFromDates(strToDate(entry['start']), end)
-
             existing: list[FinancialValue] = fp.conceptToFinancialValues[concept.name]
             conditionallyAddFinancialValue(existing, value)
     
@@ -97,6 +84,19 @@ def createFinancialPeriods(data: dict, cik: str, logger) -> list[FinancialPeriod
     addMissingOneQuarterConcepts(financialPeriods, cik, logger)
     return financialPeriods
 
+def checkData(data: dict, cik: str, logger) -> bool:
+    '''
+    Determines if the raw data is usable.
+
+    Returns:
+        bool: True if data is usable, else False.
+    '''
+    for key in ['facts', 'us-gaap', 'Assets', 'units', 'USD']:
+        if key not in data:
+            log(logger.debug, cik, f'"{key}" not found in JSON')
+            return False
+        data = data[key]
+    return True
     
 def strToDate(dateStr: str) -> datetime:
     return datetime.strptime(dateStr, "%Y-%m-%d")
@@ -459,12 +459,11 @@ def cyMinus(cy: int, cp: concepts.Period, delta: concepts.Duration) -> tuple[int
 #     shortId = createFId(ff.cik, ff.fy, shortFp, shortDuration)
 #     return longId, shortId
 
-def handleConceptIssues(cik: str, cidToTf, logger) -> None:
+def handleConceptIssues(cik: str, fps: list[FinancialPeriod], logger) -> None:
         problemCount = 0
-        for cid, tf in cidToTf.items():
-            if tf.cy < 2015 or tf.earliest:
+        for fp in fps:
+            if fp.cy < 2015:
                 continue
-            values = tf.values
             for c in concepts.Concepts:
                 concept = c.name
                 if len(values[concept]) != 1:
@@ -573,7 +572,7 @@ def run():
                     pprint.pprint(fps)
 
                     pass
-                    # handleConceptIssues(cik, cidToTimespanFinancials, logger)
+                    handleConceptIssues(cik, cidToTimespanFinancials, logger)
             except KeyError as ke:
                 log(logging.debug, cik, f'KeyError: {ke}')
     cnx.commit()
