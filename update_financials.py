@@ -48,15 +48,8 @@ def createFinancialPeriods(data: dict, cik: str, logger) -> list[FinancialPeriod
     entries = data['facts']['us-gaap']['Assets']['units']['USD']
     endToFinancialPeriod = {strToDate(e['end']): FinancialPeriod(cik, strToDate(e['end'])) for e in entries}
     financialPeriods = [fp for fp in endToFinancialPeriod.values()]
+    addCalendarAttributes(financialPeriods)
     financialPeriods.sort(key=lambda fp: fp.end)
-    # for fp in financialPeriods:
-    #     cyqe = getPrecedingCyqe(entries[i-1]['cyqe']) if i > 0 else getMostRecentCyqe(end)
-    #     diff = (end - cyqe).days
-    #     if diff < 0 or diff > 180:
-    #         cyqe = getMostRecentCyqe(end)
-    #     entries[i]['cyqe'] = cyqe
-    #     cy: int = cyqe.year
-    #     cp: concepts.Period = getPeriod(cyqe)
 
     # Add FinancialValues
     for alias, metadata in data['facts']['us-gaap'].items():
@@ -98,6 +91,24 @@ def checkData(data: dict, cik: str, logger) -> bool:
         data = data[key]
     return True
     
+def addCalendarAttributes(fps: list[FinancialPeriod]) -> None:
+    '''
+    Adds calendar year and calendar period to each item in a list of FinancialPeriods.
+    '''
+    fpsReverseChronological = sorted(fps, key=lambda fp: fp.end, reverse=True)
+    cyqes = [None] * len(fpsReverseChronological)
+    cyqes[0] = getMostRecentCyqe(fpsReverseChronological[0].end)
+    fpsReverseChronological[0] = cyqes[0]
+    for i in range(1, len(fpsReverseChronological)):
+        fp = fpsReverseChronological[i]
+        cyqe = getCyqePriorTo(cyqes[i-1])
+        diff = (fp.end - cyqe).days
+        if diff < 0 or diff > 180:
+            cyqe = getMostRecentCyqe(fp.end)
+        fp.cy = cyqe.year
+        fp.cp = getPeriod(cyqe)
+        cyqes[i] = cyqe
+
 def strToDate(dateStr: str) -> datetime:
     return datetime.strptime(dateStr, "%Y-%m-%d")
 
@@ -145,7 +156,7 @@ def createEndToCid(accnToEntry: dict[str, dict], cik: str) -> dict[datetime, dat
     entries.sort(key=lambda e: e['end'])
     for i in range(len(entries)):
         end = strToDate(entries[i]['end'])
-        cyqe = getPrecedingCyqe(entries[i-1]['cyqe']) if i > 0 else getMostRecentCyqe(end)
+        cyqe = getCyqePriorTo(entries[i-1]['cyqe']) if i > 0 else getMostRecentCyqe(end)
         diff = (end - cyqe).days
         if diff < 0 or diff > 180:
             cyqe = getMostRecentCyqe(end)
@@ -169,7 +180,7 @@ def getMostRecentCyqe(date: datetime) -> datetime:
         return datetime(y, 9, 30)
     return datetime(y, 12, 31)
 
-def getPrecedingCyqe(cyqe: datetime) -> datetime:
+def getCyqePriorTo(cyqe: datetime) -> datetime:
     return getMostRecentCyqe(cyqe - timedelta(days=1))
 
 def getDuration(entries: list[dict], i: int, endToCid: dict[datetime, str], cik: str) -> concepts.Duration:
