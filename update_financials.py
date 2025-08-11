@@ -11,6 +11,7 @@ import concepts
 from enum import Enum
 import logging
 import time
+import shutil
 
 class FinancialValue:
     def __init__(self, concept: concepts.Concept, alias: str, value: int, filingFiscalYear: int = None, duration: concepts.Duration = None):
@@ -362,6 +363,11 @@ def conditionallyAddFinancialValue(existingValues: list[FinancialValue], newValu
     if not existingValues:
         existingValues.append(newValue)
         return
+    
+    # If the duration doesn't exist, append it
+    if not any(ev.duration == newValue.duration for ev in existingValues):
+        existingValues.append(newValue)
+        return
 
     # Replace if "better"
     for i in range(len(existingValues)):
@@ -480,7 +486,7 @@ def addMissingOneQuarterConcepts(fps: list[FinancialPeriod], cik: str, logger: l
 def handleConceptIssues(cik: str, fps: list[FinancialPeriod], logger) -> int:
     '''
     Returns:
-        int - 1 if there are issues, 0 if no issues
+        int: 1 if there are issues, 0 if no issues
 
     Parameters:
         fps: list[FinancialPeriod] - a list of populated FinancialPeriods, sorted chronologically.
@@ -495,14 +501,14 @@ def handleConceptIssues(cik: str, fps: list[FinancialPeriod], logger) -> int:
             fvs = fp.conceptToFinancialValues[concept]
             msg = None
             pre = f'{dateToStr(fp.end)} {concept}'
-            if len(fvs) < 1:
+            if not fvs:
                 msg = f"{pre}: no FinancialValues"
-            elif len(fvs) > 2:
-                msg = f"{pre}: too many FinancialValues ({len(fvs)})"
-            elif len(fvs) == 2 and fvs[0].duration != concepts.Duration.OneQuarter and fvs[1].duration != concepts.Duration.OneQuarter:
-                msg = f"{pre}: 2 values but with {fvs[0].duration.name} and {fvs[1].duration.name} durations"
             elif len(fvs) == 1 and fvs[0].duration != concepts.Duration.OneQuarter:
                 msg = f"{pre}: one value but with {fvs[0].duration.name} duration"
+            elif len(fvs) > 1 and not any(fv.duration != concepts.Duration.OneQuarter for fv in fvs):
+                msg = f"{pre}: {len(fvs)} values but none with OneQuarter duration"
+            # elif len(fvs) == 2 and fvs[0].duration != concepts.Duration.OneQuarter and fvs[1].duration != concepts.Duration.OneQuarter:
+            #     msg = f"{pre}: 2 values but with {fvs[0].duration.name} and {fvs[1].duration.name} durations"
             if msg:
                 log(logger.debug, cik, msg)
                 problemCount += 1
@@ -537,8 +543,7 @@ def extractZipFileToJson(filename: str):
 
 def configureLogger() -> logging.Logger:
     logger = logging.getLogger(__name__)
-    logFile = os.path.join(config.LOG_DIR, f'update_financials.log')
-    logging.basicConfig(filename=logFile, 
+    logging.basicConfig(filename=config.LOG_PATH,
                         format='%(asctime)s %(levelname)s: %(message)s', 
                         datefmt='%m/%d/%Y %I:%M:%S %p',
                         level=logging.DEBUG,
@@ -568,26 +573,27 @@ def run():
     problemCikCount = 0
 
     ### START A: Use cursor ###
-    for cik in cursor:
+    # for cik in cursor:
     ### END A ###
 
     # ### START B: Use list ###
-    # cursor.fetchall() # Need to "use up" cursor
-    # ciks = [
-    #     # ('0000320193',), # Apple
-    #     # ('0000004962',), # American Express
-    #     # ('0000012927',), # Boeing
-    #     # ('0000034088',), # Exxon Mobil
-    #     # ('0001551152',), # AbbVie
-    #     # ('0000909832',), # Costco
-    #     # ('0001393818',), # BlackStone
-    #     # ('0001744489',), # Disney
-    #     # ('0001551182',), # Eaton
-    #     # ('0000886982',), # Goldman Sachs
-    #     # ('0000064040',), # S&P Global
-    #     ('0000002488',), # Advanced Micro Devices
-    # ]
-    # for cik in ciks:
+    cursor.fetchall() # Need to "use up" cursor
+    ciks = [
+        # ('0001551152',), # AbbVie
+        # ('0000002488',), # Advanced Micro Devices
+        ('0001018724',), # Amazon
+        # ('0000004962',), # American Express
+        # ('0000320193',), # Apple
+        # ('0001393818',), # BlackStone
+        # ('0000012927',), # Boeing
+        # ('0000909832',), # Costco
+        # ('0001744489',), # Disney
+        # ('0001551182',), # Eaton
+        # ('0000034088',), # Exxon Mobil
+        # ('0000886982',), # Goldman Sachs
+        # ('0000064040',), # S&P Global
+    ]
+    for cik in ciks:
     # ### END B ###
 
         cik = cik[0]
@@ -619,6 +625,7 @@ def run():
     elapsed_time = end_time - start_time
     logger.debug(f"{problemCikCount} CIKs with issues")
     logger.info(f'Elapsed time: {elapsed_time:.2f} seconds')
+    shutil.copyfile(config.LOG_PATH, os.path.join(config.LOG_DIR, "copy.log"))
 
 if __name__ == "__main__":
     run()
