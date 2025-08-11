@@ -52,11 +52,11 @@ def createFinancialPeriods(data: dict, cik: str, logger) -> list[FinancialPeriod
 
     # Create list of FinancialPeriods sorted chronologically
     entries = data['facts']['us-gaap']['Assets']['units']['USD']
+    processed = processEntries(entries)
     endToFinancialPeriod = {}
-    for e in entries:
+    for e in processed:
         if isDesiredForm(e['form']):
             endToFinancialPeriod[strToDate(e['end'])] = FinancialPeriod(cik, strToDate(e['end']))
-    # endToFinancialPeriod = {strToDate(e['end']): FinancialPeriod(cik, strToDate(e['end'])) for e in entries if isDesiredForm(e['form'])}
     financialPeriods = [fp for fp in endToFinancialPeriod.values()]
     addCalendarAttributes(financialPeriods)
     financialPeriods.sort(key=lambda fp: fp.end)
@@ -104,6 +104,26 @@ def checkData(data: dict, cik: str, logger) -> bool:
         return False
     return True
     
+def processEntries(entries: list[dict]):
+    '''
+    Removes entries with duplicate (or one-day-apart) dates or undesired forms.
+    '''
+    processed = []
+    entriesSorted = sorted(entries, key=lambda e: e['end'])
+    for i in range(len(entriesSorted)):
+        entry = entriesSorted[i]
+        if not isDesiredForm(entry['form']):
+            continue
+        # If two dates are only one day apart, skip the later one
+        if processed:
+            prev = strToDate(processed[-1]['end'])
+            cur = strToDate(entry['end'])
+            diff = (cur - prev).days
+            if diff <= 1:
+                continue
+        processed.append(entry)
+    return processed
+
 def addCalendarAttributes(fps: list[FinancialPeriod]) -> None:
     '''
     Adds calendar year and calendar period to each item in a list of FinancialPeriods.
@@ -404,7 +424,8 @@ def addMissingOneQuarterConcepts(fps: list[FinancialPeriod], cik: str, logger: l
         A list of FinancialPeriods sorted in chronological order
     '''
     for i in range(1, len(fps)):
-        for concept, fvs in fps[i].conceptToFinancialValues.items():
+        fp = fps[i]
+        for concept, fvs in fp.conceptToFinancialValues.items():
             alreadyHas = any(fv.duration == concepts.Duration.OneQuarter for fv in fvs)
             noNeed = any(fv.duration == None for fv in fvs)
             if alreadyHas or noNeed:
@@ -413,7 +434,8 @@ def addMissingOneQuarterConcepts(fps: list[FinancialPeriod], cik: str, logger: l
             for fv in fvs:
                 if fv.duration == concepts.Duration.Other:
                     continue
-                oldFvs = fps[i-1].conceptToFinancialValues[concept]
+                oldFp = fps[i-1]
+                oldFvs = oldFp.conceptToFinancialValues[concept]
                 # check if prevFp has a value with duration oneQuarter less than fv
                 prevFv = next((oldFv for oldFv in oldFvs if oldFv.duration and oldFv.duration.value == fv.duration.value - 1), None)
                 if prevFv:
@@ -511,7 +533,7 @@ def handleConceptIssues(cik: str, fps: list[FinancialPeriod], logger) -> int:
             if not fvs:
                 msg = f"{pre}: no FinancialValues"
             elif len(fvs) == 1 and fvs[0].duration != concepts.Duration.OneQuarter:
-                msg = f"{pre}: one value but with {fvs[0].duration.name} duration"
+                msg = f"{pre} ({fvs[0].alias}): one value but with {fvs[0].duration.name} duration"
             elif len(fvs) > 1 and not any(fv.duration != concepts.Duration.OneQuarter for fv in fvs):
                 msg = f"{pre}: {len(fvs)} values but none with OneQuarter duration"
             # elif len(fvs) == 2 and fvs[0].duration != concepts.Duration.OneQuarter and fvs[1].duration != concepts.Duration.OneQuarter:
@@ -593,15 +615,17 @@ def run():
         # ('0000320193',), # Apple
         # ('0001973239',), # ARM Holdings
         # ('0001393818',), # BlackStone
-        ('0001730168',), # Broadcom
+        # ('0001730168',), # Broadcom
         # ('0000012927',), # Boeing
+        ('0000858877',), # Cisco
         # ('0000909832',), # Costco
+        ('0000315189',), # Deere
         # ('0001744489',), # Disney
         # ('0001551182',), # Eaton
         # ('0000034088',), # Exxon Mobil
         # ('0000886982',), # Goldman Sachs
         # ('0000064040',), # S&P Global
-        ('0001594805',), # Shopify
+        # ('0001594805',), # Shopify
     ]
     for cik in ciks:
     # ### END B ###
