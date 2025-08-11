@@ -477,15 +477,18 @@ def addMissingOneQuarterConcepts(fps: list[FinancialPeriod], cik: str, logger: l
 #     shortId = createFId(ff.cik, ff.fy, shortFp, shortDuration)
 #     return longId, shortId
 
-def handleConceptIssues(cik: str, fps: list[FinancialPeriod], logger) -> None:
+def handleConceptIssues(cik: str, fps: list[FinancialPeriod], logger) -> int:
     '''
+    Returns:
+        int - 1 if there are issues, 0 if no issues
+
     Parameters:
         fps: list[FinancialPeriod] - a list of populated FinancialPeriods, sorted chronologically.
     '''
     problemCount = 0
     for i in range(1, len(fps)):
         fp = fps[i]
-        if fp.cy < 2015:
+        if fp.cy < datetime.today().year - 10:
             continue
         for c in concepts.Concept:
             concept = c.name
@@ -508,6 +511,8 @@ def handleConceptIssues(cik: str, fps: list[FinancialPeriod], logger) -> None:
         log(logger.debug, cik, msg)
         jsonFilename = f'CIK{cik}.json'
         extractZipFileToJson(jsonFilename)
+        return 1
+    return 0
         
 def getDurationFromDates(start: datetime, end: datetime) -> concepts.Duration:
     days = (end - start).days
@@ -560,6 +565,7 @@ def run():
     cursor = cnx.cursor()
     query = ("SELECT CIK FROM companies LIMIT 100;")
     cursor.execute(query)
+    problemCikCount = 0
 
     ### START A: Use cursor ###
     for cik in cursor:
@@ -602,14 +608,16 @@ def run():
                     #     continue
                     fps: list[FinancialPeriod] = createFinancialPeriods(data, cik, logger)
                     if fps:
-                        handleConceptIssues(cik, fps, logger)
+                        problemCikCount += handleConceptIssues(cik, fps, logger)
             except KeyError as ke:
-                log(logging.debug, cik, f'KeyError: {ke}')
+                log(logger.debug, cik, f'KeyError: {ke}')
+    
     cnx.commit()
     cursor.close()
     cnx.close()
     end_time = time.perf_counter()
     elapsed_time = end_time - start_time
+    logger.debug(f"{problemCikCount} CIKs with issues")
     logger.info(f'Elapsed time: {elapsed_time:.2f} seconds')
 
 if __name__ == "__main__":
