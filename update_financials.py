@@ -499,7 +499,7 @@ def handleConceptIssues(cik: str, fps: list[FinancialPeriod], logger) -> int:
         fps: list[FinancialPeriod] - a list of populated FinancialPeriods, sorted chronologically.
     '''
     problemCount = 0
-    for i in range(1, len(fps)):
+    for i in range(2, len(fps)):
         fp = fps[i]
         if fp.cy < datetime.today().year - 10:
             continue
@@ -593,6 +593,7 @@ def run():
         # ('0000320193',), # Apple
         # ('0001973239',), # ARM Holdings
         # ('0001393818',), # BlackStone
+        ('0001730168',), # Broadcom
         # ('0000012927',), # Boeing
         # ('0000909832',), # Costco
         # ('0001744489',), # Disney
