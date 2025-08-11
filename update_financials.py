@@ -52,7 +52,11 @@ def createFinancialPeriods(data: dict, cik: str, logger) -> list[FinancialPeriod
 
     # Create list of FinancialPeriods sorted chronologically
     entries = data['facts']['us-gaap']['Assets']['units']['USD']
-    endToFinancialPeriod = {strToDate(e['end']): FinancialPeriod(cik, strToDate(e['end'])) for e in entries}
+    endToFinancialPeriod = {}
+    for e in entries:
+        if isDesiredForm(e['form']):
+            endToFinancialPeriod[strToDate(e['end'])] = FinancialPeriod(cik, strToDate(e['end']))
+    # endToFinancialPeriod = {strToDate(e['end']): FinancialPeriod(cik, strToDate(e['end'])) for e in entries if isDesiredForm(e['form'])}
     financialPeriods = [fp for fp in endToFinancialPeriod.values()]
     addCalendarAttributes(financialPeriods)
     financialPeriods.sort(key=lambda fp: fp.end)
@@ -576,28 +580,29 @@ def run():
     problemCikCount = 0
 
     ### START A: Use cursor ###
-    for cik in cursor:
+    # for cik in cursor:
     ### END A ###
 
     # ### START B: Use list ###
-    # cursor.fetchall() # Need to "use up" cursor
-    # ciks = [
-    #     # ('0001551152',), # AbbVie
-    #     # ('0000002488',), # Advanced Micro Devices
-    #     # ('0001018724',), # Amazon
-    #     # ('0000004962',), # American Express
-    #     # ('0000320193',), # Apple
-    #     ('0001973239',), # ARM Holdings
-    #     # ('0001393818',), # BlackStone
-    #     # ('0000012927',), # Boeing
-    #     # ('0000909832',), # Costco
-    #     # ('0001744489',), # Disney
-    #     # ('0001551182',), # Eaton
-    #     # ('0000034088',), # Exxon Mobil
-    #     # ('0000886982',), # Goldman Sachs
-    #     # ('0000064040',), # S&P Global
-    # ]
-    # for cik in ciks:
+    cursor.fetchall() # Need to "use up" cursor
+    ciks = [
+        # ('0001551152',), # AbbVie
+        # ('0000002488',), # Advanced Micro Devices
+        # ('0001018724',), # Amazon
+        # ('0000004962',), # American Express
+        # ('0000320193',), # Apple
+        # ('0001973239',), # ARM Holdings
+        # ('0001393818',), # BlackStone
+        # ('0000012927',), # Boeing
+        # ('0000909832',), # Costco
+        # ('0001744489',), # Disney
+        # ('0001551182',), # Eaton
+        # ('0000034088',), # Exxon Mobil
+        # ('0000886982',), # Goldman Sachs
+        # ('0000064040',), # S&P Global
+        ('0001594805',), # Shopify
+    ]
+    for cik in ciks:
     # ### END B ###
 
         cik = cik[0]
