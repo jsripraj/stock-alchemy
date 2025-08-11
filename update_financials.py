@@ -95,7 +95,10 @@ def checkData(data: dict, cik: str, logger) -> bool:
             log(logger.debug, cik, f'"{key}" not found in JSON')
             return False
         data = data[key]
-    return any(isDesiredForm(entry['form']) for entry in data)
+    if not any(isDesiredForm(entry['form']) for entry in data):
+        log(logger.debug, cik, f'No desired forms found')
+        return False
+    return True
     
 def addCalendarAttributes(fps: list[FinancialPeriod]) -> None:
     '''
@@ -573,28 +576,28 @@ def run():
     problemCikCount = 0
 
     ### START A: Use cursor ###
-    # for cik in cursor:
+    for cik in cursor:
     ### END A ###
 
     # ### START B: Use list ###
-    cursor.fetchall() # Need to "use up" cursor
-    ciks = [
-        # ('0001551152',), # AbbVie
-        # ('0000002488',), # Advanced Micro Devices
-        # ('0001018724',), # Amazon
-        # ('0000004962',), # American Express
-        # ('0000320193',), # Apple
-        ('0001973239',), # ARM Holdings
-        # ('0001393818',), # BlackStone
-        # ('0000012927',), # Boeing
-        # ('0000909832',), # Costco
-        # ('0001744489',), # Disney
-        # ('0001551182',), # Eaton
-        # ('0000034088',), # Exxon Mobil
-        # ('0000886982',), # Goldman Sachs
-        # ('0000064040',), # S&P Global
-    ]
-    for cik in ciks:
+    # cursor.fetchall() # Need to "use up" cursor
+    # ciks = [
+    #     # ('0001551152',), # AbbVie
+    #     # ('0000002488',), # Advanced Micro Devices
+    #     # ('0001018724',), # Amazon
+    #     # ('0000004962',), # American Express
+    #     # ('0000320193',), # Apple
+    #     ('0001973239',), # ARM Holdings
+    #     # ('0001393818',), # BlackStone
+    #     # ('0000012927',), # Boeing
+    #     # ('0000909832',), # Costco
+    #     # ('0001744489',), # Disney
+    #     # ('0001551182',), # Eaton
+    #     # ('0000034088',), # Exxon Mobil
+    #     # ('0000886982',), # Goldman Sachs
+    #     # ('0000064040',), # S&P Global
+    # ]
+    # for cik in ciks:
     # ### END B ###
 
         cik = cik[0]
