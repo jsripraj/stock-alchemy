@@ -392,7 +392,9 @@ def addMissingOneQuarterConcepts(fps: list[FinancialPeriod], cik: str, logger: l
     '''
     for i in range(1, len(fps)):
         for concept, fvs in fps[i].conceptToFinancialValues.items():
-            if any(fv.duration == concepts.Duration.OneQuarter for fv in fvs):
+            alreadyHas = any(fv.duration == concepts.Duration.OneQuarter for fv in fvs)
+            noNeed = any(fv.duration == None for fv in fvs)
+            if alreadyHas or noNeed:
                 continue
             # found = False
             for fv in fvs:
@@ -400,7 +402,7 @@ def addMissingOneQuarterConcepts(fps: list[FinancialPeriod], cik: str, logger: l
                     continue
                 oldFvs = fps[i-1].conceptToFinancialValues[concept]
                 # check if prevFp has a value with duration oneQuarter less than fv
-                prevFv = next((oldFv for oldFv in oldFvs if oldFv.duration.value == fv.duration.value - 1), None)
+                prevFv = next((oldFv for oldFv in oldFvs if oldFv.duration and oldFv.duration.value == fv.duration.value - 1), None)
                 if prevFv:
                     fvs.append(FinancialValue(concept, fv.alias, fv.value - prevFv.value, duration=concepts.Duration.OneQuarter))
                     # found = True
@@ -560,26 +562,26 @@ def run():
     cursor.execute(query)
 
     ### START A: Use cursor ###
-    # for cik in cursor:
+    for cik in cursor:
     ### END A ###
 
     # ### START B: Use list ###
-    cursor.fetchall() # Need to "use up" cursor
-    ciks = [
-        # ('0000320193',), # Apple
-        # ('0000004962',), # American Express
-        # ('0000012927',), # Boeing
-        # ('0000034088',), # Exxon Mobil
-        # ('0001551152',), # AbbVie
-        # ('0000909832',), # Costco
-        # ('0001393818',), # BlackStone
-        # ('0001744489',), # Disney
-        # ('0001551182',), # Eaton
-        # ('0000886982',), # Goldman Sachs
-        # ('0000064040',), # S&P Global
-        ('0000002488',), # Advanced Micro Devices
-    ]
-    for cik in ciks:
+    # cursor.fetchall() # Need to "use up" cursor
+    # ciks = [
+    #     # ('0000320193',), # Apple
+    #     # ('0000004962',), # American Express
+    #     # ('0000012927',), # Boeing
+    #     # ('0000034088',), # Exxon Mobil
+    #     # ('0001551152',), # AbbVie
+    #     # ('0000909832',), # Costco
+    #     # ('0001393818',), # BlackStone
+    #     # ('0001744489',), # Disney
+    #     # ('0001551182',), # Eaton
+    #     # ('0000886982',), # Goldman Sachs
+    #     # ('0000064040',), # S&P Global
+    #     ('0000002488',), # Advanced Micro Devices
+    # ]
+    # for cik in ciks:
     # ### END B ###
 
         cik = cik[0]
@@ -599,7 +601,8 @@ def run():
                     # if not endToTimespanFinancials:
                     #     continue
                     fps: list[FinancialPeriod] = createFinancialPeriods(data, cik, logger)
-                    handleConceptIssues(cik, fps, logger)
+                    if fps:
+                        handleConceptIssues(cik, fps, logger)
             except KeyError as ke:
                 log(logging.debug, cik, f'KeyError: {ke}')
     cnx.commit()
