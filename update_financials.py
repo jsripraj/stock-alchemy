@@ -233,10 +233,11 @@ def handleConceptIssues(cik: str, fps: list[FinancialPeriod], logger) -> int:
             msg = None
             if not fvs:
                 msg = f"{pre}: no FinancialValues"
-            elif len(fvs) == 1 and fvs[0].duration != concepts.Duration.OneQuarter:
+            elif len(fvs) == 1 and fvs[0].duration and fvs[0].duration != concepts.Duration.OneQuarter:
                 msg = f"{pre} ({fvs[0].alias}): one value but with {fvs[0].duration.name} duration"
-            elif len(fvs) > 1 and not any(fv.duration != concepts.Duration.OneQuarter for fv in fvs):
-                msg = f"{pre}: {len(fvs)} values but none with OneQuarter duration"
+            elif len(fvs) > 1: 
+                if not any(fv.duration and fv.duration != concepts.Duration.OneQuarter for fv in fvs):
+                    msg = f"{pre}: {len(fvs)} values but none with OneQuarter duration"
             if msg:
                 log(logger.debug, cik, msg)
                 problemCount += 1
