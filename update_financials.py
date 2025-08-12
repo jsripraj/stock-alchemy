@@ -74,15 +74,16 @@ def createFinancialPeriods(data: dict, cik: str, logger) -> list[FinancialPeriod
                 continue
             fp = endToFinancialPeriod[end]
             alias: concepts.Concept = concepts.strToAlias[aliasStr]
-            value = int(entry['val'])
+            val = int(entry['val'])
             filingFY = int(entry['fy']) if entry['fy'] else None
-            value = FinancialValue(alias.concept, alias, value, filingFY)
+            fv = FinancialValue(alias.concept, alias, val, filingFY)
             if 'start' in entry:
-                value.duration = getDurationFromDates(strToDate(entry['start']), end)
+                fv.duration = getDurationFromDates(strToDate(entry['start']), end)
             existing: list[FinancialValue] = fp.conceptToFinancialValues[alias.concept.name]
-            conditionallyAddFinancialValue(existing, value)
+            conditionallyAddFinancialValue(existing, fv)
     
     addMissingOneQuarterConcepts(financialPeriods, cik, logger)
+    addDeiConcepts(data, financialPeriods, cik, logger)
     return financialPeriods
 
 def checkData(data: dict, cik: str, logger) -> bool:
@@ -181,6 +182,7 @@ def conditionallyAddFinancialValue(existingValues: list[FinancialValue], newValu
         existingValues.append(newValue)
         return
 
+    # Replace
     for i in range(len(existingValues)):
         exist = existingValues[i]
         if exist.duration == newValue.duration and newValue.filingFiscalYear:
@@ -217,6 +219,53 @@ def addMissingOneQuarterConcepts(fps: list[FinancialPeriod], cik: str, logger: l
                     fvs.append(FinancialValue(concept, fv.alias, fv.value - prevFv.value, duration=concepts.Duration.OneQuarter))
                     break
     return
+
+def addDeiConcepts(data: dict, financialPeriods: list[FinancialPeriod], cik: str, logger):
+    '''
+    Adds DEI concepts to financialPeriods. 
+    This has to be done separately for two reasons: 
+    1) DEI concepts (e.g. Shares Outstanding) is reported under "dei" instead of "us-gaap"
+    2) DEI concepts are reported for dates that typically do not coincide with a quarter end
+
+    Parameters:
+        financialPeriods: list[FinancialPeriod] - list of FinancialPeriods sorted chronologically
+    '''
+    for aliasStr, metadata in data['facts']['dei'].items():
+        if aliasStr not in concepts.strToAlias:
+            continue
+        i = 0 # to index into financialPeriods
+        entries = metadata['units']['shares']
+        entries.sort(key=lambda e: e['end'])
+        for entry in entries:
+            # if not isDesiredForm(entry['form']):
+            #     continue
+            end = strToDate(entry['end'])
+            # if end not in endToFinancialPeriod:
+            #     continue
+            # fp = endToFinancialPeriod[end]
+            alias: concepts.Concept = concepts.strToAlias[aliasStr]
+            val = int(entry['val'])
+            filingFY = int(entry['fy']) if entry['fy'] else None
+            fv = FinancialValue(alias.concept, alias, val, filingFY)
+            skip = False
+            while True:
+                diff = (end - financialPeriods[i].end).days
+                if -7 <= diff <= 60:
+                    break
+                if diff < -7:
+                    skip = True
+                    break
+                i += 1
+            if skip:
+                continue
+            existing = financialPeriods[i].conceptToFinancialValues[alias.concept.name]
+            conditionallyAddFinancialValue(existing, fv)
+            
+
+            # if 'start' in entry:
+            #     value.duration = getDurationFromDates(strToDate(entry['start']), end)
+            # existing: list[FinancialValue] = fp.conceptToFinancialValues[alias.concept.name]
+            # conditionallyAddFinancialValue(existing, value)
 
 def handleConceptIssues(cik: str, fps: list[FinancialPeriod], logger) -> int:
     '''
@@ -309,7 +358,7 @@ def run():
     for cik in cursor:
     ### END A ###
 
-    # ### START B: Use list ###
+    ### START B: Use list ###
     # cursor.fetchall() # Need to "use up" cursor
     # ciks = [
     #     # ('0001551152',), # AbbVie
@@ -329,7 +378,7 @@ def run():
     #     # ('0000034088',), # Exxon Mobil
     #     # ('0000886982',), # Goldman Sachs
     #     # ('0001707925',), # Linde
-    #     ('0000064040',), # S&P Global
+    #     # ('0000064040',), # S&P Global
     #     # ('0001594805',), # Shopify
     # ]
     # for cik in ciks:
@@ -355,6 +404,7 @@ def run():
     elapsed_time = end_time - start_time
     logger.debug(f"{problemCikCount} CIKs with issues")
     logger.info(f'Elapsed time: {elapsed_time:.2f} seconds')
+    print(f'Elapsed time: {elapsed_time:.2f} seconds')
     shutil.copyfile(config.LOG_PATH, os.path.join(config.LOG_DIR, "copy.log"))
 
 if __name__ == "__main__":

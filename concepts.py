@@ -15,6 +15,7 @@ class Period(Enum):
     FY = 4
 
 class Concept(Enum):
+    SharesOutstanding = auto()
     Assets = auto()
     Equity = auto()
     Revenue = auto()
@@ -30,6 +31,8 @@ class Alias():
         self.concept: Concept = concept
 
 strToAlias = {alias.name: alias for alias in [
+    # SharesOutstanding
+    Alias(0, 'EntityCommonStockSharesOutstanding', Concept.SharesOutstanding),
     # Assets
     Alias(0, 'Assets', Concept.Assets),
     # Equity
