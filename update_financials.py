@@ -13,9 +13,9 @@ import time
 import shutil
 
 class FinancialValue:
-    def __init__(self, concept: concepts.Concept, alias: str, value: int, filingFiscalYear: int = None, duration: concepts.Duration = None):
+    def __init__(self, concept: concepts.Concept, alias: concepts.Alias, value: int, filingFiscalYear: int = None, duration: concepts.Duration = None):
         self.concept: concepts.Concept = concept
-        self.alias: str = alias
+        self.alias: concepts.Alias = alias
         self.value: int = value
         self.filingFiscalYear: int = filingFiscalYear
         self.duration: concepts.Duration = duration
@@ -24,7 +24,7 @@ class FinancialValue:
         return self.concept == other.concept and self.value == other.value and self.duration == other.duration
 
     def __repr__(self):
-        return f"FinancialValue(concept: {self.concept}, alias: {self.alias}, value: {self.value}, " \
+        return f"FinancialValue(concept: {self.concept}, alias: {self.alias.name}, value: {self.value}, " \
             f"filing FY: {self.filingFiscalYear}, duration: {self.duration.name if self.duration else None})"
 
 class FinancialPeriod:
@@ -61,8 +61,8 @@ def createFinancialPeriods(data: dict, cik: str, logger) -> list[FinancialPeriod
     financialPeriods.sort(key=lambda fp: fp.end)
 
     # Add FinancialValues
-    for alias, metadata in data['facts']['us-gaap'].items():
-        if alias not in concepts.aliasToConcept:
+    for aliasStr, metadata in data['facts']['us-gaap'].items():
+        if aliasStr not in concepts.strToAlias:
             continue
         entries = metadata['units']['USD']
         entries.sort(key=lambda e: e['end'])
@@ -73,13 +73,13 @@ def createFinancialPeriods(data: dict, cik: str, logger) -> list[FinancialPeriod
             if end not in endToFinancialPeriod:
                 continue
             fp = endToFinancialPeriod[end]
-            concept: concepts.Concept = concepts.aliasToConcept[alias]
+            alias: concepts.Concept = concepts.strToAlias[aliasStr]
             value = int(entry['val'])
             filingFY = int(entry['fy']) if entry['fy'] else None
-            value = FinancialValue(concept, alias, value, filingFY)
+            value = FinancialValue(alias.concept, alias, value, filingFY)
             if 'start' in entry:
                 value.duration = getDurationFromDates(strToDate(entry['start']), end)
-            existing: list[FinancialValue] = fp.conceptToFinancialValues[concept.name]
+            existing: list[FinancialValue] = fp.conceptToFinancialValues[alias.concept.name]
             conditionallyAddFinancialValue(existing, value)
     
     addMissingOneQuarterConcepts(financialPeriods, cik, logger)
@@ -181,12 +181,17 @@ def conditionallyAddFinancialValue(existingValues: list[FinancialValue], newValu
         existingValues.append(newValue)
         return
 
-    # Replace if "better"
     for i in range(len(existingValues)):
         exist = existingValues[i]
         if exist.duration == newValue.duration and newValue.filingFiscalYear:
+            # Replace if more recent filingFiscalYear
             if (not exist.filingFiscalYear) or newValue.filingFiscalYear > exist.filingFiscalYear:
                 existingValues[i] = newValue
+                return
+            # Replace if alias has higher weight
+            if exist.filingFiscalYear == newValue.filingFiscalYear and newValue.alias.weight >= exist.alias.weight:
+                existingValues[i] = newValue
+                return
     return
 
 def addMissingOneQuarterConcepts(fps: list[FinancialPeriod], cik: str, logger: logging.Logger) -> None:
@@ -234,7 +239,7 @@ def handleConceptIssues(cik: str, fps: list[FinancialPeriod], logger) -> int:
             if not fvs:
                 msg = f"{pre}: no FinancialValues"
             elif len(fvs) == 1 and fvs[0].duration and fvs[0].duration != concepts.Duration.OneQuarter:
-                msg = f"{pre} ({fvs[0].alias}): one value but with {fvs[0].duration.name} duration"
+                msg = f"{pre} ({fvs[0].alias.name}): one value but with {fvs[0].duration.name} duration"
             elif len(fvs) > 1: 
                 if not any(fv.duration and fv.duration != concepts.Duration.OneQuarter for fv in fvs):
                     msg = f"{pre}: {len(fvs)} values but none with OneQuarter duration"

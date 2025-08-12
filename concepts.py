@@ -1,5 +1,4 @@
 from enum import Enum, auto
-from datetime import datetime
 
 class Duration(Enum):
     Other = 0
@@ -24,33 +23,39 @@ class Concept(Enum):
     CashFlowFromInvestingActivities = auto()
     CashFlowFromFinancingActivities = auto()
 
-aliasToConcept = {
+class Alias():
+    def __init__(self, weight: int, name: str, concept: Concept):
+        self.weight: int = weight # determines relative priority vs other aliases for a given concept
+        self.name: str = name
+        self.concept: Concept = concept
+
+strToAlias = {alias.name: alias for alias in [
     # Assets
-    'Assets': Concept.Assets,
+    Alias(0, 'Assets', Concept.Assets),
     # Liabilities
-    'Liabilities': Concept.Liabilities,
+    Alias(0, 'Liabilities', Concept.Liabilities),
     # Revenue
-    'RevenueFromContractWithCustomerExcludingAssessedTax': Concept.Revenue,
-    'RevenueFromContractWithCustomerIncludingAssessedTax': Concept.Revenue,
-    'Revenues': Concept.Revenue,
-    'SalesRevenueNet': Concept.Revenue,
-    'NoninterestIncome': Concept.Revenue,
-    'SalesRevenueGoodsNet': Concept.Revenue,
-    'SalesRevenueServicesNet': Concept.Revenue,
-    'RevenuesNetOfInterestExpense': Concept.Revenue,
-    'RegulatedAndUnregulatedOperatingRevenue': Concept.Revenue,
+    Alias(16, 'RevenueFromContractWithCustomerExcludingAssessedTax', Concept.Revenue),
+    Alias(14, 'RevenueFromContractWithCustomerIncludingAssessedTax', Concept.Revenue),
+    Alias(12, 'RegulatedAndUnregulatedOperatingRevenue', Concept.Revenue),
+    Alias(10, 'RevenuesNetOfInterestExpense', Concept.Revenue),
+    Alias(8, 'SalesRevenueServicesNet', Concept.Revenue),
+    Alias(6, 'SalesRevenueGoodsNet', Concept.Revenue),
+    Alias(4, 'NoninterestIncome', Concept.Revenue),
+    Alias(2, 'SalesRevenueNet', Concept.Revenue),
+    Alias(0, 'Revenues', Concept.Revenue),
     # Net Income
-    'NetIncomeLoss': Concept.NetIncome,
-    'ProfitLoss': Concept.NetIncome,
-    'IncomeLossFromContinuingOperations': Concept.NetIncome,
-    'NetIncomeLossAvailableToCommonStockholdersBasic': Concept.NetIncome,
+    Alias(8, 'NetIncomeLossAvailableToCommonStockholdersBasic', Concept.NetIncome),
+    Alias(6, 'IncomeLossFromContinuingOperations', Concept.NetIncome),
+    Alias(4, 'NetIncomeLoss', Concept.NetIncome),
+    Alias(2, 'ProfitLoss', Concept.NetIncome),
     # Cash Flow from Operating Activities
-    'NetCashProvidedByUsedInOperatingActivities': Concept.CashFlowFromOperatingActivities,
-    'NetCashProvidedByUsedInOperatingActivitiesContinuingOperations': Concept.CashFlowFromOperatingActivities,
+    Alias(2, 'NetCashProvidedByUsedInOperatingActivities', Concept.CashFlowFromOperatingActivities),
+    Alias(0, 'NetCashProvidedByUsedInOperatingActivitiesContinuingOperations', Concept.CashFlowFromOperatingActivities),
     # Cash Flow from Investing Activities
-    'NetCashProvidedByUsedInInvestingActivities': Concept.CashFlowFromInvestingActivities,
-    'NetCashProvidedByUsedInInvestingActivitiesContinuingOperations': Concept.CashFlowFromInvestingActivities,
+    Alias(2, 'NetCashProvidedByUsedInInvestingActivities', Concept.CashFlowFromInvestingActivities),
+    Alias(0, 'NetCashProvidedByUsedInInvestingActivitiesContinuingOperations', Concept.CashFlowFromInvestingActivities),
     # Cash Flow from Financing Activities
-    'NetCashProvidedByUsedInFinancingActivities': Concept.CashFlowFromFinancingActivities,
-    'NetCashProvidedByUsedInFinancingActivitiesContinuingOperations': Concept.CashFlowFromFinancingActivities,
-}
+    Alias(2, 'NetCashProvidedByUsedInFinancingActivities', Concept.CashFlowFromFinancingActivities),
+    Alias(0, 'NetCashProvidedByUsedInFinancingActivitiesContinuingOperations', Concept.CashFlowFromFinancingActivities),
+]}
