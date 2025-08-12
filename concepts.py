@@ -17,6 +17,7 @@ class Period(Enum):
 
 class Concept(Enum):
     Assets = auto()
+    Liabilities = auto()
     Revenue = auto()
     NetIncome = auto()
     CashFlowFromOperatingActivities = auto()
@@ -26,6 +27,8 @@ class Concept(Enum):
 aliasToConcept = {
     # Assets
     'Assets': Concept.Assets,
+    # Liabilities
+    'Liabilities': Concept.Liabilities,
     # Revenue
     'RevenueFromContractWithCustomerExcludingAssessedTax': Concept.Revenue,
     'RevenueFromContractWithCustomerIncludingAssessedTax': Concept.Revenue,
