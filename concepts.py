@@ -16,7 +16,7 @@ class Period(Enum):
 
 class Concept(Enum):
     Assets = auto()
-    Liabilities = auto()
+    Equity = auto()
     Revenue = auto()
     NetIncome = auto()
     CashFlowFromOperatingActivities = auto()
@@ -32,8 +32,11 @@ class Alias():
 strToAlias = {alias.name: alias for alias in [
     # Assets
     Alias(0, 'Assets', Concept.Assets),
-    # Liabilities
-    Alias(0, 'Liabilities', Concept.Liabilities),
+    # Equity
+    Alias(2, 'StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest', Concept.Equity),
+    Alias(2, 'PartnersCapitalIncludingPortionAttributableToNoncontrollingInterest', Concept.Equity),
+    Alias(0, 'StockholdersEquity', Concept.Equity),
+    Alias(0, 'PartnersCapital', Concept.Equity),
     # Revenue
     Alias(16, 'RevenueFromContractWithCustomerExcludingAssessedTax', Concept.Revenue),
     Alias(14, 'RevenueFromContractWithCustomerIncludingAssessedTax', Concept.Revenue),
