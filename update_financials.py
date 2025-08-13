@@ -52,34 +52,34 @@ def run():
     problemCikCount = 0
 
     ### START A: Use cursor ###
-    # for cik in cursor:
+    for cik in cursor:
     ### END A ###
 
     ### START B: Use list ###
-    cursor.fetchall() # Need to "use up" cursor
-    ciks = [
-        # ('0001551152',), # AbbVie
-        # ('0000002488',), # Advanced Micro Devices
-        # ('0001018724',), # Amazon
-        # ('0000004962',), # American Express
-        # ('0000320193',), # Apple
-        # ('0001973239',), # ARM Holdings
-        # ('0001393818',), # BlackStone
-        # ('0001730168',), # Broadcom
-        # ('0000012927',), # Boeing
-        # ('0000858877',), # Cisco
-        # ('0000909832',), # Costco
-        # ('0000315189',), # Deere
-        # ('0001744489',), # Disney
-        # ('0001551182',), # Eaton
-        # ('0000034088',), # Exxon Mobil
-        # ('0000886982',), # Goldman Sachs
-        # ('0001707925',), # Linde
-        ('0001141391',), # Mastercard
-        # ('0000064040',), # S&P Global
-        # ('0001594805',), # Shopify
-    ]
-    for cik in ciks:
+    # cursor.fetchall() # Need to "use up" cursor
+    # ciks = [
+    #     # ('0001551152',), # AbbVie
+    #     # ('0000002488',), # Advanced Micro Devices
+    #     # ('0001018724',), # Amazon
+    #     # ('0000004962',), # American Express
+    #     # ('0000320193',), # Apple
+    #     # ('0001973239',), # ARM Holdings
+    #     # ('0001393818',), # BlackStone
+    #     # ('0001730168',), # Broadcom
+    #     # ('0000012927',), # Boeing
+    #     # ('0000858877',), # Cisco
+    #     # ('0000909832',), # Costco
+    #     # ('0000315189',), # Deere
+    #     # ('0001744489',), # Disney
+    #     # ('0001551182',), # Eaton
+    #     # ('0000034088',), # Exxon Mobil
+    #     # ('0000886982',), # Goldman Sachs
+    #     # ('0001707925',), # Linde
+    #     ('0001141391',), # Mastercard
+    #     # ('0000064040',), # S&P Global
+    #     # ('0001594805',), # Shopify
+    # ]
+    # for cik in ciks:
     # ### END B ###
 
         cik = cik[0]
@@ -127,7 +127,6 @@ def createFinancialPeriods(data: dict, cik: str, logger) -> list[FinancialPeriod
 
     addFinancialValues(data, endToFinancialPeriod, financialPeriods)
     addMissingOneQuarterConcepts(financialPeriods, cik, logger)
-    # addDeiConcepts(data, financialPeriods, cik, logger)
     return financialPeriods
 
 def checkData(data: dict, cik: str, logger) -> bool:
@@ -307,7 +306,7 @@ def addMissingOneQuarterConcepts(fps: list[FinancialPeriod], cik: str, logger: l
         fp = fps[i]
         for concept, fvs in fp.conceptToFinancialValues.items():
             alreadyHas = any(fv.duration == concepts.Duration.OneQuarter for fv in fvs)
-            noNeed = any(fv.duration == None for fv in fvs)
+            noNeed = any(fv.units == 'shares' or fv.duration == None for fv in fvs)
             if alreadyHas or noNeed:
                 continue
             for fv in fvs:
@@ -341,11 +340,15 @@ def handleConceptIssues(cik: str, fps: list[FinancialPeriod], logger) -> int:
             msg = None
             if not fvs:
                 msg = f"{pre}: no FinancialValues"
-            elif len(fvs) == 1 and fvs[0].duration and fvs[0].duration != concepts.Duration.OneQuarter:
-                msg = f"{pre} ({fvs[0].alias.name}): one value but with {fvs[0].duration.name} duration"
-            elif len(fvs) > 1: 
-                if not any(fv.duration and fv.duration != concepts.Duration.OneQuarter for fv in fvs):
-                    msg = f"{pre}: {len(fvs)} values but none with OneQuarter duration"
+            elif fvs[0].units == 'shares':
+                if len(fvs) > 1: 
+                    msg = f"{pre}: {len(fvs)} values for concept"
+            else: # USD
+                if len(fvs) == 1 and fvs[0].duration and fvs[0].duration != concepts.Duration.OneQuarter:
+                    msg = f"{pre} ({fvs[0].alias.name}): one value but with {fvs[0].duration.name} duration"
+                elif len(fvs) > 1: 
+                    if not any(fv.duration and fv.duration != concepts.Duration.OneQuarter for fv in fvs):
+                        msg = f"{pre}: {len(fvs)} values but none with OneQuarter duration"
             if msg:
                 log(logger.debug, cik, msg)
                 problemCount += 1

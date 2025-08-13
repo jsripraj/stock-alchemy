@@ -32,8 +32,9 @@ class Alias():
 
 strToAlias = {alias.name: alias for alias in [
     # SharesOutstanding
-    Alias(2, 'EntityCommonStockSharesOutstanding', Concept.SharesOutstanding),
-    Alias(0, 'WeightedAverageNumberOfDilutedSharesOutstanding', Concept.SharesOutstanding),
+    Alias(4, 'EntityCommonStockSharesOutstanding', Concept.SharesOutstanding),
+    Alias(2, 'WeightedAverageNumberOfDilutedSharesOutstanding', Concept.SharesOutstanding),
+    Alias(0, 'WeightedAverageNumberOfSharesOutstandingBasic', Concept.SharesOutstanding),
     # Assets
     Alias(0, 'Assets', Concept.Assets),
     # Equity
