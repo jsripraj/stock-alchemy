@@ -16,7 +16,10 @@ class Period(Enum):
 
 class Concept(Enum):
     SharesOutstanding = auto()
+    CashAndCashEquivalents = auto()
     Assets = auto()
+    ShortTermDebt = auto()
+    LongTermDebt = auto()
     Equity = auto()
     Revenue = auto()
     NetIncome = auto()
@@ -31,13 +34,24 @@ class Alias():
         self.concept: Concept = concept
 
 strToAlias = {alias.name: alias for alias in [
-    # SharesOutstanding (uses highest value, weight doesn't matter)
+    # Shares Outstanding (uses highest value, weight doesn't matter)
     Alias(0, 'EntityCommonStockSharesOutstanding', Concept.SharesOutstanding),
     Alias(0, 'CommonStockSharesOutstanding', Concept.SharesOutstanding),
     Alias(0, 'WeightedAverageNumberOfDilutedSharesOutstanding', Concept.SharesOutstanding),
     Alias(0, 'WeightedAverageNumberOfSharesOutstandingBasic', Concept.SharesOutstanding),
+    # Cash and Equivalents
+    Alias(0, 'CashAndCashEquivalentsAtCarryingValue', Concept.CashAndCashEquivalents),
     # Assets
     Alias(0, 'Assets', Concept.Assets),
+    # Short-Term Debt
+    Alias(0, 'DebtCurrent', Concept.ShortTermDebt),
+    Alias(0, 'LongTermDebtCurrent', Concept.ShortTermDebt),
+    Alias(0, 'LongTermDebtAndCapitalLeaseObligationsCurrent', Concept.ShortTermDebt),
+    Alias(0, 'ShortTermBorrowings', Concept.ShortTermDebt),
+    # Long-Term Debt
+    Alias(0, 'LongTermDebtAndCapitalLeaseObligations', Concept.LongTermDebt),
+    Alias(0, 'LongTermDebtNoncurrent', Concept.LongTermDebt),
+    Alias(0, 'LongTermDebt', Concept.LongTermDebt),
     # Equity
     Alias(2, 'StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest', Concept.Equity),
     Alias(2, 'PartnersCapitalIncludingPortionAttributableToNoncontrollingInterest', Concept.Equity),

@@ -91,7 +91,7 @@ def run():
                     data = json.loads(content.decode('utf-8'))
                     fps: list[FinancialPeriod] = createFinancialPeriods(data, cik, logger)
                     if fps:
-                        problemCikCount += handleConceptIssues(cik, fps, logger, useExcuses=True)
+                        problemCikCount += handleConceptIssues(cik, fps, logger, useExcuses=False)
             except KeyError as ke:
                 log(logger.debug, cik, f'KeyError: {ke}')
     
