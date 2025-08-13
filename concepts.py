@@ -68,3 +68,11 @@ strToAlias = {alias.name: alias for alias in [
     Alias(2, 'NetCashProvidedByUsedInFinancingActivities', Concept.CashFlowFromFinancingActivities),
     Alias(0, 'NetCashProvidedByUsedInFinancingActivitiesContinuingOperations', Concept.CashFlowFromFinancingActivities),
 ]}
+
+excuses = {
+    '0001707925', # Linde doesn’t report any cash flow in 2018 before 2018-09-30
+    '0000064040', # S&P Global doesn’t report a lot for 2024-12-31 for some reason
+    '0000034088', # Exxon doesn’t report Revenues for 2015-03-31, 2015-06-30, 2015-09-30 and same for 2016
+    '0001067983', # Berkshire Hathaway doesn’t really report EntityCommonStockSharesOutstanding
+    '0001403161', # Visa doesn’t report shares outstanding
+}

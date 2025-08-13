@@ -91,7 +91,7 @@ def run():
                     data = json.loads(content.decode('utf-8'))
                     fps: list[FinancialPeriod] = createFinancialPeriods(data, cik, logger)
                     if fps:
-                        problemCikCount += handleConceptIssues(cik, fps, logger)
+                        problemCikCount += handleConceptIssues(cik, fps, logger, useExcuses=True)
             except KeyError as ke:
                 log(logger.debug, cik, f'KeyError: {ke}')
     
@@ -320,14 +320,18 @@ def addMissingOneQuarterConcepts(fps: list[FinancialPeriod], cik: str, logger: l
                     break
     return
 
-def handleConceptIssues(cik: str, fps: list[FinancialPeriod], logger) -> int:
+def handleConceptIssues(cik: str, fps: list[FinancialPeriod], logger, useExcuses=False) -> int:
     '''
     Returns:
         int: 1 if there are issues, 0 if no issues
 
     Parameters:
         fps: list[FinancialPeriod] - a list of populated FinancialPeriods, sorted chronologically.
+
+        useExcuses: bool - If True, skip CIKs which are listed in concepts.excuses.
     '''
+    if useExcuses and cik in concepts.excuses:
+        return 0
     problemCount = 0
     for i in range(2, len(fps)):
         fp = fps[i]
