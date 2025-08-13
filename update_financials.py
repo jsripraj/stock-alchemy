@@ -40,6 +40,68 @@ class FinancialPeriod:
                f"end: {self.end}, " + \
                f"conceptToFinancialValues: {pprint.pformat(self.conceptToFinancialValues)}"
 
+def run():
+    start_time = time.perf_counter()
+    logger = configureLogger()
+    cnx = mysql.connector.connect(host=config.MYSQL_HOST, database=config.MYSQL_DATABASE, user=os.getenv("MYSQL_USER"), password=os.getenv("MYSQL_PASSWORD"))
+    cursor = cnx.cursor()
+    query = ("SELECT CIK FROM companies LIMIT 100;")
+    cursor.execute(query)
+    problemCikCount = 0
+
+    ### START A: Use cursor ###
+    for cik in cursor:
+    ### END A ###
+
+    ### START B: Use list ###
+    # cursor.fetchall() # Need to "use up" cursor
+    # ciks = [
+    #     # ('0001551152',), # AbbVie
+    #     # ('0000002488',), # Advanced Micro Devices
+    #     # ('0001018724',), # Amazon
+    #     # ('0000004962',), # American Express
+    #     # ('0000320193',), # Apple
+    #     # ('0001973239',), # ARM Holdings
+    #     # ('0001393818',), # BlackStone
+    #     # ('0001730168',), # Broadcom
+    #     # ('0000012927',), # Boeing
+    #     # ('0000858877',), # Cisco
+    #     # ('0000909832',), # Costco
+    #     # ('0000315189',), # Deere
+    #     # ('0001744489',), # Disney
+    #     # ('0001551182',), # Eaton
+    #     # ('0000034088',), # Exxon Mobil
+    #     # ('0000886982',), # Goldman Sachs
+    #     # ('0001707925',), # Linde
+    #     # ('0000064040',), # S&P Global
+    #     # ('0001594805',), # Shopify
+    # ]
+    # for cik in ciks:
+    # ### END B ###
+
+        cik = cik[0]
+        with zipfile.ZipFile(config.ZIP_PATH, 'r') as z:
+            fname = 'CIK' + cik + '.json'
+            try:
+                with z.open(fname) as f:
+                    content = f.read()
+                    data = json.loads(content.decode('utf-8'))
+                    fps: list[FinancialPeriod] = createFinancialPeriods(data, cik, logger)
+                    if fps:
+                        problemCikCount += handleConceptIssues(cik, fps, logger)
+            except KeyError as ke:
+                log(logger.debug, cik, f'KeyError: {ke}')
+    
+    cnx.commit()
+    cursor.close()
+    cnx.close()
+    end_time = time.perf_counter()
+    elapsed_time = end_time - start_time
+    logger.debug(f"{problemCikCount} CIKs with issues")
+    logger.info(f'Elapsed time: {elapsed_time:.2f} seconds')
+    print(f'Elapsed time: {elapsed_time:.2f} seconds')
+    shutil.copyfile(config.LOG_PATH, os.path.join(config.LOG_DIR, "copy.log"))
+
 def createFinancialPeriods(data: dict, cik: str, logger) -> list[FinancialPeriod] | None:
     """
     Returns:
@@ -60,28 +122,7 @@ def createFinancialPeriods(data: dict, cik: str, logger) -> list[FinancialPeriod
     addCalendarAttributes(financialPeriods)
     financialPeriods.sort(key=lambda fp: fp.end)
 
-    # Add FinancialValues
-    for aliasStr, metadata in data['facts']['us-gaap'].items():
-        if aliasStr not in concepts.strToAlias:
-            continue
-        entries = metadata['units']['USD']
-        entries.sort(key=lambda e: e['end'])
-        for entry in entries:
-            if not isDesiredForm(entry['form']):
-                continue
-            end = strToDate(entry['end'])
-            if end not in endToFinancialPeriod:
-                continue
-            fp = endToFinancialPeriod[end]
-            alias: concepts.Concept = concepts.strToAlias[aliasStr]
-            val = int(entry['val'])
-            filingFY = int(entry['fy']) if entry['fy'] else None
-            fv = FinancialValue(alias.concept, alias, val, filingFY)
-            if 'start' in entry:
-                fv.duration = getDurationFromDates(strToDate(entry['start']), end)
-            existing: list[FinancialValue] = fp.conceptToFinancialValues[alias.concept.name]
-            conditionallyAddFinancialValue(existing, fv)
-    
+    addFinancialValues(data, endToFinancialPeriod)
     addMissingOneQuarterConcepts(financialPeriods, cik, logger)
     addDeiConcepts(data, financialPeriods, cik, logger)
     return financialPeriods
@@ -166,6 +207,31 @@ def getCyqePriorTo(cyqe: datetime) -> datetime:
 def getPeriod(cyqe: datetime) -> concepts.Period:
     return concepts.Period(cyqe.month // 3)
 
+def addFinancialValues(data: dict, endToFinancialPeriod: dict[datetime, FinancialPeriod]) -> None:
+    '''
+    Adds FinancialValues taken directly from the data.
+    '''
+    for aliasStr, metadata in data['facts']['us-gaap'].items():
+        if aliasStr not in concepts.strToAlias:
+            continue
+        entries = metadata['units']['USD']
+        entries.sort(key=lambda e: e['end'])
+        for entry in entries:
+            if not isDesiredForm(entry['form']):
+                continue
+            end = strToDate(entry['end'])
+            if end not in endToFinancialPeriod:
+                continue
+            fp = endToFinancialPeriod[end]
+            alias: concepts.Concept = concepts.strToAlias[aliasStr]
+            val = int(entry['val'])
+            filingFY = int(entry['fy']) if entry['fy'] else None
+            fv = FinancialValue(alias.concept, alias, val, filingFY)
+            if 'start' in entry:
+                fv.duration = getDurationFromDates(strToDate(entry['start']), end)
+            existing: list[FinancialValue] = fp.conceptToFinancialValues[alias.concept.name]
+            conditionallyAddFinancialValue(existing, fv)
+    
 def conditionallyAddFinancialValue(existingValues: list[FinancialValue], newValue: FinancialValue) -> None:
     '''
     Determines whether and how a FinancialValue should be added to a list, then does it. 
@@ -344,68 +410,6 @@ def log(fn, cik: str, msg: str):
 #         for chunk in r.iter_content(chunk_size=config.CHUNK_SIZE):
 #             if chunk:
 #                 f.write(chunk)
-
-def run():
-    start_time = time.perf_counter()
-    logger = configureLogger()
-    cnx = mysql.connector.connect(host=config.MYSQL_HOST, database=config.MYSQL_DATABASE, user=os.getenv("MYSQL_USER"), password=os.getenv("MYSQL_PASSWORD"))
-    cursor = cnx.cursor()
-    query = ("SELECT CIK FROM companies LIMIT 100;")
-    cursor.execute(query)
-    problemCikCount = 0
-
-    ### START A: Use cursor ###
-    for cik in cursor:
-    ### END A ###
-
-    ### START B: Use list ###
-    # cursor.fetchall() # Need to "use up" cursor
-    # ciks = [
-    #     # ('0001551152',), # AbbVie
-    #     # ('0000002488',), # Advanced Micro Devices
-    #     # ('0001018724',), # Amazon
-    #     # ('0000004962',), # American Express
-    #     # ('0000320193',), # Apple
-    #     # ('0001973239',), # ARM Holdings
-    #     # ('0001393818',), # BlackStone
-    #     # ('0001730168',), # Broadcom
-    #     # ('0000012927',), # Boeing
-    #     # ('0000858877',), # Cisco
-    #     # ('0000909832',), # Costco
-    #     # ('0000315189',), # Deere
-    #     # ('0001744489',), # Disney
-    #     # ('0001551182',), # Eaton
-    #     # ('0000034088',), # Exxon Mobil
-    #     # ('0000886982',), # Goldman Sachs
-    #     # ('0001707925',), # Linde
-    #     # ('0000064040',), # S&P Global
-    #     # ('0001594805',), # Shopify
-    # ]
-    # for cik in ciks:
-    # ### END B ###
-
-        cik = cik[0]
-        with zipfile.ZipFile(config.ZIP_PATH, 'r') as z:
-            fname = 'CIK' + cik + '.json'
-            try:
-                with z.open(fname) as f:
-                    content = f.read()
-                    data = json.loads(content.decode('utf-8'))
-                    fps: list[FinancialPeriod] = createFinancialPeriods(data, cik, logger)
-                    if fps:
-                        problemCikCount += handleConceptIssues(cik, fps, logger)
-            except KeyError as ke:
-                log(logger.debug, cik, f'KeyError: {ke}')
-    
-    cnx.commit()
-    cursor.close()
-    cnx.close()
-    end_time = time.perf_counter()
-    elapsed_time = end_time - start_time
-    logger.debug(f"{problemCikCount} CIKs with issues")
-    logger.info(f'Elapsed time: {elapsed_time:.2f} seconds')
-    print(f'Elapsed time: {elapsed_time:.2f} seconds')
-    shutil.copyfile(config.LOG_PATH, os.path.join(config.LOG_DIR, "copy.log"))
 
 if __name__ == "__main__":
     run()
