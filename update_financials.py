@@ -13,10 +13,11 @@ import time
 import shutil
 
 class FinancialValue:
-    def __init__(self, concept: concepts.Concept, alias: concepts.Alias, value: int, filingFiscalYear: int = None, duration: concepts.Duration = None):
+    def __init__(self, concept: concepts.Concept, alias: concepts.Alias, value: int, units: str, filingFiscalYear: int = None, duration: concepts.Duration = None):
         self.concept: concepts.Concept = concept
         self.alias: concepts.Alias = alias
         self.value: int = value
+        self.units: str = units
         self.filingFiscalYear: int = filingFiscalYear
         self.duration: concepts.Duration = duration
     
@@ -25,7 +26,8 @@ class FinancialValue:
 
     def __repr__(self):
         return f"FinancialValue(concept: {self.concept}, alias: {self.alias.name}, value: {self.value}, " \
-            f"filing FY: {self.filingFiscalYear}, duration: {self.duration.name if self.duration else None})"
+            f"units: {self.units}, filing FY: {self.filingFiscalYear}, " \
+            f"duration: {self.duration.name if self.duration else None})"
 
 class FinancialPeriod:
     def __init__(self, cik: str, end: datetime):
@@ -50,33 +52,34 @@ def run():
     problemCikCount = 0
 
     ### START A: Use cursor ###
-    for cik in cursor:
+    # for cik in cursor:
     ### END A ###
 
     ### START B: Use list ###
-    # cursor.fetchall() # Need to "use up" cursor
-    # ciks = [
-    #     # ('0001551152',), # AbbVie
-    #     # ('0000002488',), # Advanced Micro Devices
-    #     # ('0001018724',), # Amazon
-    #     # ('0000004962',), # American Express
-    #     # ('0000320193',), # Apple
-    #     # ('0001973239',), # ARM Holdings
-    #     # ('0001393818',), # BlackStone
-    #     # ('0001730168',), # Broadcom
-    #     # ('0000012927',), # Boeing
-    #     # ('0000858877',), # Cisco
-    #     # ('0000909832',), # Costco
-    #     # ('0000315189',), # Deere
-    #     # ('0001744489',), # Disney
-    #     # ('0001551182',), # Eaton
-    #     # ('0000034088',), # Exxon Mobil
-    #     # ('0000886982',), # Goldman Sachs
-    #     # ('0001707925',), # Linde
-    #     # ('0000064040',), # S&P Global
-    #     # ('0001594805',), # Shopify
-    # ]
-    # for cik in ciks:
+    cursor.fetchall() # Need to "use up" cursor
+    ciks = [
+        # ('0001551152',), # AbbVie
+        # ('0000002488',), # Advanced Micro Devices
+        # ('0001018724',), # Amazon
+        # ('0000004962',), # American Express
+        # ('0000320193',), # Apple
+        # ('0001973239',), # ARM Holdings
+        # ('0001393818',), # BlackStone
+        # ('0001730168',), # Broadcom
+        # ('0000012927',), # Boeing
+        # ('0000858877',), # Cisco
+        # ('0000909832',), # Costco
+        # ('0000315189',), # Deere
+        # ('0001744489',), # Disney
+        # ('0001551182',), # Eaton
+        # ('0000034088',), # Exxon Mobil
+        # ('0000886982',), # Goldman Sachs
+        # ('0001707925',), # Linde
+        ('0001141391',), # Mastercard
+        # ('0000064040',), # S&P Global
+        # ('0001594805',), # Shopify
+    ]
+    for cik in ciks:
     # ### END B ###
 
         cik = cik[0]
@@ -122,9 +125,9 @@ def createFinancialPeriods(data: dict, cik: str, logger) -> list[FinancialPeriod
     addCalendarAttributes(financialPeriods)
     financialPeriods.sort(key=lambda fp: fp.end)
 
-    addFinancialValues(data, endToFinancialPeriod)
+    addFinancialValues(data, endToFinancialPeriod, financialPeriods)
     addMissingOneQuarterConcepts(financialPeriods, cik, logger)
-    addDeiConcepts(data, financialPeriods, cik, logger)
+    # addDeiConcepts(data, financialPeriods, cik, logger)
     return financialPeriods
 
 def checkData(data: dict, cik: str, logger) -> bool:
@@ -207,31 +210,57 @@ def getCyqePriorTo(cyqe: datetime) -> datetime:
 def getPeriod(cyqe: datetime) -> concepts.Period:
     return concepts.Period(cyqe.month // 3)
 
-def addFinancialValues(data: dict, endToFinancialPeriod: dict[datetime, FinancialPeriod]) -> None:
+def addFinancialValues(data: dict, endToFp: dict[datetime, FinancialPeriod], fps: list[FinancialPeriod]) -> None:
     '''
     Adds FinancialValues taken directly from the data.
+
+    Parameters:
+        fps: list[FinancialPeriod] - list of FinancialPeriods sorted chronologically
     '''
-    for aliasStr, metadata in data['facts']['us-gaap'].items():
-        if aliasStr not in concepts.strToAlias:
-            continue
-        entries = metadata['units']['USD']
-        entries.sort(key=lambda e: e['end'])
-        for entry in entries:
-            if not isDesiredForm(entry['form']):
+    for factType in ['dei', 'us-gaap']:
+        for aliasStr, metadata in data['facts'][factType].items():
+            if aliasStr not in concepts.strToAlias:
                 continue
-            end = strToDate(entry['end'])
-            if end not in endToFinancialPeriod:
-                continue
-            fp = endToFinancialPeriod[end]
-            alias: concepts.Concept = concepts.strToAlias[aliasStr]
-            val = int(entry['val'])
-            filingFY = int(entry['fy']) if entry['fy'] else None
-            fv = FinancialValue(alias.concept, alias, val, filingFY)
-            if 'start' in entry:
-                fv.duration = getDurationFromDates(strToDate(entry['start']), end)
-            existing: list[FinancialValue] = fp.conceptToFinancialValues[alias.concept.name]
-            conditionallyAddFinancialValue(existing, fv)
+            for units, entries in metadata['units'].items(): # units e.g. USD or shares
+                entries.sort(key=lambda e: e['end'])
+                for entry in entries:
+                    # if not isDesiredForm(entry['form']):
+                    #     continue
+                    end = strToDate(entry['end'])
+                    if units == 'shares':
+                        fp = getMostRecentFp(fps, end)
+                        if not fp:
+                            continue
+                    else:
+                        if end not in endToFp:
+                            continue
+                        fp = endToFp[end]
+                    alias: concepts.Concept = concepts.strToAlias[aliasStr]
+                    val = int(entry['val'])
+                    filingFY = int(entry['fy']) if entry['fy'] else None
+                    fv = FinancialValue(alias.concept, alias, val, units, filingFiscalYear=filingFY)
+                    if 'start' in entry:
+                        fv.duration = getDurationFromDates(strToDate(entry['start']), end)
+                    existing: list[FinancialValue] = fp.conceptToFinancialValues[alias.concept.name]
+                    conditionallyAddFinancialValue(existing, fv)
     
+def getMostRecentFp(fps: list[FinancialPeriod], date: datetime) -> FinancialPeriod | None:
+    '''
+    Gets the most recent FinancialPeriod within 60 days before to 7 days after the given date.
+    
+    Parameters:
+        fps: list[FinancialPeriod] - list of FinancialPeriods sorted chronologically.
+
+        date: datetime - the date from which to find the most recent FinancialPeriod end.
+    '''
+    for i in range(len(fps)):
+        diff = (date - fps[i].end).days
+        if -7 <= diff <= 60:
+            return fps[i]
+        if diff < -7:
+            return None
+    return None
+
 def conditionallyAddFinancialValue(existingValues: list[FinancialValue], newValue: FinancialValue) -> None:
     '''
     Determines whether and how a FinancialValue should be added to a list, then does it. 
@@ -243,6 +272,12 @@ def conditionallyAddFinancialValue(existingValues: list[FinancialValue], newValu
         existingValues.append(newValue)
         return
     
+    # For shares, just take the higher value
+    if newValue.units == 'shares':
+        if newValue.value >= existingValues[0].value:
+            existingValues[0] = newValue
+        return
+
     # If the duration doesn't exist, append it
     if not any(ev.duration == newValue.duration for ev in existingValues):
         existingValues.append(newValue)
@@ -282,56 +317,9 @@ def addMissingOneQuarterConcepts(fps: list[FinancialPeriod], cik: str, logger: l
                 oldFvs = oldFp.conceptToFinancialValues[concept]
                 prevFv = next((oldFv for oldFv in oldFvs if oldFv.duration and oldFv.duration.value == fv.duration.value - 1), None)
                 if prevFv:
-                    fvs.append(FinancialValue(concept, fv.alias, fv.value - prevFv.value, duration=concepts.Duration.OneQuarter))
+                    fvs.append(FinancialValue(concept, fv.alias, fv.value - prevFv.value, fv.units, duration=concepts.Duration.OneQuarter))
                     break
     return
-
-def addDeiConcepts(data: dict, financialPeriods: list[FinancialPeriod], cik: str, logger):
-    '''
-    Adds DEI concepts to financialPeriods. 
-    This has to be done separately for two reasons: 
-    1) DEI concepts (e.g. Shares Outstanding) is reported under "dei" instead of "us-gaap"
-    2) DEI concepts are reported for dates that typically do not coincide with a quarter end
-
-    Parameters:
-        financialPeriods: list[FinancialPeriod] - list of FinancialPeriods sorted chronologically
-    '''
-    for aliasStr, metadata in data['facts']['dei'].items():
-        if aliasStr not in concepts.strToAlias:
-            continue
-        i = 0 # to index into financialPeriods
-        entries = metadata['units']['shares']
-        entries.sort(key=lambda e: e['end'])
-        for entry in entries:
-            # if not isDesiredForm(entry['form']):
-            #     continue
-            end = strToDate(entry['end'])
-            # if end not in endToFinancialPeriod:
-            #     continue
-            # fp = endToFinancialPeriod[end]
-            alias: concepts.Concept = concepts.strToAlias[aliasStr]
-            val = int(entry['val'])
-            filingFY = int(entry['fy']) if entry['fy'] else None
-            fv = FinancialValue(alias.concept, alias, val, filingFY)
-            skip = False
-            while True:
-                diff = (end - financialPeriods[i].end).days
-                if -7 <= diff <= 60:
-                    break
-                if diff < -7:
-                    skip = True
-                    break
-                i += 1
-            if skip:
-                continue
-            existing = financialPeriods[i].conceptToFinancialValues[alias.concept.name]
-            conditionallyAddFinancialValue(existing, fv)
-            
-
-            # if 'start' in entry:
-            #     value.duration = getDurationFromDates(strToDate(entry['start']), end)
-            # existing: list[FinancialValue] = fp.conceptToFinancialValues[alias.concept.name]
-            # conditionallyAddFinancialValue(existing, value)
 
 def handleConceptIssues(cik: str, fps: list[FinancialPeriod], logger) -> int:
     '''
