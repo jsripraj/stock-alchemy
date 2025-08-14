@@ -124,6 +124,8 @@ excuses = {
     '0001321655', # Palantir: no debt
     '0001321655', # Meta: no debt
     '0001341439', # Oracle: 2016-02-29 no ST debt
+    '0001373715', # ServiceNow: Doesn't break out ST debt
+    '0001393818', # Blackstone: Doesn't break out ST debt
     '0001403161', # Visa doesn’t report shares outstanding
     '0001707925', # Linde doesn’t report any cash flow in 2018 before 2018-09-30
 }
