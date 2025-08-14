@@ -54,13 +54,20 @@ strToAlias = {alias.name: alias for alias in [
     Alias(4, 'LongTermDebtCurrent', Concept.ShortTermDebt),
     Alias(4, 'LongTermDebtAndCapitalLeaseObligationsCurrent', Concept.ShortTermDebt),
     Alias(4, 'ShortTermBorrowings', Concept.ShortTermDebt),
+    Alias(4, 'NotesPayableCurrent', Concept.ShortTermDebt),
+    Alias(2, 'ConvertibleNotesPayableCurrent', Concept.ShortTermDebt),
     Alias(2, 'OtherShortTermBorrowings', Concept.ShortTermDebt),
+    Alias(2, 'CommercialPaper', Concept.ShortTermDebt),
     Alias(0, 'ConvertibleDebtCurrent', Concept.ShortTermDebt),
     # Long-Term Debt
     Alias(2, 'LongTermDebtAndCapitalLeaseObligations', Concept.LongTermDebt),
     Alias(2, 'LongTermDebtNoncurrent', Concept.LongTermDebt),
     Alias(2, 'LongTermDebt', Concept.LongTermDebt),
-    Alias(0, 'LongTermDebtAndCapitalLeaseObligationsIncludingCurrentMaturities', Concept.LongTermDebt),
+    Alias(2, 'LongTermNotesAndLoans', Concept.LongTermDebt),
+    Alias(2, 'LongTermNotesPayable', Concept.LongTermDebt),
+    Alias(1, 'SeniorLongTermNotes', Concept.LongTermDebt),
+    Alias(0, 'ConvertibleLongTermNotesPayable', Concept.LongTermDebt),
+    Alias(-1, 'LongTermDebtAndCapitalLeaseObligationsIncludingCurrentMaturities', Concept.LongTermDebt),
     Alias(-2, 'DebtInstrumentCarryingAmount', Concept.LongTermDebt),
     Alias(-4, 'DebtLongtermAndShorttermCombinedAmount', Concept.LongTermDebt),
     # Equity
@@ -105,9 +112,18 @@ excuses = {
     '0000080661', # Progressive doesn't report ST debt (they combine with LT debt)
     '0000109198', # TJX doesn't break out ST debt
     '0000315189', # Deere: can't find LT debt alias starting 2022-07-31 and ST debt alias thru 2020-05-03
-    '0000796343', # Doesn’t have/report ST-debt
+    '0000316709', # Schwab: doesn't report ST debt
+    '0000796343', # Adobe: Doesn’t have/report ST-debt
+    '0000895421', # Morgan Stanley: Doesn't break out ST-debt
+    '0000896878', # ST debt
+    '0001035267', # Intuitive Surgical: No debt
     '0001067983', # Berkshire Hathaway doesn’t really report EntityCommonStockSharesOutstanding, can't find debt either
     '0001075531', # Doesn’t have/report ST-debt
+    '0001108524', # Salesforce: Doesn't have ST debt
+    '0001283699', # T-Mobile: Can't find LT debt alias
+    '0001321655', # Palantir: no debt
+    '0001321655', # Meta: no debt
+    '0001341439', # Oracle: 2016-02-29 no ST debt
     '0001403161', # Visa doesn’t report shares outstanding
     '0001707925', # Linde doesn’t report any cash flow in 2018 before 2018-09-30
 }
