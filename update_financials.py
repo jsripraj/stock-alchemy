@@ -47,7 +47,7 @@ def run():
     logger = configureLogger()
     cnx = mysql.connector.connect(host=config.MYSQL_HOST, database=config.MYSQL_DATABASE, user=os.getenv("MYSQL_USER"), password=os.getenv("MYSQL_PASSWORD"))
     cursor = cnx.cursor()
-    query = ("SELECT CIK FROM companies LIMIT 100;")
+    query = ("SELECT CIK FROM companies ORDER BY CIK LIMIT 100;")
     cursor.execute(query)
     problemCikCount = 0
 

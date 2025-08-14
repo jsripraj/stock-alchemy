@@ -40,18 +40,29 @@ strToAlias = {alias.name: alias for alias in [
     Alias(0, 'WeightedAverageNumberOfDilutedSharesOutstanding', Concept.SharesOutstanding),
     Alias(0, 'WeightedAverageNumberOfSharesOutstandingBasic', Concept.SharesOutstanding),
     # Cash and Equivalents
-    Alias(0, 'CashAndCashEquivalentsAtCarryingValue', Concept.CashAndCashEquivalents),
+    Alias(6, 'CashAndCashEquivalentsAtCarryingValue', Concept.CashAndCashEquivalents),
+    Alias(4, 'CashCashEquivalentsAndShortTermInvestments', Concept.CashAndCashEquivalents),
+    Alias(3, 'CashAndCashEquivalentsAtCarryingValueIncludingDiscontinuedOperations', Concept.CashAndCashEquivalents),
+    Alias(2, 'CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents', Concept.CashAndCashEquivalents),
+    Alias(0, 'CashCashEquivalentsAndFederalFundsSold', Concept.CashAndCashEquivalents),
+    Alias(0, 'CashAndDueFromBanks', Concept.CashAndCashEquivalents),
+    Alias(0, 'Cash', Concept.CashAndCashEquivalents),
     # Assets
     Alias(0, 'Assets', Concept.Assets),
     # Short-Term Debt
-    Alias(0, 'DebtCurrent', Concept.ShortTermDebt),
-    Alias(0, 'LongTermDebtCurrent', Concept.ShortTermDebt),
-    Alias(0, 'LongTermDebtAndCapitalLeaseObligationsCurrent', Concept.ShortTermDebt),
-    Alias(0, 'ShortTermBorrowings', Concept.ShortTermDebt),
+    Alias(4, 'DebtCurrent', Concept.ShortTermDebt),
+    Alias(4, 'LongTermDebtCurrent', Concept.ShortTermDebt),
+    Alias(4, 'LongTermDebtAndCapitalLeaseObligationsCurrent', Concept.ShortTermDebt),
+    Alias(4, 'ShortTermBorrowings', Concept.ShortTermDebt),
+    Alias(2, 'OtherShortTermBorrowings', Concept.ShortTermDebt),
+    Alias(0, 'ConvertibleDebtCurrent', Concept.ShortTermDebt),
     # Long-Term Debt
-    Alias(0, 'LongTermDebtAndCapitalLeaseObligations', Concept.LongTermDebt),
-    Alias(0, 'LongTermDebtNoncurrent', Concept.LongTermDebt),
-    Alias(0, 'LongTermDebt', Concept.LongTermDebt),
+    Alias(2, 'LongTermDebtAndCapitalLeaseObligations', Concept.LongTermDebt),
+    Alias(2, 'LongTermDebtNoncurrent', Concept.LongTermDebt),
+    Alias(2, 'LongTermDebt', Concept.LongTermDebt),
+    Alias(0, 'LongTermDebtAndCapitalLeaseObligationsIncludingCurrentMaturities', Concept.LongTermDebt),
+    Alias(-2, 'DebtInstrumentCarryingAmount', Concept.LongTermDebt),
+    Alias(-4, 'DebtLongtermAndShorttermCombinedAmount', Concept.LongTermDebt),
     # Equity
     Alias(2, 'StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest', Concept.Equity),
     Alias(2, 'PartnersCapitalIncludingPortionAttributableToNoncontrollingInterest', Concept.Equity),
@@ -84,9 +95,19 @@ strToAlias = {alias.name: alias for alias in [
 ]}
 
 excuses = {
-    '0001707925', # Linde doesn’t report any cash flow in 2018 before 2018-09-30
-    '0000064040', # S&P Global doesn’t report a lot for 2024-12-31 for some reason
+    '0000002488', # Doesn’t have/report ST-debt
+    '0000006951', # Applied Materials doesn’t have/report st debt
+    '0000018230', # Caterpillar: don't report quarterly ST- or LT-debt
     '0000034088', # Exxon doesn’t report Revenues for 2015-03-31, 2015-06-30, 2015-09-30 and same for 2016
-    '0001067983', # Berkshire Hathaway doesn’t really report EntityCommonStockSharesOutstanding
+    '0000040545', # No quarterly cash from 2015-03-31 to 2016-09-30
+    '0000063908', # McDonald's: no quarterly ST-debt
+    '0000064040', # S&P Global doesn’t report a lot for 2024-12-31, no ST debt through 2021-09-30
+    '0000080661', # Progressive doesn't report ST debt (they combine with LT debt)
+    '0000109198', # TJX doesn't break out ST debt
+    '0000315189', # Deere: can't find LT debt alias starting 2022-07-31 and ST debt alias thru 2020-05-03
+    '0000796343', # Doesn’t have/report ST-debt
+    '0001067983', # Berkshire Hathaway doesn’t really report EntityCommonStockSharesOutstanding, can't find debt either
+    '0001075531', # Doesn’t have/report ST-debt
     '0001403161', # Visa doesn’t report shares outstanding
+    '0001707925', # Linde doesn’t report any cash flow in 2018 before 2018-09-30
 }
