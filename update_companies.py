@@ -2,13 +2,8 @@ import requests
 import yfinance as yf
 from datetime import date
 import time
-from pprint import pp
-import mysql.connector
-from dotenv import load_dotenv
-import os
 import config
-
-load_dotenv()
+import mysql_utils
 
 class Company:
     def __init__(self, cik: str, ticker: str, name: str):
@@ -16,11 +11,11 @@ class Company:
         self.ticker: str = ticker
         self.name: str = name
         self.priceDate: date = None
-        self.price: float = None
+        self.closePrice: float = None
 
     def __str__(self):
         return f'Company object: cik={self.cik}, ticker={self.ticker}, name={self.name}, ' + \
-               f'priceDate={self.priceDate}, price={self.price}'
+               f'priceDate={self.priceDate}, closePrice={self.closePrice}'
     
     def __repr__(self):
         return self.__str__()
@@ -48,20 +43,11 @@ for i in range(0, len(tickers), batch_size):
     priceDate = data.index[0].to_pydatetime().date()
     for ticker in tickers:
         if ticker in data.columns:
-            price = data[ticker].iloc[0]
+            closePrice = data[ticker].iloc[0]
             companies[ticker].priceDate = priceDate
-            companies[ticker].price = price
+            companies[ticker].closePrice = closePrice
     time.sleep(1)
 
-cnx = mysql.connector.connect(host=config.MYSQL_HOST, database=config.MYSQL_DATABASE, user=os.getenv("MYSQL_USER"), password=os.getenv("MYSQL_PASSWORD"))
-cursor = cnx.cursor()
-for company in companies.values():
-    add_company = ("INSERT INTO companies "
-                   "(CIK, Ticker, CompanyName, PriceDate, Price) "
-                   "VALUES (%s, %s, %s, %s, %s)")
-    data_company = (company.cik, company.ticker, company.name, company.priceDate, company.price)
-    cursor.execute(add_company, data_company)
-
-cnx.commit()
-cursor.close()
-cnx.close()
+headers = ['CIK', 'Ticker', 'CompanyName', 'PriceDate', 'ClosePrice']
+data = [[c.cik, c.ticker, c.name, c.priceDate, c.closePrice] for c in companies.values()]
+mysql_utils.insert("companies", headers, data)
