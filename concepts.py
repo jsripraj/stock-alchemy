@@ -39,6 +39,7 @@ strToAlias = {alias.name: alias for alias in [
     # Shares Outstanding (uses highest value, weight doesn't matter)
     Alias(0, 'EntityCommonStockSharesOutstanding', Concept.SharesOutstanding),
     Alias(0, 'CommonStockSharesOutstanding', Concept.SharesOutstanding),
+    Alias(0, 'CommonStockSharesIssued', Concept.SharesOutstanding),
     Alias(0, 'WeightedAverageNumberOfDilutedSharesOutstanding', Concept.SharesOutstanding),
     Alias(0, 'WeightedAverageNumberOfSharesOutstandingBasic', Concept.SharesOutstanding),
     # Cash and Equivalents
@@ -71,6 +72,7 @@ strToAlias = {alias.name: alias for alias in [
     Alias(1, 'SeniorLongTermNotes', Concept.LongTermDebt),
     Alias(1, 'CapitalLeaseObligationsNoncurrent', Concept.LongTermDebt),
     Alias(0, 'ConvertibleLongTermNotesPayable', Concept.LongTermDebt),
+    Alias(0, 'DebtAndCapitalLeaseObligations', Concept.LongTermDebt),
     Alias(-1, 'LongTermDebtAndCapitalLeaseObligationsIncludingCurrentMaturities', Concept.LongTermDebt),
     Alias(-2, 'DebtInstrumentCarryingAmount', Concept.LongTermDebt),
     Alias(-4, 'DebtLongtermAndShorttermCombinedAmount', Concept.LongTermDebt),
@@ -106,43 +108,58 @@ strToAlias = {alias.name: alias for alias in [
     # Capital Expenditures
     Alias(0, 'PaymentsToAcquirePropertyPlantAndEquipment', Concept.CapitalExpenditures),
     Alias(-2, 'PaymentsToAcquireProductiveAssets', Concept.CapitalExpenditures),
+    Alias(-2, 'PaymentsToAcquireOtherPropertyPlantAndEquipment', Concept.CapitalExpenditures),
+    Alias(-3, 'PaymentsToAcquireOtherProductiveAssets', Concept.CapitalExpenditures),
+    Alias(-4, 'PaymentsForProceedsFromProductiveAssets', Concept.CapitalExpenditures),
     # Dividends
-    Alias(0, 'PaymentsOfDividendsCommonStock', Concept.Dividends),
+    Alias(2, 'PaymentsOfDividendsCommonStock', Concept.Dividends),
+    Alias(2, 'DividendsCommonStockCash', Concept.Dividends),
+    Alias(0, 'PaymentsOfDividends', Concept.Dividends),
+    Alias(0, 'PaymentsOfOrdinaryDividends', Concept.Dividends),
 ]}
 
 excuses = {
-    '0000002488', # Doesn’t have/report ST-debt
+    '0000002488', # Doesn’t have/report ST-debt, dividends
     '0000006951', # Applied Materials doesn’t have/report st debt
+    '0000012927', # Boeing: no dividends after 2020
     '0000018230', # Caterpillar: don't report quarterly ST- or LT-debt
+    '0000019617', # JP Morgan Chase: No CapEx
     '0000034088', # Exxon doesn’t report Revenues for 2015-03-31, 2015-06-30, 2015-09-30 and same for 2016
     '0000040545', # No quarterly cash from 2015-03-31 to 2016-09-30
     '0000063908', # McDonald's: no quarterly ST-debt
     '0000064040', # S&P Global doesn’t report a lot for 2024-12-31, no ST debt through 2021-09-30
+    '0000070858', # Bank Of America: doesn't report CapEx
+    '0000072971', # Wells Fargo: doesn't report CapEx
+    '0000753308', # NextEra Energy: CapEx uses custom tag
     '0000080661', # Progressive doesn't report ST debt (they combine with LT debt)
     '0000109198', # TJX doesn't break out ST debt
     '0000315189', # Deere: can't find LT debt alias starting 2022-07-31 and ST debt alias thru 2020-05-03
     '0000316709', # Schwab: doesn't report ST debt
-    '0000796343', # Adobe: Doesn’t have/report ST-debt
+    '0000796343', # Adobe: Doesn’t have/report ST-debt, no dividends
+    '0000885725', # Boston Scientific: no dividends
     '0000895421', # Morgan Stanley: Doesn't break out ST-debt
     '0000896878', # ST debt
-    '0001035267', # Intuitive Surgical: No debt
-    '0001045810', # Nvidia: No ST debt
-    '0001065280', # Netflix: Doesn't break out ST debt
-    '0001067983', # Berkshire Hathaway doesn’t really report EntityCommonStockSharesOutstanding, can't find debt either
-    '0001075531', # Doesn’t have/report ST-debt
-    '0001108524', # Salesforce: Doesn't have ST debt
+    '0001018724', # Amazon: no dividends
+    '0001035267', # Intuitive Surgical: No debt or dividends
+    '0001045810', # Nvidia: No ST debt, custom CapEx tag
+    '0001065280', # Netflix: Doesn't break out ST debt, no dividends
+    '0001067983', # Berkshire Hathaway: doesn’t report EntityCommonStockSharesOutstanding, doesn't break out ST debt, no dividends
+    '0001075531', # Booking Holdings: Doesn’t have/report ST-debt, no dividends
+    '0001108524', # Salesforce: Doesn't have ST debt, no dividends
     '0001141391', # Mastercard: Doesn't break out ST debt
-    '0001283699', # T-Mobile: Can't find LT debt alias
-    '0001318605', # Tesla: Can't find ST debt alias for 2015
-    '0001321655', # Palantir: no debt
-    '0001326801', # Meta: Sometimes no debt or doesn't break out ST
+    '0001283699', # T-Mobile: Can't find some LT debt, mostly no dividends
+    '0001318605', # Tesla: Can't find ST debt alias for 2015, no dividends
+    '0001321655', # Palantir: no debt or dividends
+    '0001326801', # Meta: Sometimes no debt or doesn't break out ST, no dividends
     '0001341439', # Oracle: 2016-02-29 no ST debt
-    '0001373715', # ServiceNow: Doesn't break out ST debt
-    '0001393818', # Blackstone: Doesn't break out ST debt
+    '0001373715', # ServiceNow: Doesn't break out ST debt, no dividends
+    '0001393818', # Blackstone: Doesn't break out ST debt, older (like pre-2019) dividends are distributions to unitholders
     '0001403161', # Visa doesn’t report shares outstanding
-    '0001594805', # Shopify: no LT debt
-    '0001652044', # Alphabet: doesn't break out ST debt
+    '0001543151', # Uber: no dividends
+    '0001594805', # Shopify: no LT debt or dividends
+    '0001652044', # Alphabet: doesn't break out ST debt, mostly no dividends
     '0001707925', # Linde doesn’t report any cash flow in 2018 before 2018-09-30
-    '0001996810', # GE Vernova: No debt
+    '0001744489', # Disney: sometimes no dividends
+    '0001996810', # GE Vernova: No debt or dividends
     '0002012383', # Blackrock: Doesn't break out ST debt
 }
