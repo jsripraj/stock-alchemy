@@ -26,6 +26,8 @@ class Concept(Enum):
     CashFlowFromOperatingActivities = auto()
     CashFlowFromInvestingActivities = auto()
     CashFlowFromFinancingActivities = auto()
+    CapitalExpenditures = auto()
+    Dividends = auto()
 
 class Alias():
     def __init__(self, weight: int, name: str, concept: Concept):
@@ -101,6 +103,11 @@ strToAlias = {alias.name: alias for alias in [
     # Cash Flow from Financing Activities
     Alias(2, 'NetCashProvidedByUsedInFinancingActivities', Concept.CashFlowFromFinancingActivities),
     Alias(0, 'NetCashProvidedByUsedInFinancingActivitiesContinuingOperations', Concept.CashFlowFromFinancingActivities),
+    # Capital Expenditures
+    Alias(0, 'PaymentsToAcquirePropertyPlantAndEquipment', Concept.CapitalExpenditures),
+    Alias(-2, 'PaymentsToAcquireProductiveAssets', Concept.CapitalExpenditures),
+    # Dividends
+    Alias(0, 'PaymentsOfDividendsCommonStock', Concept.Dividends),
 ]}
 
 excuses = {
