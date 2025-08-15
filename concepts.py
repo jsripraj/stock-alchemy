@@ -59,6 +59,7 @@ strToAlias = {alias.name: alias for alias in [
     Alias(2, 'OtherShortTermBorrowings', Concept.ShortTermDebt),
     Alias(2, 'CommercialPaper', Concept.ShortTermDebt),
     Alias(0, 'ConvertibleDebtCurrent', Concept.ShortTermDebt),
+    Alias(-2, 'ConvertibleDebt', Concept.ShortTermDebt),
     # Long-Term Debt
     Alias(2, 'LongTermDebtAndCapitalLeaseObligations', Concept.LongTermDebt),
     Alias(2, 'LongTermDebtNoncurrent', Concept.LongTermDebt),
@@ -66,6 +67,7 @@ strToAlias = {alias.name: alias for alias in [
     Alias(2, 'LongTermNotesAndLoans', Concept.LongTermDebt),
     Alias(2, 'LongTermNotesPayable', Concept.LongTermDebt),
     Alias(1, 'SeniorLongTermNotes', Concept.LongTermDebt),
+    Alias(1, 'CapitalLeaseObligationsNoncurrent', Concept.LongTermDebt),
     Alias(0, 'ConvertibleLongTermNotesPayable', Concept.LongTermDebt),
     Alias(-1, 'LongTermDebtAndCapitalLeaseObligationsIncludingCurrentMaturities', Concept.LongTermDebt),
     Alias(-2, 'DebtInstrumentCarryingAmount', Concept.LongTermDebt),
@@ -117,15 +119,23 @@ excuses = {
     '0000895421', # Morgan Stanley: Doesn't break out ST-debt
     '0000896878', # ST debt
     '0001035267', # Intuitive Surgical: No debt
+    '0001045810', # Nvidia: No ST debt
+    '0001065280', # Netflix: Doesn't break out ST debt
     '0001067983', # Berkshire Hathaway doesn’t really report EntityCommonStockSharesOutstanding, can't find debt either
     '0001075531', # Doesn’t have/report ST-debt
     '0001108524', # Salesforce: Doesn't have ST debt
+    '0001141391', # Mastercard: Doesn't break out ST debt
     '0001283699', # T-Mobile: Can't find LT debt alias
+    '0001318605', # Tesla: Can't find ST debt alias for 2015
     '0001321655', # Palantir: no debt
-    '0001321655', # Meta: no debt
+    '0001326801', # Meta: Sometimes no debt or doesn't break out ST
     '0001341439', # Oracle: 2016-02-29 no ST debt
     '0001373715', # ServiceNow: Doesn't break out ST debt
     '0001393818', # Blackstone: Doesn't break out ST debt
     '0001403161', # Visa doesn’t report shares outstanding
+    '0001594805', # Shopify: no LT debt
+    '0001652044', # Alphabet: doesn't break out ST debt
     '0001707925', # Linde doesn’t report any cash flow in 2018 before 2018-09-30
+    '0001996810', # GE Vernova: No debt
+    '0002012383', # Blackrock: Doesn't break out ST debt
 }
