@@ -50,4 +50,4 @@ for i in range(0, len(tickers), batch_size):
 
 headers = ['CIK', 'Ticker', 'CompanyName', 'PriceDate', 'ClosePrice']
 data = [[c.cik, c.ticker, c.name, c.priceDate, c.closePrice] for c in companies.values()]
-mysql_utils.insert("companies", headers, data)
+mysql_utils.insert(config.MYSQL_TABLE_COMPANIES, headers, data)

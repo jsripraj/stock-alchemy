@@ -11,6 +11,7 @@ import concepts
 import logging
 import time
 import shutil
+import mysql_utils
 
 class FinancialValue:
     def __init__(self, concept: concepts.Concept, alias: concepts.Alias, value: int, units: str, filingFiscalYear: int = None, duration: concepts.Duration = None):
@@ -50,6 +51,7 @@ def run():
     query = ("SELECT CIK FROM companies ORDER BY CIK LIMIT 100;")
     cursor.execute(query)
     problemCikCount = 0
+    cikToFinancialPeriods = {}
 
     ### START A: Use cursor ###
     for cik in cursor:
@@ -91,13 +93,25 @@ def run():
                     data = json.loads(content.decode('utf-8'))
                     fps: list[FinancialPeriod] = createFinancialPeriods(data, cik, logger)
                     if fps:
-                        problemCikCount += handleConceptIssues(cik, fps, logger, useExcuses=True)
+                        problemCikCount += logConceptIssues(cik, fps, logger, useExcuses=True)
+                        cikToFinancialPeriods[cik] = fps
             except KeyError as ke:
                 log(logger.debug, cik, f'KeyError: {ke}')
     
     cnx.commit()
     cursor.close()
     cnx.close()
+
+    headers = ['CIK', 'CalendarYear', 'CalendarPeriod', 'Duration', 'Concept', 'Value']
+    data = []
+    for cik, fps in cikToFinancialPeriods.items():
+        for fp in fps:
+            for concept, fvs in fp.conceptToFinancialValues.items():
+                for fv in fvs:
+                    duration = fv.duration.name if fv.duration else None
+                    data.append([cik, fp.cy, fp.cp.name, duration, concept, fv.value])
+    mysql_utils.insert(config.MYSQL_TABLE_FINANCIALS, headers, data)
+
     end_time = time.perf_counter()
     elapsed_time = end_time - start_time
     logger.debug(f"{problemCikCount} CIKs with issues")
@@ -320,7 +334,7 @@ def addMissingOneQuarterConcepts(fps: list[FinancialPeriod], cik: str, logger: l
                     break
     return
 
-def handleConceptIssues(cik: str, fps: list[FinancialPeriod], logger, useExcuses=False) -> int:
+def logConceptIssues(cik: str, fps: list[FinancialPeriod], logger, useExcuses=False) -> int:
     '''
     Returns:
         int: 1 if there are issues, 0 if no issues
