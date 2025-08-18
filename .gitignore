@@ -1,22 +1,15 @@
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+
+# Python virtual environment
+.venv/
+
+# ETL data and log files
+data/
+log/
+
 *~
-desktop_credentials.json
-service_account_credentials.json
-token.json
-.edgarenv*
-.edgar-venv*
-temp.txt
-out.txt
-out2.txt
-out_pprint.txt
-chatgpt-key.txt
-sample_data_json.txt
-polygon_key.txt
-plnt_items.txt
-yahoo.txt
-eodhd_key.txt
-eodhd.txt
-tickers.txt
-output.txt
-alpaca_keys.txt
 .vscode/
 .env
