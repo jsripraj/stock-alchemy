@@ -1,15 +1,2 @@
-# Python bytecode
-__pycache__/
-*.pyc
-*.pyo
-
-# Python virtual environment
-.venv/
-
-# ETL data and log files
-data/
-log/
-
-*~
 .vscode/
 .env
