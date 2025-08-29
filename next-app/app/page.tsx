@@ -1,5 +1,5 @@
 import Image from "next/image";
-import Spreadsheet from '@/app/components/Spreadsheet';
+import Spreadsheet from "@/app/components/Spreadsheet";
 import FormulaBuilder from "./components/FormulaBuilder";
 
 const dates = [
@@ -35,13 +35,13 @@ const concepts = [
 export default function Home() {
   return (
     <div>
-    <div>
-      <Spreadsheet dates={dates} concepts={concepts}/>
+      <h1 className="text-center text-4xl m-6">StockAlchemy</h1>
+      <div className="m-auto">
+        <Spreadsheet dates={dates} concepts={concepts} />
+      </div>
+      <div>
+        <FormulaBuilder />
+      </div>
     </div>
-    <div>
-      <FormulaBuilder />
-    </div>
-
-    </div>
-  )
+  );
 }
