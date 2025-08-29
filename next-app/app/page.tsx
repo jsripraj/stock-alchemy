@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Spreadsheet from '@/app/components/Spreadsheet';
+import FormulaBuilder from "./components/FormulaBuilder";
 
 const dates = [
   "6/30/2025",
@@ -34,7 +35,13 @@ const concepts = [
 export default function Home() {
   return (
     <div>
+    <div>
       <Spreadsheet dates={dates} concepts={concepts}/>
+    </div>
+    <div>
+      <FormulaBuilder />
+    </div>
+
     </div>
   )
 }
