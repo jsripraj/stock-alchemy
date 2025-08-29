@@ -14,6 +14,10 @@ const dates = [
   "6/30/2023",
   "3/31/2023",
   "12/31/2022",
+  "9/30/2022",
+  "6/30/2022",
+  "3/31/2022",
+  "12/31/2021",
 ];
 
 const concepts = [
@@ -34,12 +38,12 @@ const concepts = [
 
 export default function Home() {
   return (
-    <div>
+    <div className="w-screen h-screen">
       <h1 className="text-center text-4xl m-6">StockAlchemy</h1>
-      <div className="m-auto">
+      <div className="m-4">
         <Spreadsheet dates={dates} concepts={concepts} />
       </div>
-      <div>
+      <div className="m-4">
         <FormulaBuilder />
       </div>
     </div>

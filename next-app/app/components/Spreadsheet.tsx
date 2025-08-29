@@ -8,7 +8,7 @@ export default function Spreadsheet({
   concepts: string[];
 }) {
   return (
-    <div>
+    <div className="overflow-scroll">
       <table>
         <thead>
           <tr>
