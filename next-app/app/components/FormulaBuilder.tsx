@@ -1,36 +1,36 @@
 "use client";
 
-import React, { useState } from 'react';
-import { createEditor, BaseEditor, Descendant } from 'slate';
-import { Slate, Editable, withReact, ReactEditor } from 'slate-react';
+import React, { useState } from "react";
+import { createEditor, BaseEditor, Descendant } from "slate";
+import { Slate, Editable, withReact, ReactEditor } from "slate-react";
 
-type CustomElement = { type: 'paragraph'; children: CustomText[] }
-type CustomText = { text: string }
+type CustomElement = { type: "paragraph"; children: CustomText[] };
+type CustomText = { text: string };
 
-declare module 'slate' {
+declare module "slate" {
   interface CustomTypes {
-    Editor: BaseEditor & ReactEditor
-    Element: CustomElement
-    Text: CustomText
+    Editor: BaseEditor & ReactEditor;
+    Element: CustomElement;
+    Text: CustomText;
   }
 }
 
 const initialValue: Descendant[] = [
   {
-    type: 'paragraph',
-    children: [{ text: 'A line of text in a paragraph.' }],
+    type: "paragraph",
+    children: [{ text: "A line of text in a paragraph." }],
   },
-]
+];
 
-export default function FormulaBuilder() {
+export default function FormulaBuilder({ formula } : { formula: string }) {
   const [editor] = useState(() => withReact(createEditor()));
 
   return (
     <div>
       <h2 className="text-xl font-bold mb-2">Formula Builder</h2>
-      <Slate editor={editor} initialValue={initialValue} >
-        <Editable />
-      </Slate>
+      <div className="mb-2 p-2 border border-gray-300 min-h-[40px]">
+        {formula}
+      </div>
       <div className="flex flex-wrap gap-2 mb-2">
         {[...Array(10).keys()].map((n) => (
           <button key={n} className="px-3 py-1 bg-gray-200 rounded">

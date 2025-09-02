@@ -1,4 +1,6 @@
-import Image from "next/image";
+'use client'
+
+import { useState } from 'react';
 import Spreadsheet from "@/app/components/Spreadsheet";
 import FormulaBuilder from "./components/FormulaBuilder";
 
@@ -37,14 +39,20 @@ const concepts = [
 ];
 
 export default function Home() {
+  const [formula, setFormula] = useState("");
+
+  function updateFormula(concept: string, date: string) {
+    setFormula(formula + date + concept);
+  }
+
   return (
     <div className="w-screen h-screen">
       <h1 className="text-center text-4xl m-6">StockAlchemy</h1>
       <div className="m-4">
-        <Spreadsheet dates={dates} concepts={concepts} />
+        <Spreadsheet dates={dates} concepts={concepts} updateFormula={updateFormula}/>
       </div>
       <div className="m-4">
-        <FormulaBuilder />
+        <FormulaBuilder formula={formula}/>
       </div>
     </div>
   );

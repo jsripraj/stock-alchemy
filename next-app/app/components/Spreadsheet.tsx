@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from 'react';
+import { useState } from "react";
 
 export default function Spreadsheet({
   dates,
   concepts,
+  updateFormula,
 }: {
   dates: string[];
   concepts: string[];
+  updateFormula: (concept: string, date: string) => void;
 }) {
   const [hoverRow, setHoverRow] = useState<number | null>(null);
   const [hoverCol, setHoverCol] = useState<number | null>(null);
@@ -50,7 +52,11 @@ export default function Spreadsheet({
                   key={date}
                   scope="row"
                   className={`border border-[#a0a0a0] px-[10px] py-2 ${
-                    hoverRow === rowIndex && hoverCol === colIndex ? "bg-green-100" : (hoverRow === rowIndex || hoverCol === colIndex ? "bg-yellow-100" : "")
+                    hoverRow === rowIndex && hoverCol === colIndex
+                      ? "bg-green-100"
+                      : hoverRow === rowIndex || hoverCol === colIndex
+                      ? "bg-yellow-100"
+                      : ""
                   }`}
                   onMouseEnter={() => {
                     setHoverRow(rowIndex);
@@ -59,6 +65,9 @@ export default function Spreadsheet({
                   onMouseLeave={() => {
                     setHoverRow(null);
                     setHoverCol(null);
+                  }}
+                  onClick={() => {
+                    updateFormula(concepts[rowIndex], dates[colIndex]);
                   }}
                 ></td>
               ))}
