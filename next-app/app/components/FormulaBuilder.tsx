@@ -5,7 +5,7 @@ import { createEditor, BaseEditor, Descendant } from 'slate';
 import { Slate, Editable, withReact, ReactEditor } from 'slate-react';
 
 type CustomElement = { type: 'paragraph'; children: CustomText[] }
-type CustomText = { text: string}
+type CustomText = { text: string }
 
 declare module 'slate' {
   interface CustomTypes {
@@ -15,7 +15,7 @@ declare module 'slate' {
   }
 }
 
-const initialValue = [
+const initialValue: Descendant[] = [
   {
     type: 'paragraph',
     children: [{ text: 'A line of text in a paragraph.' }],
@@ -24,15 +24,10 @@ const initialValue = [
 
 export default function FormulaBuilder() {
   const [editor] = useState(() => withReact(createEditor()));
+
   return (
     <div>
       <h2 className="text-xl font-bold mb-2">Formula Builder</h2>
-      {/* <div
-        contentEditable
-        className="mb-2 p-2 border border-gray-300 min-h-[40px]"
-      >
-        Click cells and type operators to build a formula
-      </div> */}
       <Slate editor={editor} initialValue={initialValue} >
         <Editable />
       </Slate>
