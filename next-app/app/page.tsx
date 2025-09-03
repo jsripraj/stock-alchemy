@@ -41,15 +41,15 @@ const concepts = [
 export default function Home() {
   const [formula, setFormula] = useState("");
 
-  function updateFormula(concept: string, date: string) {
-    setFormula(formula + date + concept);
+  function appendToFormula(s: string) {
+    setFormula(formula + s);
   }
 
   return (
     <div className="w-screen h-screen">
       <h1 className="text-center text-4xl m-6">StockAlchemy</h1>
       <div className="m-4">
-        <Spreadsheet dates={dates} concepts={concepts} updateFormula={updateFormula}/>
+        <Spreadsheet dates={dates} concepts={concepts} appendToFormula={appendToFormula}/>
       </div>
       <div className="m-4">
         <FormulaBuilder formula={formula}/>

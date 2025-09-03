@@ -5,11 +5,11 @@ import { useState } from "react";
 export default function Spreadsheet({
   dates,
   concepts,
-  updateFormula,
+  appendToFormula,
 }: {
   dates: string[];
   concepts: string[];
-  updateFormula: (concept: string, date: string) => void;
+  appendToFormula: (s: string) => void;
 }) {
   const [hoverRow, setHoverRow] = useState<number | null>(null);
   const [hoverCol, setHoverCol] = useState<number | null>(null);
@@ -67,7 +67,7 @@ export default function Spreadsheet({
                     setHoverCol(null);
                   }}
                   onClick={() => {
-                    updateFormula(concepts[rowIndex], dates[colIndex]);
+                    appendToFormula(dates[colIndex] + concepts[rowIndex]);
                   }}
                 ></td>
               ))}
