@@ -169,8 +169,8 @@ def createFinancialPeriods(
     endToFinancialPeriod = {}
     for e in processed:
         if isDesiredForm(e["form"]):
-            endToFinancialPeriod[strToDate(e["end"])] = FinancialPeriod(
-                cik, strToDate(e["end"])
+            endToFinancialPeriod[utils.strToDate(e["end"])] = FinancialPeriod(
+                cik, utils.strToDate(e["end"])
             )
     financialPeriods = [fp for fp in endToFinancialPeriod.values()]
     addCalendarAttributes(financialPeriods)
@@ -211,8 +211,8 @@ def processEntries(entries: list[dict]):
             continue
         # If two dates are only one day apart, skip the later one
         if processed:
-            prev = strToDate(processed[-1]["end"])
-            cur = strToDate(entry["end"])
+            prev = utils.strToDate(processed[-1]["end"])
+            cur = utils.strToDate(entry["end"])
             diff = (cur - prev).days
             if diff <= 1:
                 continue
@@ -235,10 +235,6 @@ def addCalendarAttributes(fps: list[FinancialPeriod]) -> None:
         fp.cy = cyqe.year
         fp.cp = getPeriod(cyqe)
         cyqes[i] = cyqe
-
-
-def strToDate(dateStr: str) -> datetime:
-    return datetime.strptime(dateStr, "%Y-%m-%d")
 
 
 def isDesiredForm(form: str) -> bool:
@@ -284,7 +280,7 @@ def addFinancialValues(
                 for entry in entries:
                     # if not isDesiredForm(entry['form']):
                     #     continue
-                    end = strToDate(entry["end"])
+                    end = utils.strToDate(entry["end"])
                     if units == "shares":
                         fp = getMostRecentFp(fps, end)
                         if not fp:
@@ -301,7 +297,7 @@ def addFinancialValues(
                     )
                     if "start" in entry:
                         fv.duration = getDurationFromDates(
-                            strToDate(entry["start"]), end
+                            utils.strToDate(entry["start"]), end
                         )
                     existing: list[FinancialValue] = fp.conceptToFinancialValues[
                         alias.concept.name
