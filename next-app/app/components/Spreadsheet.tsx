@@ -67,7 +67,7 @@ export default function Spreadsheet({
                     setHoverCol(null);
                   }}
                   onClick={() => {
-                    appendToFormula(dates[colIndex] + concepts[rowIndex]);
+                    appendToFormula(`[${dates[colIndex]} ${concepts[rowIndex]}]`);
                   }}
                 ></td>
               ))}
