@@ -63,4 +63,4 @@ rows = [
     for c in companies.values()
 ]
 
-supabase_utils.insert(table="companies", data=rows)
+supabase_utils.insert("companies", rows)

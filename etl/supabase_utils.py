@@ -10,9 +10,9 @@ key: str = os.environ.get("SUPABASE_KEY")
 supabase: Client = create_client(url, key)
 
 
-def insert(table: str, data: list[dict]):
+def insert(table: str, rows: list[dict]):
     try:
-        response = supabase.table(table).insert(data).execute()
+        response = supabase.table(table).insert(rows).execute()
         return response
     except Exception as exception:
         return exception

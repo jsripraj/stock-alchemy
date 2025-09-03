@@ -121,15 +121,23 @@ def run():
             except KeyError as ke:
                 log(logger.debug, cik, f"KeyError: {ke}")
 
-    headers = ["CIK", "CalendarYear", "CalendarPeriod", "Duration", "Concept", "Value"]
-    data = []
+    rows = []
     for cik, fps in cikToFinancialPeriods.items():
         for fp in fps:
             for concept, fvs in fp.conceptToFinancialValues.items():
                 for fv in fvs:
                     duration = fv.duration.name if fv.duration else None
-                    data.append([cik, fp.cy, fp.cp.name, duration, concept, fv.value])
-    supabase_utils.insert(config.MYSQL_TABLE_FINANCIALS, headers, data)
+                    rows.append(
+                        {
+                            "cik": cik,
+                            "year": fp.cy,
+                            "period": fp.cp.name,
+                            "duration": duration,
+                            "concept": concept,
+                            "value": fv.value,
+                        }
+                    )
+    supabase_utils.insert("financials", rows)
 
     end_time = time.perf_counter()
     elapsed_time = end_time - start_time
@@ -140,8 +148,8 @@ def run():
 
 
 def fetchCiks() -> list:
-    rows = supabase_utils.fetch(table="companies", columns=["cik"])
-    return [row['cik'] for row in rows]
+    rows = supabase_utils.fetch("companies", ["cik"])
+    return [row["cik"] for row in rows]
 
 
 def createFinancialPeriods(
