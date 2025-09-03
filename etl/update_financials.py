@@ -3,7 +3,6 @@ import os
 import zipfile
 import json
 import pprint
-import mysql.connector
 from collections import defaultdict
 from datetime import datetime, timedelta
 import config
