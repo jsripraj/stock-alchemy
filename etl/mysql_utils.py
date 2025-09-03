@@ -1,19 +1,20 @@
 from dotenv import load_dotenv
 import os
 import config
+from supabase import create_client, Client
 
 load_dotenv()
 
-def insert(table: str, headers: list, data: list[list]):
-    cnx = mysql.connector.connect(host=config.MYSQL_HOST, database=config.MYSQL_DATABASE, user=os.getenv("MYSQL_USER"), password=os.getenv("MYSQL_PASSWORD"))
-    cursor = cnx.cursor()
-    first_line = f"INSERT INTO {table} "
-    second_line = f'({", ".join(header for header in headers)}) '
-    for row in data:
-        third_line = f'VALUES ({", ".join(["%s"] * len(headers))})'
-        command = first_line + second_line + third_line
-        cursor.execute(command, row)
-
-    cnx.commit()
-    cursor.close()
-    cnx.close()
+def insert(table: str, data: list[dict]):
+    url: str = os.environ.get("SUPABASE_URL")
+    key: str = os.environ.get("SUPABASE_KEY")
+    supabase: Client = create_client(url, key)
+    try:
+        response = (
+            supabase.table(table)
+            .insert(data)
+            .execute()
+        )
+        return response
+    except Exception as exception:
+        return exception
