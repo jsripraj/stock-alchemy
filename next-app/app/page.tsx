@@ -42,7 +42,7 @@ export default function Home() {
   const [formula, setFormula] = useState("");
 
   function appendToFormula(s: string) {
-    setFormula(formula + s);
+    setFormula((f) => f + s);
   }
 
   return (
@@ -52,7 +52,7 @@ export default function Home() {
         <Spreadsheet dates={dates} concepts={concepts} appendToFormula={appendToFormula}/>
       </div>
       <div className="m-4">
-        <FormulaBuilder formula={formula}/>
+        <FormulaBuilder formula={formula} appendToFormula={appendToFormula}/>
       </div>
     </div>
   );
