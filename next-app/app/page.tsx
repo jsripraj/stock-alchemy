@@ -1,6 +1,6 @@
-'use client'
+"use client";
 
-import { useState } from 'react';
+import { useState } from "react";
 import Spreadsheet from "@/app/components/Spreadsheet";
 import FormulaBuilder from "./components/FormulaBuilder";
 
@@ -46,13 +46,17 @@ export default function Home() {
   }
 
   return (
-    <div className="w-screen h-screen">
-      <h1 className="text-center text-4xl m-6">StockAlchemy</h1>
-      <div className="m-4">
-        <Spreadsheet dates={dates} concepts={concepts} appendToFormula={appendToFormula}/>
+    <div className="w-screen h-screen flex flex-col">
+      <h1 className="text-center text-4xl p-6">StockAlchemy</h1>
+      <div className="flex-1 m-4 overflow-auto">
+        <Spreadsheet
+          dates={dates}
+          concepts={concepts}
+          appendToFormula={appendToFormula}
+        />
       </div>
-      <div className="m-4">
-        <FormulaBuilder formula={formula} appendToFormula={appendToFormula}/>
+      <div className="flex-1 p-4 overflow-auto">
+        <FormulaBuilder formula={formula} appendToFormula={appendToFormula} />
       </div>
     </div>
   );
