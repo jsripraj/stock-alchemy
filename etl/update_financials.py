@@ -10,7 +10,7 @@ import concepts
 import logging
 import time
 import shutil
-import mysql_utils
+import supabase_utils
 import utils
 
 
@@ -69,20 +69,12 @@ class FinancialPeriod:
 def run():
     start_time = time.perf_counter()
     logger = configureLogger()
-    cnx = mysql.connector.connect(
-        host=config.MYSQL_HOST,
-        database=config.MYSQL_DATABASE,
-        user=os.getenv("MYSQL_USER"),
-        password=os.getenv("MYSQL_PASSWORD"),
-    )
-    cursor = cnx.cursor()
-    query = "SELECT CIK FROM companies ORDER BY CIK LIMIT 100;"
-    cursor.execute(query)
+    ciks = fetchCiks()
     problemCikCount = 0
     cikToFinancialPeriods = {}
 
     ### START A: Use cursor ###
-    for cik in cursor:
+    for cik in ciks:
         ### END A ###
 
         ### START B: Use list ###
@@ -112,7 +104,6 @@ def run():
         # for cik in ciks:
         # ### END B ###
 
-        cik = cik[0]
         with zipfile.ZipFile(config.ZIP_PATH, "r") as z:
             fname = "CIK" + cik + ".json"
             try:
@@ -130,10 +121,6 @@ def run():
             except KeyError as ke:
                 log(logger.debug, cik, f"KeyError: {ke}")
 
-    cnx.commit()
-    cursor.close()
-    cnx.close()
-
     headers = ["CIK", "CalendarYear", "CalendarPeriod", "Duration", "Concept", "Value"]
     data = []
     for cik, fps in cikToFinancialPeriods.items():
@@ -142,7 +129,7 @@ def run():
                 for fv in fvs:
                     duration = fv.duration.name if fv.duration else None
                     data.append([cik, fp.cy, fp.cp.name, duration, concept, fv.value])
-    mysql_utils.insert(config.MYSQL_TABLE_FINANCIALS, headers, data)
+    supabase_utils.insert(config.MYSQL_TABLE_FINANCIALS, headers, data)
 
     end_time = time.perf_counter()
     elapsed_time = end_time - start_time
@@ -150,6 +137,11 @@ def run():
     logger.info(f"Elapsed time: {elapsed_time:.2f} seconds")
     print(f"Elapsed time: {elapsed_time:.2f} seconds")
     shutil.copyfile(config.LOG_PATH, os.path.join(config.LOG_DIR, "copy.log"))
+
+
+def fetchCiks() -> list:
+    rows = supabase_utils.fetch(table="companies", columns=["cik"])
+    return [row['cik'] for row in rows]
 
 
 def createFinancialPeriods(

@@ -3,7 +3,7 @@ import yfinance as yf
 from datetime import date
 import time
 import config
-import mysql_utils
+import supabase_utils
 import utils
 
 
@@ -63,4 +63,4 @@ rows = [
     for c in companies.values()
 ]
 
-mysql_utils.insert(table="companies", data=rows)
+supabase_utils.insert(table="companies", data=rows)
