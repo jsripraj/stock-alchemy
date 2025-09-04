@@ -19,7 +19,6 @@ def insert(table: str, rows: list[dict]):
 
 
 def batchFetch(table: str, columns: list[str], batchSize: int):
-    batchSize = config.SUPABASE_MAX_ROWS
     start = 0
     rows = []
     while True:
