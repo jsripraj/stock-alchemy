@@ -1,6 +1,7 @@
 from datetime import datetime
 import logging
 import config
+import os
 
 
 def dateToStr(d: datetime) -> str:
@@ -12,6 +13,7 @@ def strToDate(dateStr: str) -> datetime:
 
 
 def configureLogger(logFile: str, level=logging.DEBUG) -> logging.Logger:
+    os.makedirs(os.path.dirname(logFile), exist_ok=True)
     logger = logging.getLogger(__name__)
     logger.setLevel(level)
     logger.propagate = False
