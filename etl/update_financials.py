@@ -149,10 +149,7 @@ def run():
 
 
 def fetchCiks() -> list:
-    try:
-        rows = supabase_utils.batchFetch("companies", ["cik"])
-    except Exception as e:
-        logger.error(f"Unable to fetch CIKs from companies table: {e}")
+    rows = supabase_utils.batchFetch("companies", ["cik"], logger)
     return [row["cik"] for row in rows]
 
 

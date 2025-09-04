@@ -19,20 +19,21 @@ def batchInsert(tablename: str, rows: list[dict], logger, batchSize: int = confi
             logger.error(f"Error inserting into {tablename} table: {e}")
 
 
-def batchFetch(table: str, columns: list[str], batchSize: int = config.BATCH_SIZE_SUPABASE):
+def batchFetch(tablename: str, columns: list[str], logger, batchSize: int = config.BATCH_SIZE_SUPABASE):
     start = 0
     rows = []
     while True:
         try:
             end = start + batchSize - 1
             response = (
-                supabase.table(table)
+                supabase.table(tablename)
                 .select(", ".join(columns))
                 .range(start, end)
                 .execute()
             )
-        except Exception:
-            raise
+        except Exception as e:
+            logger.error(f"Error fetching from {tablename} table: {e}")
+            break
         if not response.data:
             break
         rows.extend(response.data)
