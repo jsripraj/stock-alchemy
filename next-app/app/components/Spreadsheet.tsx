@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { formatConcept } from "@/app/utils/formulaUtils";
 
 export default function Spreadsheet({
   dates,
@@ -66,7 +67,7 @@ export default function Spreadsheet({
                   setHoverCol(null);
                 }}
                 onClick={() => {
-                  setFormula((f) => f + `[${dates[colIndex]} ${concepts[rowIndex]}]`);
+                  setFormula((f) => f + formatConcept([dates[colIndex], concepts[rowIndex]]));
                 }}
               ></td>
             ))}

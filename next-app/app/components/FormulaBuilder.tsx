@@ -1,4 +1,5 @@
 import React from "react";
+import { formatConcept } from "@/app/utils/formulaUtils";
 
 export default function FormulaBuilder({
   formula,
@@ -11,7 +12,12 @@ export default function FormulaBuilder({
     <div>
       <h2 className="text-xl font-bold mb-2">Formula Builder</h2>
       <div className="flex flex-wrap gap-2 mb-2">
-        <button className="px-3 py-1 bg-yellow-200 rounded">Market Cap</button>
+        <button
+          className="px-3 py-1 bg-yellow-200 rounded"
+          onClick={() => setFormula((f) => formatConcept(["Market Cap"]))}
+        >
+          Market Cap
+        </button>
         {[...Array(10).keys()].map((n) => (
           <button
             key={n}
