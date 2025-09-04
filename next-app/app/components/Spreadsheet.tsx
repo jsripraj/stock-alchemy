@@ -1,15 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 
 export default function Spreadsheet({
   dates,
   concepts,
-  appendToFormula,
+  setFormula,
 }: {
   dates: string[];
   concepts: string[];
-  appendToFormula: (s: string) => void;
+  setFormula: React.Dispatch<React.SetStateAction<string>>;
 }) {
   const [hoverRow, setHoverRow] = useState<number | null>(null);
   const [hoverCol, setHoverCol] = useState<number | null>(null);
@@ -66,7 +66,7 @@ export default function Spreadsheet({
                   setHoverCol(null);
                 }}
                 onClick={() => {
-                  appendToFormula(`[${dates[colIndex]} ${concepts[rowIndex]}]`);
+                  setFormula((f) => f + `[${dates[colIndex]} ${concepts[rowIndex]}]`);
                 }}
               ></td>
             ))}

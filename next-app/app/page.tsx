@@ -52,11 +52,11 @@ export default function Home() {
         <Spreadsheet
           dates={dates}
           concepts={concepts}
-          appendToFormula={appendToFormula}
+          setFormula={setFormula}
         />
       </div>
       <div className="flex-1 p-4 overflow-auto">
-        <FormulaBuilder formula={formula} appendToFormula={appendToFormula} />
+        <FormulaBuilder formula={formula} setFormula={setFormula} />
       </div>
     </div>
   );
