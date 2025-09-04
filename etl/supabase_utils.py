@@ -18,13 +18,13 @@ def insert(table: str, rows: list[dict]):
         raise
 
 
-def fetch(table: str, columns: list[str]):
-    limit = config.SUPABASE_MAX_ROWS
+def batchFetch(table: str, columns: list[str], batchSize: int):
+    batchSize = config.SUPABASE_MAX_ROWS
     start = 0
     rows = []
     while True:
         try:
-            end = start + limit - 1
+            end = start + batchSize - 1
             response = (
                 supabase.table(table)
                 .select(", ".join(columns))
@@ -36,7 +36,7 @@ def fetch(table: str, columns: list[str]):
         if not response.data:
             break
         rows.extend(response.data)
-        start += limit
+        start += batchSize
     return rows
 
 
