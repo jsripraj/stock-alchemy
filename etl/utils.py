@@ -32,16 +32,5 @@ def configureLogger(logFile: str, level=logging.DEBUG) -> logging.Logger:
     return logger
 
 
-    # logging.basicConfig(
-    #     filename=logFile,
-    #     format="%(asctime)s %(levelname)s: %(message)s",
-    #     datefmt="%m/%d/%Y %I:%M:%S %p",
-    #     level=logging.DEBUG,
-    #     filemode="w",
-    # )
-    # logger.propagate = False
-    # return logger
-
-
 def logCik(loggerFn, cik: str, msg: str):
     loggerFn(f"CIK {cik}: {msg}")
