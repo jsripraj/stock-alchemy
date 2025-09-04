@@ -10,7 +10,7 @@ key: str = os.environ.get("SUPABASE_KEY")
 supabase: Client = create_client(url, key)
 
 
-def batchInsert(tablename: str, rows: list[dict], logger, batchSize: int = config.BATCH_SIZE_SUPABASE):
+def batchInsert(tablename: str, rows: list[dict], logger, batchSize: int = config.BATCH_SIZE_SUPABASE) -> None:
     for i in range(0, len(rows), batchSize):
         batch = rows[i:i + batchSize]
         try:
@@ -19,7 +19,7 @@ def batchInsert(tablename: str, rows: list[dict], logger, batchSize: int = confi
             logger.error(f"Error inserting into {tablename} table: {e}")
 
 
-def batchFetch(tablename: str, columns: list[str], logger, batchSize: int = config.BATCH_SIZE_SUPABASE):
+def batchFetch(tablename: str, columns: list[str], logger, batchSize: int = config.BATCH_SIZE_SUPABASE) -> list[dict]:
     start = 0
     rows = []
     while True:
@@ -41,9 +41,9 @@ def batchFetch(tablename: str, columns: list[str], logger, batchSize: int = conf
     return rows
 
 
-def truncate(table: str):
+def truncate(tablename: str, logger) -> None:
     try:
-        response = supabase.rpc("truncate_table", {"tablename": table}).execute()
+        response = supabase.rpc("truncate_table", {"tablename": tablename}).execute()
         return response
-    except Exception:
-        raise
+    except Exception as e:
+        logger.error(f"Error truncating {tablename} table: {e}")
