@@ -4,23 +4,9 @@ import { useState } from "react";
 import Spreadsheet from "@/app/components/Spreadsheet";
 import FormulaBuilder from "./components/FormulaBuilder";
 
-const dates = [
-  "6/30/2025",
-  "3/31/2025",
-  "12/31/2024",
-  "9/30/2024",
-  "6/30/2024",
-  "3/31/2024",
-  "12/31/2023",
-  "9/30/2023",
-  "6/30/2023",
-  "3/31/2023",
-  "12/31/2022",
-  "9/30/2022",
-  "6/30/2022",
-  "3/31/2022",
-  "12/31/2021",
-];
+
+const lastYear = new Date().getFullYear() - 1;
+const dates = [...Array(10)].map((_, i) => (lastYear - i).toString());
 
 const concepts = [
   "Shares Outstanding",
@@ -40,10 +26,6 @@ const concepts = [
 
 export default function Home() {
   const [formula, setFormula] = useState("");
-
-  function appendToFormula(s: string) {
-    setFormula((f) => f + s);
-  }
 
   return (
     <div className="w-screen h-screen flex flex-col">
