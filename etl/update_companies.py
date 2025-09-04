@@ -24,7 +24,7 @@ class Company:
     def __repr__(self):
         return self.__str__()
 
-logger = utils.configureLogger()
+logger = utils.configureLogger(config.LOG_PATH_COMPANIES)
 
 headers = {"User-Agent": config.EMAIL}
 response = requests.get(config.URL_SEC_TICKERS, headers=headers)

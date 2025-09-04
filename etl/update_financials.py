@@ -65,7 +65,7 @@ class FinancialPeriod:
         )
 
 
-logger = utils.configureLogger()
+logger = utils.configureLogger(config.LOG_PATH_FINANCIALS)
 
 
 def run():

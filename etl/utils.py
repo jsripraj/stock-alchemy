@@ -11,10 +11,10 @@ def strToDate(dateStr: str) -> datetime:
     return datetime.strptime(dateStr, "%Y-%m-%d")
 
 
-def configureLogger() -> logging.Logger:
+def configureLogger(logFile: str) -> logging.Logger:
     logger = logging.getLogger(__name__)
     logging.basicConfig(
-        filename=config.LOG_PATH,
+        filename=logFile,
         format="%(asctime)s %(levelname)s: %(message)s",
         datefmt="%m/%d/%Y %I:%M:%S %p",
         level=logging.DEBUG,
