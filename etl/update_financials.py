@@ -7,7 +7,6 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 import config
 import concepts
-import logging
 import time
 import shutil
 import supabase_utils
@@ -66,10 +65,12 @@ class FinancialPeriod:
         )
 
 
+logger = utils.configureLogger()
+
+
 def run():
     start_time = time.perf_counter()
-    logger = configureLogger()
-    ciks = fetchCiks()
+    ciks = fetchCiks(logger)
     problemCikCount = 0
     cikToFinancialPeriods = {}
 
@@ -111,15 +112,15 @@ def run():
                     content = f.read()
                     data = json.loads(content.decode("utf-8"))
                     fps: list[FinancialPeriod] = createFinancialPeriods(
-                        data, cik, logger
+                        data, cik
                     )
                     if fps:
                         problemCikCount += logConceptIssues(
-                            cik, fps, logger, useExcuses=True
+                            cik, fps, useExcuses=True
                         )
                         cikToFinancialPeriods[cik] = fps
             except KeyError as ke:
-                log(logger.debug, cik, f"KeyError: {ke}")
+                utils.log(logger.debug, cik, f"KeyError: {ke}")
 
     rows = []
     for cik, fps in cikToFinancialPeriods.items():
@@ -137,7 +138,10 @@ def run():
                             "value": fv.value,
                         }
                     )
-    supabase_utils.insert("financials", rows)
+    try:
+        supabase_utils.insert("financials", rows)
+    except Exception as e:
+        logger.error(f"Unable to insert into Supabase: {e}")
 
     end_time = time.perf_counter()
     elapsed_time = end_time - start_time
@@ -148,19 +152,22 @@ def run():
 
 
 def fetchCiks() -> list:
-    rows = supabase_utils.fetch("companies", ["cik"])
+    try:
+        rows = supabase_utils.fetch("companies", ["cik"])
+    except Exception as e:
+        logger.error(f"Unable to fetch CIKs from companies table: {e}")
     return [row["cik"] for row in rows]
 
 
 def createFinancialPeriods(
-    data: dict, cik: str, logger
+    data: dict, cik: str
 ) -> list[FinancialPeriod] | None:
     """
     Returns:
         list[FinancialPeriod] | None - a list of FinancialPeriod objects filled out with data and
         sorted in chronological order. Returns None if the list cannot be created.
     """
-    if not checkData(data, cik, logger):
+    if not checkData(data, cik):
         return None
 
     # Create list of FinancialPeriods sorted chronologically
@@ -177,11 +184,11 @@ def createFinancialPeriods(
     financialPeriods.sort(key=lambda fp: fp.end)
 
     addFinancialValues(data, endToFinancialPeriod, financialPeriods)
-    addMissingOneQuarterConcepts(financialPeriods, cik, logger)
+    addMissingOneQuarterConcepts(financialPeriods, cik)
     return financialPeriods
 
 
-def checkData(data: dict, cik: str, logger) -> bool:
+def checkData(data: dict, cik: str) -> bool:
     """
     Determines if the raw data is usable.
 
@@ -190,11 +197,11 @@ def checkData(data: dict, cik: str, logger) -> bool:
     """
     for key in ["facts", "us-gaap", "Assets", "units", "USD"]:
         if key not in data:
-            log(logger.debug, cik, f'"{key}" not found in JSON')
+            utils.logCik(logger.debug, cik, f'"{key}" not found in JSON')
             return False
         data = data[key]
     if not any(isDesiredForm(entry["form"]) for entry in data):
-        log(logger.debug, cik, f"No desired forms found")
+        utils.logCik(logger.debug, cik, f"No desired forms found")
         return False
     return True
 
@@ -370,7 +377,7 @@ def conditionallyAddFinancialValue(
 
 
 def addMissingOneQuarterConcepts(
-    fps: list[FinancialPeriod], cik: str, logger: logging.Logger
+    fps: list[FinancialPeriod], cik: str 
 ) -> None:
     """
     Parameters
@@ -413,7 +420,7 @@ def addMissingOneQuarterConcepts(
 
 
 def logConceptIssues(
-    cik: str, fps: list[FinancialPeriod], logger, useExcuses=False
+    cik: str, fps: list[FinancialPeriod], useExcuses=False
 ) -> int:
     """
     Returns:
@@ -455,11 +462,11 @@ def logConceptIssues(
                     ):
                         msg = f"{pre}: {len(fvs)} values but none with OneQuarter duration"
             if msg:
-                log(logger.debug, cik, msg)
+                utils.logCik(logger.debug, cik, msg)
                 problemCount += 1
     if problemCount > 0:
         msg = f"{problemCount} problems"
-        log(logger.debug, cik, msg)
+        utils.logCik(logger.debug, cik, msg)
         jsonFilename = f"CIK{cik}.json"
         extractZipFileToJson(jsonFilename)
         return 1
@@ -486,22 +493,6 @@ def extractZipFileToJson(filename: str):
             data = json.loads(content.decode("utf-8"))
             with open(os.path.join(config.LOG_DIR, filename), "w") as outFile:
                 json.dump(data, outFile, indent=2)
-
-
-def configureLogger() -> logging.Logger:
-    logger = logging.getLogger(__name__)
-    logging.basicConfig(
-        filename=config.LOG_PATH,
-        format="%(asctime)s %(levelname)s: %(message)s",
-        datefmt="%m/%d/%Y %I:%M:%S %p",
-        level=logging.DEBUG,
-        filemode="w",
-    )
-    return logger
-
-
-def log(fn, cik: str, msg: str):
-    fn(f"CIK {cik}: {msg}")
 
 
 # Download companyfacts.zip

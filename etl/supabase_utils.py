@@ -19,17 +19,19 @@ def insert(table: str, rows: list[dict]):
 
 
 def fetch(table: str, columns: list[str]):
-    # limit = config.SUPABASE_MAX_ROWS
-    limit = 15
+    limit = config.SUPABASE_MAX_ROWS
     start, end = 0, limit - 1
     rows = []
     while True:
-        response = (
-            supabase.table(table)
-            .select(", ".join(columns))
-            .range(start, end)
-            .execute()
-        )
+        try:
+            response = (
+                supabase.table(table)
+                .select(", ".join(columns))
+                .range(start, end)
+                .execute()
+            )
+        except Exception as exception:
+            return exception
         if not response.data:
             return rows
         rows += response.data

@@ -24,6 +24,7 @@ class Company:
     def __repr__(self):
         return self.__str__()
 
+logger = utils.configureLogger()
 
 headers = {"User-Agent": config.EMAIL}
 response = requests.get(config.URL_SEC_TICKERS, headers=headers)
@@ -63,4 +64,7 @@ rows = [
     for c in companies.values()
 ]
 
-supabase_utils.insert("companies", rows)
+try:
+    supabase_utils.insert("companies", rows)
+except Exception as e:
+    logger.error(f"Unable to insert into companies table: {e}")
