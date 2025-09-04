@@ -64,7 +64,4 @@ rows = [
     for c in companies.values()
 ]
 
-try:
-    supabase_utils.batchInsert("companies", rows)
-except Exception as e:
-    logger.error(f"Unable to insert into companies table: {e}")
+supabase_utils.batchInsert("companies", rows, logger)

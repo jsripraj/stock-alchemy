@@ -10,16 +10,13 @@ key: str = os.environ.get("SUPABASE_KEY")
 supabase: Client = create_client(url, key)
 
 
-def batchInsert(table: str, rows: list[dict], batchSize: int = config.BATCH_SIZE_SUPABASE):
+def batchInsert(tablename: str, rows: list[dict], logger, batchSize: int = config.BATCH_SIZE_SUPABASE):
     for i in range(0, len(rows), batchSize):
         batch = rows[i:i + batchSize]
         try:
-            response = supabase.table(table).insert(batch).execute()
-            if "message" in response:
-                raise Exception(f"Error inserting batch: {response["message"]}")
-            return response
-        except Exception:
-            raise
+            response = supabase.table(tablename).insert(batch).execute()
+        except Exception as e:
+            logger.error(f"Error inserting into {tablename} table: {e}")
 
 
 def batchFetch(table: str, columns: list[str], batchSize: int = config.BATCH_SIZE_SUPABASE):

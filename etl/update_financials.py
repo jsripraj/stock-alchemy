@@ -138,10 +138,7 @@ def run():
                             "value": fv.value,
                         }
                     )
-    try:
-        supabase_utils.batchInsert("financials", rows)
-    except Exception as e:
-        logger.error(f"Unable to insert into Supabase: {e}")
+    supabase_utils.batchInsert("financials", rows, logger)
 
     end_time = time.perf_counter()
     elapsed_time = end_time - start_time
