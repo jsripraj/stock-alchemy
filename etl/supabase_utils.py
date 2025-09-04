@@ -31,8 +31,16 @@ def fetch(table: str, columns: list[str]):
                 .execute()
             )
         except Exception as exception:
-            return exception
+            raise(exception)
         if not response.data:
             return rows
         rows += response.data
         start, end = start + limit, end + limit
+
+
+def truncate(table: str):
+    try:
+        response = supabase.rpc("truncate_table", {"tablename": table}).execute()
+        return response
+    except Exception:
+        raise
