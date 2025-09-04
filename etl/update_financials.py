@@ -70,7 +70,7 @@ logger = utils.configureLogger(config.LOG_PATH_FINANCIALS)
 
 def run():
     start_time = time.perf_counter()
-    ciks = fetchCiks(logger)
+    ciks = fetchCiks()
     problemCikCount = 0
     cikToFinancialPeriods = {}
 
@@ -120,7 +120,7 @@ def run():
                         )
                         cikToFinancialPeriods[cik] = fps
             except KeyError as ke:
-                utils.log(logger.debug, cik, f"KeyError: {ke}")
+                utils.logCik(logger.debug, cik, f"KeyError: {ke}")
 
     rows = []
     for cik, fps in cikToFinancialPeriods.items():
@@ -148,7 +148,7 @@ def run():
     logger.debug(f"{problemCikCount} CIKs with issues")
     logger.info(f"Elapsed time: {elapsed_time:.2f} seconds")
     print(f"Elapsed time: {elapsed_time:.2f} seconds")
-    shutil.copyfile(config.LOG_PATH, os.path.join(config.LOG_DIR, "copy.log"))
+    # shutil.copyfile(config.LOG_PATH, os.path.join(config.LOG_DIR, "copy.log"))
 
 
 def fetchCiks() -> list:
@@ -491,7 +491,9 @@ def extractZipFileToJson(filename: str):
         with zf.open(filename) as inFile:
             content = inFile.read()
             data = json.loads(content.decode("utf-8"))
-            with open(os.path.join(config.LOG_DIR, filename), "w") as outFile:
+            filepath = os.path.join(config.PROBLEM_CIK_DIR, filename)
+            os.makedirs(os.path.dirname(filepath), exist_ok=True)
+            with open(filepath, "w") as outFile:
                 json.dump(data, outFile, indent=2)
 
 
