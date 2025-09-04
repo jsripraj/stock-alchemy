@@ -139,7 +139,7 @@ def run():
                         }
                     )
     try:
-        supabase_utils.insert("financials", rows)
+        supabase_utils.batchInsert("financials", rows)
     except Exception as e:
         logger.error(f"Unable to insert into Supabase: {e}")
 
@@ -153,7 +153,7 @@ def run():
 
 def fetchCiks() -> list:
     try:
-        rows = supabase_utils.batchFetch("companies", ["cik"], config.BATCH_SIZE_SUPABASE)
+        rows = supabase_utils.batchFetch("companies", ["cik"])
     except Exception as e:
         logger.error(f"Unable to fetch CIKs from companies table: {e}")
     return [row["cik"] for row in rows]
