@@ -14,28 +14,30 @@ def insert(table: str, rows: list[dict]):
     try:
         response = supabase.table(table).insert(rows).execute()
         return response
-    except Exception as exception:
-        return exception
+    except Exception:
+        raise
 
 
 def fetch(table: str, columns: list[str]):
     limit = config.SUPABASE_MAX_ROWS
-    start, end = 0, limit - 1
+    start = 0
     rows = []
     while True:
         try:
+            end = start + limit - 1
             response = (
                 supabase.table(table)
                 .select(", ".join(columns))
                 .range(start, end)
                 .execute()
             )
-        except Exception as exception:
-            raise(exception)
+        except Exception:
+            raise
         if not response.data:
-            return rows
-        rows += response.data
-        start, end = start + limit, end + limit
+            break
+        rows.extend(response.data)
+        start += limit
+    return rows
 
 
 def truncate(table: str):
