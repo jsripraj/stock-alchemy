@@ -27,7 +27,7 @@ export default function FormulaBuilder({
             {n}
           </button>
         ))}
-        {["+", "-", "*", "/", "<", ">"].map((op) => (
+        {["+", "-", "*", "/", "(", ")", "<", ">"].map((op) => (
           <button
             key={op}
             className="px-3 py-1 bg-blue-200 rounded"
