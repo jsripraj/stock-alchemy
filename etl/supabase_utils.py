@@ -47,3 +47,8 @@ def truncate(tablename: str, logger) -> None:
         return response
     except Exception as e:
         logger.error(f"Error truncating {tablename} table: {e}")
+
+    
+def truncateAndInsert(tablename: str, rows: list[dict], logger, batchSize: int = config.BATCH_SIZE_SUPABASE) -> None:
+    truncate(tablename, logger)
+    batchInsert(tablename, rows, logger)

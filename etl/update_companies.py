@@ -64,4 +64,4 @@ rows = [
     for c in companies.values()
 ]
 
-supabase_utils.batchInsert("companies", rows, logger)
+supabase_utils.truncateAndInsert("companies", rows, logger)

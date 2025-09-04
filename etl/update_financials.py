@@ -138,7 +138,7 @@ def run():
                             "value": fv.value,
                         }
                     )
-    supabase_utils.batchInsert("financials", rows, logger)
+    supabase_utils.truncateAndInsert("financials", rows, logger)
 
     end_time = time.perf_counter()
     elapsed_time = end_time - start_time
