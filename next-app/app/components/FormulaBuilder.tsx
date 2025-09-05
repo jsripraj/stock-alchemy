@@ -15,7 +15,7 @@ export default function FormulaBuilder({
       <div className="flex flex-wrap gap-2 mb-2">
         <button
           className="px-3 py-1 bg-yellow-200 rounded"
-          onClick={() => setFormula((f) => formatConcept(["Market Cap"]))}
+          onClick={() => setFormula((f) => f + formatConcept(["Market Cap"]))}
         >
           Market Cap
         </button>
