@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import Spreadsheet from "@/app/components/Spreadsheet";
-import FormulaBuilder from "./components/FormulaBuilder";
-
+import FormulaBuilder from "@/app/components/FormulaBuilder";
 
 const lastYear = new Date().getFullYear() - 1;
 const dates = [...Array(10)].map((_, i) => (lastYear - i).toString());

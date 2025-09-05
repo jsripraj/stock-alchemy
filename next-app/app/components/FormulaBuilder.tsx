@@ -1,5 +1,6 @@
 import React from "react";
 import { formatConcept } from "@/app/utils/formulaUtils";
+import { fetchConcepts } from "@/app/utils/postgresUtils";
 
 export default function FormulaBuilder({
   formula,
@@ -46,6 +47,12 @@ export default function FormulaBuilder({
       <div className="mb-2 p-2 border border-gray-300 min-h-[40px]">
         {formula}
       </div>
+      <button
+        className="px-3 py-1 bg-green-200 rounded"
+        onClick={ () => fetchConcepts() }
+      >
+        Find Stocks
+      </button>
     </div>
   );
 }
