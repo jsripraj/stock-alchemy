@@ -1,13 +1,16 @@
 "use server";
 
 import postgres from "postgres";
-import { extractTokens } from "@/app/utils/formulaUtils";
+import { extractTokens, getSqlSelectTerm} from "@/app/utils/formulaUtils";
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
 
-export async function fetchResults(formula: string) {
+export async function fetchResults(formula: string, dates: string[]) {
   const tokens = extractTokens(formula);
-  console.log(...tokens);
+
+  const test = getSqlSelectTerm("[2024 Net Income]", dates[0]);
+  console.log(test);
+
   const data = await sql`
         select * from companies;
     `;

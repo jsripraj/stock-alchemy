@@ -5,9 +5,11 @@ import { fetchResults } from "@/app/utils/postgresUtils";
 export default function FormulaBuilder({
   formula,
   setFormula,
+  dates
 }: {
   formula: string;
   setFormula: React.Dispatch<React.SetStateAction<string>>;
+  dates: string[];
 }) {
   return (
     <div>
@@ -49,7 +51,7 @@ export default function FormulaBuilder({
       </div>
       <button
         className="px-3 py-1 bg-green-200 rounded"
-        onClick={ () => fetchResults(formula) }
+        onClick={ () => fetchResults(formula, dates) }
       >
         Find Stocks
       </button>
