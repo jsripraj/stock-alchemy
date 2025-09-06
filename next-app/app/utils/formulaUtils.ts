@@ -110,13 +110,13 @@ export function getSqlQuery(formula: string, mostRecentYear: string) {
         select
             companies.ticker, 
             companies.company,
-            ${leftSelect} as left,
-            ${rightSelect} as right
+            ${leftSelect} as leftSide,
+            ${rightSelect} as rightSide
         from companies
         ${joinStatements.join("\n")}
     )  
     select *
     from results
-    where left ${compOperator} right;
+    where leftSide ${compOperator} rightSide;
   `;
 }
