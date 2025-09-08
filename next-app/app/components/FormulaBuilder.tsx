@@ -1,7 +1,7 @@
 import React from "react";
 import { formatConcept } from "@/app/utils/formulaUtils";
-import { fetchResults } from "@/app/utils/postgresUtils";
 import { useRouter } from "next/navigation";
+import { storeFormula } from "@/app/utils/postgresUtils";
 
 
 export default function FormulaBuilder({
@@ -53,9 +53,11 @@ export default function FormulaBuilder({
       </div>
       <button
         className="px-3 py-1 bg-green-200 rounded"
-        onClick={ () => {
+        onClick={ async () => {
           // check formula
           // store formula in db, get db ID
+          const [{ id }] = await storeFormula(formula);
+
           // push results page, with db ID in URL params
           router.push("/results");
         }}

@@ -14,8 +14,13 @@ export async function fetchResults(formula: string, mostRecentYear: string) {
   }
 }
 
-export async function storeFormula(formula: string, mostRecentYear: string) {
-
+export async function storeFormula(formula: string) {
+  const id = await sql`
+    insert into formulas (formula)
+    values (${ formula })  
+    returning id
+  `
+  return id;
 }
 
 export async function fetchFormula(formulaId: string) {
