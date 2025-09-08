@@ -16,7 +16,7 @@ export default function Spreadsheet({
   const [hoverCol, setHoverCol] = useState<number | null>(null);
 
   return (
-    <div className="flex-2 overflow-auto mb-6 overflow-hidden">
+    <div className="flex-2 overflow-auto mb-6">
       <table className="border-separate border-spacing-0">
         <thead>
           <tr>
