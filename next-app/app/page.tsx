@@ -3,8 +3,9 @@
 import { useState } from "react";
 import Spreadsheet from "@/app/components/Spreadsheet";
 import FormulaBuilder from "@/app/components/FormulaBuilder";
+import { getMostRecentYear } from "@/app/utils/formulaUtils";
 
-const lastYear = new Date().getFullYear() - 1;
+const lastYear = getMostRecentYear();
 const dates = [...Array(10)].map((_, i) => (lastYear - i).toString());
 
 const concepts = [
@@ -25,7 +26,6 @@ const concepts = [
 
 export default function Home() {
   const [formula, setFormula] = useState("");
-  const [queryResults, setQueryResults] = useState(null);
 
   return (
     <div className="w-screen h-screen flex flex-col">

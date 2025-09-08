@@ -13,3 +13,11 @@ export async function fetchResults(formula: string, mostRecentYear: string) {
     return data;
   }
 }
+
+export async function storeFormula(formula: string, mostRecentYear: string) {
+
+}
+
+export async function fetchFormula(formulaId: string) {
+
+}
