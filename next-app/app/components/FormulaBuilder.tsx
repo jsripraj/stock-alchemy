@@ -7,11 +7,9 @@ import { useRouter } from "next/navigation";
 export default function FormulaBuilder({
   formula,
   setFormula,
-  dates
 }: {
   formula: string;
   setFormula: React.Dispatch<React.SetStateAction<string>>;
-  dates: string[];
 }) {
   const router = useRouter();
 
@@ -55,13 +53,11 @@ export default function FormulaBuilder({
       </div>
       <button
         className="px-3 py-1 bg-green-200 rounded"
-        onClick={ async () => {
-          const results = await fetchResults(formula, dates);
-          console.log("fetched results");
-          if (results) {
-            console.log("routing to results");
-            router.push("/results");
-          }
+        onClick={ () => {
+          // check formula
+          // store formula in db, get db ID
+          // push results page, with db ID in URL params
+          router.push("/results");
         }}
       >
         Find Stocks

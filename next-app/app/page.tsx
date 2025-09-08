@@ -38,7 +38,7 @@ export default function Home() {
         />
       </div>
       <div className="flex-1 p-4 overflow-auto">
-        <FormulaBuilder formula={formula} setFormula={setFormula} dates={dates}/>
+        <FormulaBuilder formula={formula} setFormula={setFormula} />
       </div>
     </div>
   );
