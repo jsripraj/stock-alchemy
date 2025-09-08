@@ -14,7 +14,7 @@ export default function FormulaBuilder({
   const router = useRouter();
 
   return (
-    <div className="flex flex-col items-center">
+    <div className="w-full flex flex-col items-center">
       <h2 className="text-xl font-bold mb-2">Formula Builder</h2>
       <div className="flex flex-wrap gap-2 mb-2">
         <button
@@ -48,7 +48,7 @@ export default function FormulaBuilder({
           Clear
         </button>
       </div>
-      <div className="mb-2 p-2 border border-gray-300 min-h-[40px]">
+      <div className="w-full mb-2 p-2 border border-gray-300 min-h-[40px] flex justify-center">
         {formula}
       </div>
       <button

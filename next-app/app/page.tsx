@@ -28,7 +28,7 @@ export default function Home() {
   const [formula, setFormula] = useState("");
 
   return (
-    <div className="w-screen h-screen flex flex-col">
+    <div className="w-screen h-screen flex flex-col items-center">
       <h1 className="text-center text-4xl p-6">StockAlchemy</h1>
       <div className="flex-1 m-4 overflow-auto flex justify-center">
         <Spreadsheet
@@ -37,7 +37,7 @@ export default function Home() {
           setFormula={setFormula}
         />
       </div>
-      <div className="flex-1 p-4 overflow-auto flex justify-center">
+      <div className="flex-1 m-4 overflow-auto w-8/10 flex justify-center">
         <FormulaBuilder formula={formula} setFormula={setFormula} />
       </div>
     </div>
