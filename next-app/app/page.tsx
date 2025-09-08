@@ -30,14 +30,14 @@ export default function Home() {
   return (
     <div className="w-screen h-screen flex flex-col">
       <h1 className="text-center text-4xl p-6">StockAlchemy</h1>
-      <div className="flex-1 m-4 overflow-auto">
+      <div className="flex-1 m-4 overflow-auto flex justify-center">
         <Spreadsheet
           dates={dates}
           concepts={concepts}
           setFormula={setFormula}
         />
       </div>
-      <div className="flex-1 p-4 overflow-auto">
+      <div className="flex-1 p-4 overflow-auto flex justify-center">
         <FormulaBuilder formula={formula} setFormula={setFormula} />
       </div>
     </div>
