@@ -25,6 +25,7 @@ const concepts = [
 
 export default function Home() {
   const [formula, setFormula] = useState("");
+  const [queryResults, setQueryResults] = useState(null);
 
   return (
     <div className="w-screen h-screen flex flex-col">

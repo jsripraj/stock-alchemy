@@ -9,8 +9,7 @@ export async function fetchResults(formula: string, dates: string[]) {
   const query = getSqlQuery(formula, dates[0]);
 
   if (query) {
-    console.log(query);
     const data = await sql.unsafe(query);
-    console.log(data);
+    return data;
   }
 }

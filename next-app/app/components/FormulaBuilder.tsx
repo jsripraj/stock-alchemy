@@ -1,6 +1,8 @@
 import React from "react";
 import { formatConcept } from "@/app/utils/formulaUtils";
 import { fetchResults } from "@/app/utils/postgresUtils";
+import { useRouter } from "next/navigation";
+
 
 export default function FormulaBuilder({
   formula,
@@ -11,6 +13,8 @@ export default function FormulaBuilder({
   setFormula: React.Dispatch<React.SetStateAction<string>>;
   dates: string[];
 }) {
+  const router = useRouter();
+
   return (
     <div>
       <h2 className="text-xl font-bold mb-2">Formula Builder</h2>
@@ -51,7 +55,14 @@ export default function FormulaBuilder({
       </div>
       <button
         className="px-3 py-1 bg-green-200 rounded"
-        onClick={ () => fetchResults(formula, dates) }
+        onClick={ async () => {
+          const results = await fetchResults(formula, dates);
+          console.log("fetched results");
+          if (results) {
+            console.log("routing to results");
+            router.push("/results");
+          }
+        }}
       >
         Find Stocks
       </button>
