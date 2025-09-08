@@ -14,7 +14,7 @@ export default function FormulaBuilder({
   const router = useRouter();
 
   return (
-    <div>
+    <div className="flex flex-col items-center">
       <h2 className="text-xl font-bold mb-2">Formula Builder</h2>
       <div className="flex flex-wrap gap-2 mb-2">
         <button
