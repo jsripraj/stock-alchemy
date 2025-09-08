@@ -1,15 +1,59 @@
 import { fetchResults, fetchFormula } from "@/app/utils/postgresUtils";
+import { getMostRecentYear } from "@/app/utils/formulaUtils";
 
 interface ResultsPageProps {
-    searchParams: { id?: string };
+  searchParams: { id?: string };
 }
 
 export default async function ResultsPage({ searchParams }: ResultsPageProps) {
   const sp = await searchParams;
   const formulaId = sp.id;
-  if (formulaId) {
-    const [{ formula }] = await fetchFormula(formulaId);
-    console.log(formula);
+  const noResults = <p>No Results</p>;
+  if (!formulaId) {
+    return noResults;
   }
-  return <p>Results Page</p>;
+  const [{ formula }] = await fetchFormula(formulaId);
+  if (!formula) {
+    return noResults;
+  }
+  const results = await fetchResults(formula, getMostRecentYear().toString());
+  if (!results) {
+    return noResults;
+  }
+  console.log(results);
+
+  const headers = ["Ticker", "Company", "Left Side", "Right Side"];
+
+  return (
+    <table className="border-separate border-spacing-0">
+      <thead>
+        <tr>
+          {headers.map((h) => (
+            <th
+              key={h}
+              scope="col"
+              className={`border border-[#a0a0a0] px-[10px] py-2 sticky top-0 left-0 bg-white z-20`}
+            >
+              {h}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {results.map((res) => (
+          <tr key={res.ticker}>
+            {Object.entries(res).map(([key, value]) => (
+              <td
+                key={key}
+                scope="row"
+                className={`border border-[#a0a0a0] px-[10px] py-2`}
+              >
+                {value}
+              </td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
 }
