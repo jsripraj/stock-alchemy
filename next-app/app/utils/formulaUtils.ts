@@ -120,3 +120,7 @@ export function getSqlQuery(formula: string, mostRecentYear: string) {
     where leftSide ${compOperator} rightSide;
   `;
 }
+
+export function getMostRecentYear() {
+    return (new Date().getFullYear() - 1);
+}
