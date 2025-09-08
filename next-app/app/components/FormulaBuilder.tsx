@@ -1,8 +1,5 @@
 import React from "react";
 import { formatConcept } from "@/app/utils/formulaUtils";
-import { useRouter } from "next/navigation";
-import { storeFormula } from "@/app/utils/postgresUtils";
-
 
 export default function FormulaBuilder({
   formula,
@@ -11,12 +8,10 @@ export default function FormulaBuilder({
   formula: string;
   setFormula: React.Dispatch<React.SetStateAction<string>>;
 }) {
-  const router = useRouter();
-
   return (
-    <div className="w-full flex flex-col items-center">
+    <div className="w-full flex-2 flex flex-col items-center overflow-hidden">
       <h2 className="text-xl font-bold mb-2">Formula Builder</h2>
-      <div className="flex flex-wrap gap-2 mb-2">
+      <div className="flex gap-2 mb-2">
         <button
           className="px-3 py-1 bg-yellow-200 rounded"
           onClick={() => setFormula((f) => f + formatConcept(["Market Cap"]))}
@@ -48,21 +43,9 @@ export default function FormulaBuilder({
           Clear
         </button>
       </div>
-      <div className="w-full mb-2 p-2 border border-gray-300 min-h-[40px] flex justify-center">
+      <div className="w-full h-1/2 mb-2 border border-gray-300 overflow-y-auto flex justify-center">
         {formula}
       </div>
-      <button
-        className="px-3 py-1 bg-green-200 rounded"
-        onClick={ async () => {
-          // check formula
-          // store formula in db, get db ID
-          const [{ id }] = await storeFormula(formula);
-          // push results page, with db ID in URL params
-          router.push(`/results?id=${id}`);
-        }}
-      >
-        Find Stocks
-      </button>
     </div>
   );
 }

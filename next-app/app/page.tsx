@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Spreadsheet from "@/app/components/Spreadsheet";
 import FormulaBuilder from "@/app/components/FormulaBuilder";
+import FindStocksButton from "@/app/components/FindStocksButton";
 import { getMostRecentYear } from "@/app/utils/formulaUtils";
 
 const lastYear = getMostRecentYear();
@@ -28,17 +29,16 @@ export default function Home() {
   const [formula, setFormula] = useState("");
 
   return (
-    <div className="w-screen h-screen flex flex-col items-center">
-      <h1 className="text-center text-4xl p-6">StockAlchemy</h1>
-      <div className="flex-1 m-4 overflow-auto flex justify-center">
+    <div className="w-screen h-screen flex flex-col items-center overflow-hidden">
+      <h1 className="text-center text-4xl m-6">StockAlchemy</h1>
+      <div className="flex-1 w-8/10 flex flex-col items-center overflow-hidden">
         <Spreadsheet
           dates={dates}
           concepts={concepts}
           setFormula={setFormula}
         />
-      </div>
-      <div className="flex-1 m-4 overflow-auto w-8/10 flex justify-center">
         <FormulaBuilder formula={formula} setFormula={setFormula} />
+        <FindStocksButton formula={formula} />
       </div>
     </div>
   );
