@@ -57,9 +57,8 @@ export default function FormulaBuilder({
           // check formula
           // store formula in db, get db ID
           const [{ id }] = await storeFormula(formula);
-
           // push results page, with db ID in URL params
-          router.push("/results");
+          router.push(`/results?id=${id}`);
         }}
       >
         Find Stocks

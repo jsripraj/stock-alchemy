@@ -24,5 +24,10 @@ export async function storeFormula(formula: string) {
 }
 
 export async function fetchFormula(formulaId: string) {
-
+  const formula = await sql`
+    select formula
+    from formulas
+    where id = ${formulaId}
+  `
+  return formula;
 }
