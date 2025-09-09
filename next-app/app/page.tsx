@@ -6,6 +6,11 @@ import FormulaBuilder from "@/app/components/FormulaBuilder";
 import FindStocksButton from "@/app/components/FindStocksButton";
 import { getMostRecentYear } from "@/app/utils/formulaUtils";
 import Image from "next/image";
+import localFont from "next/font/local";
+
+const asimovian = localFont({
+  src: './fonts/Asimovian-Regular.ttf'
+});
 
 const lastYear = getMostRecentYear();
 const dates = [...Array(10)].map((_, i) => (lastYear - i).toString());
@@ -33,7 +38,7 @@ export default function Home() {
     <div className="w-screen h-screen flex flex-col items-center overflow-hidden">
       <div className="flex my-6 items-center">
         <Image src="/logo.png" alt="Logo" width={50} height={50} className="object-contain" />
-        <h1 className="text-4xl">StockAlchemy</h1>
+        <h1 className={`${asimovian.className} text-4xl`}>StockAlchemy</h1>
       </div>
       <div className="flex-1 w-8/10 flex flex-col items-center overflow-hidden">
         <Spreadsheet
