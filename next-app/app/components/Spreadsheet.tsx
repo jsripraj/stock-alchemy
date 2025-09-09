@@ -17,7 +17,7 @@ export default function Spreadsheet({
 
   return (
     <div className="flex-2 border border-lime-500 overflow-auto mb-6 border scrollbar scrollbar-thumb-stone-600 scrollbar-track-lime-500">
-      <table className="border-separate border-spacing-0 text-lime-50">
+      <table className="border-separate border-spacing-0 text-lime-100">
         <thead>
           <tr>
             <th
