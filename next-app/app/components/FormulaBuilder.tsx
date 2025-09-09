@@ -13,7 +13,7 @@ export default function FormulaBuilder({
       <h2 className="text-xl font-bold mb-2">Formula Builder</h2>
       <div className="flex gap-2 mb-2">
         <button
-          className="px-3 py-1 bg-yellow-200 rounded hover:bg-yellow-300 cursor-pointer"
+          className="px-3 py-1 bg-black border border-lime-500 rounded hover:bg-lime-900 hover:font-semibold cursor-pointer font-medium text-lime-50"
           onClick={() => setFormula((f) => f + formatConcept(["Market Cap"]))}
         >
           Market Cap
@@ -21,7 +21,7 @@ export default function FormulaBuilder({
         {[...Array(10).keys()].map((n) => (
           <button
             key={n}
-            className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 cursor-pointer"
+            className="px-3 py-1 bg-black border border-yellow-500 rounded hover:bg-yellow-900 hover:font-semibold cursor-pointer font-medium text-yellow-50"
             onClick={() => setFormula((f) => f + n.toString())}
           >
             {n}
@@ -30,20 +30,20 @@ export default function FormulaBuilder({
         {["+", "-", "*", "/", "(", ")", "<", ">"].map((op) => (
           <button
             key={op}
-            className="px-3 py-1 bg-blue-200 rounded hover:bg-blue-300 cursor-pointer"
+            className="px-3 py-1 bg-black border border-orange-500 rounded hover:bg-orange-900 hover:font-semibold cursor-pointer font-medium text-orange-50"
             onClick={() => setFormula((f) => f + op)}
           >
             {op}
           </button>
         ))}
         <button
-          className="px-3 py-1 bg-red-200 rounded hover:bg-red-300 cursor-pointer"
+          className="px-3 py-1 bg-red-700 border border-red-500 rounded hover:bg-red-900 hover:font-semibold cursor-pointer font-medium text-red-50"
           onClick={() => setFormula((f) => "")}
         >
           Clear
         </button>
       </div>
-      <div className="w-full h-1/2 mb-2 border border-gray-300 overflow-y-auto flex justify-center">
+      <div className="w-full h-1/2 mb-2 border border-lime-500 rounded-xs overflow-y-auto flex justify-center text-lime-50 scrollbar scrollbar-thumb-stone-600 scrollbar-track-lime-500">
         {formula}
       </div>
     </div>
