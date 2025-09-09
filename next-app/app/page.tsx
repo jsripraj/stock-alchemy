@@ -38,7 +38,7 @@ export default function Home() {
     <div className="w-screen h-screen flex flex-col items-center overflow-hidden">
       <div className="flex my-6 items-center">
         <Image src="/logo.png" alt="Logo" width={50} height={50} className="object-contain" />
-        <h1 className={`${asimovian.className} text-4xl`}>StockAlchemy</h1>
+        <h1 className={`${asimovian.className} text-4xl text-lime-500`}>StockAlchemy</h1>
       </div>
       <div className="flex-1 w-8/10 flex flex-col items-center overflow-hidden">
         <Spreadsheet

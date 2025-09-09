@@ -16,20 +16,20 @@ export default function Spreadsheet({
   const [hoverCol, setHoverCol] = useState<number | null>(null);
 
   return (
-    <div className="flex-2 overflow-auto mb-6">
-      <table className="border-separate border-spacing-0">
+    <div className="flex-2 border border-lime-500 overflow-auto mb-6 border scrollbar scrollbar-thumb-stone-600 scrollbar-track-lime-500">
+      <table className="border-separate border-spacing-0 text-lime-50">
         <thead>
           <tr>
             <th
               scope="col"
-              className="border border-[#a0a0a0] px-[10px] py-2 sticky top-0 left-0 bg-white z-30"
+              className="border border-lime-500 px-3 py-1 sticky top-0 left-0 bg-[var(--background)] z-30"
             ></th>
             {dates.map((date, colIndex) => (
               <th
                 key={date}
                 scope="col"
-                className={`border border-[#a0a0a0] px-[10px] py-2 sticky top-0 left-0 bg-white z-20 ${
-                  hoverCol === colIndex ? "bg-yellow-100" : ""
+                className={`border border-lime-500 px-3 py-1 sticky top-0 left-0 bg-[var(--background)] z-20 ${
+                  hoverCol === colIndex ? "bg-lime-900" : ""
                 }`}
               >
                 {date}
@@ -42,8 +42,8 @@ export default function Spreadsheet({
             <tr key={concept}>
               <th
                 scope="row"
-                className={`border border-[#a0a0a0] px-[10px] py-2 sticky left-0 bg-white z-10 ${
-                  hoverRow === rowIndex ? "bg-yellow-100" : ""
+                className={`border border-lime-500 px-3 py-1 sticky left-0 bg-[var(--background)] z-10 ${
+                  hoverRow === rowIndex ? "bg-lime-900" : ""
                 }`}
               >
                 {concept}
@@ -52,11 +52,11 @@ export default function Spreadsheet({
                 <td
                   key={date}
                   scope="row"
-                  className={`border border-[#a0a0a0] px-[10px] py-2 ${
+                  className={`border border-lime-500 px-3 py-1 ${
                     hoverRow === rowIndex && hoverCol === colIndex
-                      ? "bg-green-100"
+                      ? "bg-lime-500"
                       : hoverRow === rowIndex || hoverCol === colIndex
-                      ? "bg-yellow-100"
+                      ? "bg-lime-900"
                       : ""
                   }`}
                   onMouseEnter={() => {
