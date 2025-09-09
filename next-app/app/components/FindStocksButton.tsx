@@ -7,7 +7,7 @@ export default function FindStocksButton({ formula }: { formula: string }) {
   return (
     <div className="flex-1">
       <button
-        className="px-3 py-1 bg-lime-700 border border-lime-500 rounded text-3xl hover:bg-lime-900 cursor-pointer text-lime-50 hover:font-semibold"
+        className="mt-6 px-3 py-1 bg-lime-700 border border-lime-500 rounded text-3xl hover:bg-lime-900 cursor-pointer text-lime-50 hover:font-semibold"
         onClick={async () => {
           // TODO: check formula
           const [{ id }] = await storeFormula(formula);

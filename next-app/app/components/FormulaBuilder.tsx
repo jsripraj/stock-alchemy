@@ -9,8 +9,7 @@ export default function FormulaBuilder({
   setFormula: React.Dispatch<React.SetStateAction<string>>;
 }) {
   return (
-    <div className="w-full flex-2 flex flex-col items-center overflow-hidden">
-      <h2 className="text-xl font-bold mb-2">Formula Builder</h2>
+    <div className="w-full flex-2 flex flex-col items-center my-6 overflow-hidden">
       <div className="flex gap-2 mb-2">
         <button
           className="px-3 py-1 bg-black border border-lime-500 rounded hover:bg-lime-900 hover:font-semibold cursor-pointer font-medium text-lime-50"
@@ -43,7 +42,7 @@ export default function FormulaBuilder({
           Clear
         </button>
       </div>
-      <div className="w-full h-1/2 mb-2 border border-lime-500 rounded-xs overflow-y-auto flex justify-center text-lime-50 scrollbar scrollbar-thumb-stone-600 scrollbar-track-lime-500">
+      <div className="w-full flex-1 mb-2 border border-lime-500 rounded-xs overflow-y-auto flex justify-center text-lime-50 scrollbar scrollbar-thumb-stone-600 scrollbar-track-lime-500">
         {formula}
       </div>
     </div>
