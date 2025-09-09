@@ -7,14 +7,14 @@ export default function FindStocksButton({ formula }: { formula: string }) {
   return (
     <div className="flex-1">
       <button
-        className="px-3 py-1 bg-green-200 rounded"
+        className="px-3 py-1 bg-green-200 rounded text-2xl"
         onClick={async () => {
           // TODO: check formula
           const [{ id }] = await storeFormula(formula);
           router.push(`/results?id=${id}`);
         }}
       >
-        Find Stocks
+        Find Stocks &#129122;
       </button>
     </div>
   );
