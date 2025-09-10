@@ -42,7 +42,11 @@ export default function FormulaBuilder({
           Clear
         </button>
       </div>
-      <div className="w-full flex-1 mb-2 p-2 border border-lime-500 rounded-xs overflow-y-auto flex justify-center text-lime-50 text-lg font-mono scrollbar scrollbar-thumb-stone-600 scrollbar-track-lime-500">
+      <div
+        className="w-full flex-1 mb-2 p-2 border border-lime-500 outline-none focus:border-2 focus:border-lime-400 rounded-xs overflow-y-auto flex justify-center text-lime-50 text-lg font-mono scrollbar scrollbar-thumb-stone-600 scrollbar-track-lime-500"
+        contentEditable="true"
+        suppressContentEditableWarning={true}
+      >
         {formula}
       </div>
     </div>
