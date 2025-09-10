@@ -15,8 +15,22 @@ export default function FormulaBuilder({
 
   useEffect(() => {
     // parse formula and update formulaDivRef
+    const selection = window.getSelection();
+    const cursorPos = selection?.getRangeAt(0).startOffset ?? 0;
+
     if (formulaDivRef.current) {
       formulaDivRef.current.textContent = formula;
+    }
+
+    // Restore cursor's original position
+    if (selection && formulaDivRef.current?.firstChild) {
+      const range = document.createRange();
+      const firstChild = formulaDivRef.current.firstChild;
+      const pos = Math.min(cursorPos, formulaDivRef.current.textContent?.length ?? 0);
+      range.setStart(firstChild, pos);
+      range.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(range);
     }
   }, [formula]);
 
