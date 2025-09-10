@@ -1,4 +1,7 @@
+"use client";
+
 import React from "react";
+import { useRef, useEffect } from "react";
 import { formatConcept } from "@/app/utils/formulaUtils";
 
 export default function FormulaBuilder({
@@ -8,6 +11,17 @@ export default function FormulaBuilder({
   formula: string;
   setFormula: React.Dispatch<React.SetStateAction<string>>;
 }) {
+  const formulaDivRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // parse formula and update formulaDivRef
+    if (formulaDivRef.current) {
+      formulaDivRef.current.textContent = formula;
+    }
+  }, [formula]);
+
+  // const handleInput = (e: React.FormEvent<HTMLDivElement>) => {};
+
   return (
     <div className="w-full flex-2 flex flex-col items-center my-6 overflow-hidden">
       <div className="flex gap-2 mb-2">
@@ -43,11 +57,32 @@ export default function FormulaBuilder({
         </button>
       </div>
       <div
-        className="w-full flex-1 mb-2 p-2 border border-lime-500 outline-none focus:border-2 focus:border-lime-400 rounded-xs overflow-y-auto flex justify-center text-lime-50 text-lg font-mono scrollbar scrollbar-thumb-stone-600 scrollbar-track-lime-500"
-        contentEditable="true"
-        suppressContentEditableWarning={true}
+        ref={formulaDivRef}
+        className="w-full flex-1 mb-2 p-2 
+          border border-lime-500 focus:border-2 focus:border-lime-400 rounded-xs outline-none 
+          overflow-y-auto flex justify-center 
+          text-lime-50 text-lg font-mono 
+          scrollbar scrollbar-thumb-stone-600 scrollbar-track-lime-500
+        "
+        contentEditable={true}
+        autoFocus={true}
+        onInput={(e) => {
+          setFormula(
+            e.currentTarget && e.currentTarget.textContent
+              ? e.currentTarget.textContent
+              : " "
+          );
+        }}
+        // onInput={(e) => {
+        //   if (formulaDivRef.current) {
+        //     const span = document.createElement("span");
+        //     span.textContent = "hello world";
+        //     span.className = "text-3xl";
+        //     formulaDivRef.current.appendChild(span);
+        //   }
+        // }}
       >
-        {formula}
+        {/* <span>hello&nbsp;</span><span className="text-red-500">extra large</span> world */}
       </div>
     </div>
   );
