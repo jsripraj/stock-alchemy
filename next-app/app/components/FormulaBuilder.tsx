@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useRef, useEffect } from "react";
-import { formatConcept } from "@/app/utils/formulaUtils";
+import { formatConcept, getCursorPos } from "@/app/utils/formulaUtils";
 
 export default function FormulaBuilder({
   formula,
@@ -12,21 +12,31 @@ export default function FormulaBuilder({
   setFormula: React.Dispatch<React.SetStateAction<string>>;
 }) {
   const formulaDivRef = useRef<HTMLDivElement>(null);
+  const cursorPosRef = useRef<number>(0);
 
   useEffect(() => {
-    // parse formula and update formulaDivRef
     const selection = window.getSelection();
-    const cursorPos = selection?.getRangeAt(0).startOffset ?? 0;
+
+    // parse formula and update formulaDivRef
+    // const parts = formula.split(/(\[[^\]]+\])/g).filter((p) => p !== "");
+    // console.log(parts);
 
     if (formulaDivRef.current) {
+      if (formula.length >= formulaDivRef.current.textContent.length) {
+        const cursorJump = formula.length - formulaDivRef.current.textContent.length;
+        cursorPosRef.current += cursorJump;
+      }
       formulaDivRef.current.textContent = formula;
     }
 
-    // Restore cursor's original position
+    // Restore cursor position
     if (selection && formulaDivRef.current?.firstChild) {
       const range = document.createRange();
       const firstChild = formulaDivRef.current.firstChild;
-      const pos = Math.min(cursorPos, formulaDivRef.current.textContent?.length ?? 0);
+      const pos = Math.min(
+        cursorPosRef.current,
+        formulaDivRef.current.textContent?.length ?? 0
+      );
       range.setStart(firstChild, pos);
       range.collapse(true);
       selection.removeAllRanges();
@@ -65,7 +75,7 @@ export default function FormulaBuilder({
         ))}
         <button
           className="px-3 py-1 bg-red-700 border border-red-500 rounded hover:bg-red-900 hover:font-semibold cursor-pointer font-medium text-red-50"
-          onClick={() => setFormula((f) => "")}
+          onClick={() => setFormula(() => "")}
         >
           Clear
         </button>
@@ -81,22 +91,23 @@ export default function FormulaBuilder({
         contentEditable={true}
         autoFocus={true}
         onInput={(e) => {
+          cursorPosRef.current = getCursorPos();
+          console.log(`cursor pos: ${cursorPosRef.current}`);
           setFormula(
             e.currentTarget && e.currentTarget.textContent
               ? e.currentTarget.textContent
               : " "
           );
         }}
-        // onInput={(e) => {
-        //   if (formulaDivRef.current) {
-        //     const span = document.createElement("span");
-        //     span.textContent = "hello world";
-        //     span.className = "text-3xl";
-        //     formulaDivRef.current.appendChild(span);
-        //   }
-        // }}
+        onKeyUp={() => {
+          cursorPosRef.current = getCursorPos();
+          console.log(`cursor pos: ${cursorPosRef.current}`);
+        }}
+        onClick={() => {
+          cursorPosRef.current = getCursorPos();
+          console.log(`cursor pos: ${cursorPosRef.current}`);
+        }}
       >
-        {/* <span>hello&nbsp;</span><span className="text-red-500">extra large</span> world */}
       </div>
     </div>
   );

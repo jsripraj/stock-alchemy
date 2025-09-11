@@ -38,10 +38,7 @@ function getSqlName(token: string): string {
   return `${concept}${year}`;
 }
 
-function getSqlSelectTerm(
-  token: string,
-  mostRecentYear: string
-): string {
+function getSqlSelectTerm(token: string, mostRecentYear: string): string {
   if (token === "[Market Cap]") {
     return `(companies.close * ${getSqlSelectTerm(
       "[2024 Shares Outstanding]",
@@ -51,12 +48,12 @@ function getSqlSelectTerm(
   return `${getSqlName(token)}.value`;
 }
 
-function getSqlJoinStatement(
-  token: string,
-  mostRecentYear: string
-): string {
+function getSqlJoinStatement(token: string, mostRecentYear: string): string {
   if (token === "[Market Cap]") {
-    return getSqlJoinStatement(`[${mostRecentYear} Shares Outstanding]`, mostRecentYear);
+    return getSqlJoinStatement(
+      `[${mostRecentYear} Shares Outstanding]`,
+      mostRecentYear
+    );
   }
   const concept = getSqlName(token);
   return `join financials ${concept} on companies.cik = ${concept}.cik
@@ -122,5 +119,11 @@ export function getSqlQuery(formula: string, mostRecentYear: string) {
 }
 
 export function getMostRecentYear() {
-    return (new Date().getFullYear() - 1);
+  return new Date().getFullYear() - 1;
+}
+
+export function getCursorPos() {
+  const selection = window.getSelection();
+  const cursorPos = selection?.getRangeAt(0).startOffset ?? 0;
+  return cursorPos;
 }
