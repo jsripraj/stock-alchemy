@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Spreadsheet from "@/app/components/Spreadsheet";
 import FormulaBuilder from "@/app/components/FormulaBuilder";
 import FindStocksButton from "@/app/components/FindStocksButton";
@@ -33,6 +33,7 @@ const concepts = [
 
 export default function Home() {
   const [formula, setFormula] = useState("");
+  const cursorPosRef = useRef<number>(0);
 
   return (
     <div className="w-screen h-screen flex flex-col items-center overflow-hidden">
@@ -46,7 +47,7 @@ export default function Home() {
           concepts={concepts}
           setFormula={setFormula}
         />
-        <FormulaBuilder formula={formula} setFormula={setFormula} />
+        <FormulaBuilder formula={formula} setFormula={setFormula} cursorPosRef={cursorPosRef}/>
         <FindStocksButton formula={formula} />
       </div>
     </div>

@@ -7,16 +7,15 @@ import { formatConcept, getCursorPos } from "@/app/utils/formulaUtils";
 export default function FormulaBuilder({
   formula,
   setFormula,
+  cursorPosRef
 }: {
   formula: string;
   setFormula: React.Dispatch<React.SetStateAction<string>>;
+  cursorPosRef: React.RefObject<number>;
 }) {
   const formulaDivRef = useRef<HTMLDivElement>(null);
-  const cursorPosRef = useRef<number>(0);
 
   useEffect(() => {
-    const selection = window.getSelection();
-
     // parse formula and update formulaDivRef
     // const parts = formula.split(/(\[[^\]]+\])/g).filter((p) => p !== "");
     // console.log(parts);
@@ -30,6 +29,7 @@ export default function FormulaBuilder({
     }
 
     // Restore cursor position
+    const selection = window.getSelection();
     if (selection && formulaDivRef.current?.firstChild) {
       const range = document.createRange();
       const firstChild = formulaDivRef.current.firstChild;
@@ -107,7 +107,16 @@ export default function FormulaBuilder({
           cursorPosRef.current = getCursorPos();
           console.log(`cursor pos: ${cursorPosRef.current}`);
         }}
+        // onInput={(e) => {
+        //   if (formulaDivRef.current) {
+        //     const span = document.createElement("span");
+        //     span.textContent = "hello world";
+        //     span.className = "text-3xl";
+        //     formulaDivRef.current.appendChild(span);
+        //   }
+        // }}
       >
+        {/* <span>hello&nbsp;</span><span className="text-red-500">extra large</span> world */}
       </div>
     </div>
   );
