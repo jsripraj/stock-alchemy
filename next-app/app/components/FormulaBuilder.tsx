@@ -1,16 +1,18 @@
 "use client";
 
-import React from "react";
+import React, { SetStateAction } from "react";
 import { useRef, useEffect } from "react";
 import { formatConcept, getCursorPos } from "@/app/utils/formulaUtils";
 
 export default function FormulaBuilder({
   formula,
+  insertIntoFormula,
   setFormula,
-  cursorPosRef
+  cursorPosRef,
 }: {
   formula: string;
-  setFormula: React.Dispatch<React.SetStateAction<string>>;
+  insertIntoFormula: (insertIndex: number, str: string) => void;
+  setFormula: React.Dispatch<SetStateAction<string>>;
   cursorPosRef: React.RefObject<number>;
 }) {
   const formulaDivRef = useRef<HTMLDivElement>(null);
@@ -22,7 +24,8 @@ export default function FormulaBuilder({
 
     if (formulaDivRef.current) {
       if (formula.length >= formulaDivRef.current.textContent.length) {
-        const cursorJump = formula.length - formulaDivRef.current.textContent.length;
+        const cursorJump =
+          formula.length - formulaDivRef.current.textContent.length;
         cursorPosRef.current += cursorJump;
       }
       formulaDivRef.current.textContent = formula;
@@ -51,7 +54,13 @@ export default function FormulaBuilder({
       <div className="flex gap-2 mb-2">
         <button
           className="px-3 py-1 bg-black border border-lime-500 rounded hover:bg-lime-900 hover:font-semibold cursor-pointer font-medium text-lime-50"
-          onClick={() => setFormula((f) => f + formatConcept(["Market Cap"]))}
+          // onClick={() => setFormula((f) => f + formatConcept(["Market Cap"]))}
+          onClick={() =>
+            insertIntoFormula(
+              cursorPosRef.current,
+              formatConcept(["Market Cap"])
+            )
+          }
         >
           Market Cap
         </button>
@@ -59,7 +68,10 @@ export default function FormulaBuilder({
           <button
             key={n}
             className="px-3 py-1 bg-black border border-yellow-500 rounded hover:bg-yellow-900 hover:font-semibold cursor-pointer font-medium text-yellow-50"
-            onClick={() => setFormula((f) => f + n.toString())}
+            // onClick={() => setFormula((f) => f + n.toString())}
+            onClick={() =>
+              insertIntoFormula(cursorPosRef.current, n.toString())
+            }
           >
             {n}
           </button>
@@ -68,14 +80,15 @@ export default function FormulaBuilder({
           <button
             key={op}
             className="px-3 py-1 bg-black border border-orange-500 rounded hover:bg-orange-900 hover:font-semibold cursor-pointer font-medium text-orange-50"
-            onClick={() => setFormula((f) => f + op)}
+            // onClick={() => setFormula((f) => f + op)}
+            onClick={() => insertIntoFormula(cursorPosRef.current, op)}
           >
             {op}
           </button>
         ))}
         <button
           className="px-3 py-1 bg-red-700 border border-red-500 rounded hover:bg-red-900 hover:font-semibold cursor-pointer font-medium text-red-50"
-          onClick={() => setFormula(() => "")}
+          onClick={() => setFormula("")}
         >
           Clear
         </button>
@@ -94,9 +107,7 @@ export default function FormulaBuilder({
           cursorPosRef.current = getCursorPos();
           console.log(`cursor pos: ${cursorPosRef.current}`);
           setFormula(
-            e.currentTarget && e.currentTarget.textContent
-              ? e.currentTarget.textContent
-              : " "
+            e.currentTarget?.textContent ? e.currentTarget.textContent : ""
           );
         }}
         onKeyUp={() => {

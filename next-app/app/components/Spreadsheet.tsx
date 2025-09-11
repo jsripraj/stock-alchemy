@@ -6,11 +6,13 @@ import { formatConcept } from "@/app/utils/formulaUtils";
 export default function Spreadsheet({
   dates,
   concepts,
-  setFormula,
+  cursorPosRef,
+  insertIntoFormula,
 }: {
   dates: string[];
   concepts: string[];
-  setFormula: React.Dispatch<React.SetStateAction<string>>;
+  cursorPosRef: React.RefObject<number>;
+  insertIntoFormula: (insertIndex: number, str: string) => void;
 }) {
   const [hoverRow, setHoverRow] = useState<number | null>(null);
   const [hoverCol, setHoverCol] = useState<number | null>(null);
@@ -71,10 +73,11 @@ export default function Spreadsheet({
                     // const selection = window.getSelection();
                     // const cursorPos = selection?.getRangeAt(0).startOffset ?? 0;
                     // console.log(`cursorPos before: ${cursorPos}`);
-                    setFormula(
-                      (f) =>
-                        f + formatConcept([dates[colIndex], concepts[rowIndex]])
-                    );
+                    insertIntoFormula(cursorPosRef.current, formatConcept([dates[colIndex], concepts[rowIndex]]));
+                    // setFormula(
+                    //   (f) =>
+                    //     f + formatConcept([dates[colIndex], concepts[rowIndex]])
+                    // );
                     // const selectionAfter = window.getSelection();
                     // const cursorPosAfter = selectionAfter?.getRangeAt(0).startOffset ?? 0;
                     // console.log(`cursorPos after: ${cursorPosAfter}`);

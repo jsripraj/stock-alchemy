@@ -9,7 +9,7 @@ import Image from "next/image";
 import localFont from "next/font/local";
 
 const asimovian = localFont({
-  src: './fonts/Asimovian-Regular.ttf'
+  src: "./fonts/Asimovian-Regular.ttf",
 });
 
 const lastYear = getMostRecentYear();
@@ -35,19 +35,41 @@ export default function Home() {
   const [formula, setFormula] = useState("");
   const cursorPosRef = useRef<number>(0);
 
+  function insertIntoFormula(insertIndex: number, str: string) {
+    setFormula((f) => {
+      const left = f.substring(0, insertIndex);
+      const right = f.substring(insertIndex);
+      return left + str + right;
+    });
+  }
+
   return (
     <div className="w-screen h-screen flex flex-col items-center overflow-hidden">
       <div className="flex my-6 items-center">
-        <Image src="/logo.png" alt="Logo" width={50} height={50} className="object-contain" />
-        <h1 className={`${asimovian.className} text-4xl text-lime-500`}>StockAlchemy</h1>
+        <Image
+          src="/logo.png"
+          alt="Logo"
+          width={50}
+          height={50}
+          className="object-contain"
+        />
+        <h1 className={`${asimovian.className} text-4xl text-lime-500`}>
+          StockAlchemy
+        </h1>
       </div>
       <div className="flex-1 w-8/10 flex flex-col items-center overflow-hidden">
         <Spreadsheet
           dates={dates}
           concepts={concepts}
-          setFormula={setFormula}
+          cursorPosRef={cursorPosRef}
+          insertIntoFormula={insertIntoFormula}
         />
-        <FormulaBuilder formula={formula} setFormula={setFormula} cursorPosRef={cursorPosRef}/>
+        <FormulaBuilder
+          formula={formula}
+          insertIntoFormula={insertIntoFormula}
+          setFormula={setFormula}
+          cursorPosRef={cursorPosRef}
+        />
         <FindStocksButton formula={formula} />
       </div>
     </div>
