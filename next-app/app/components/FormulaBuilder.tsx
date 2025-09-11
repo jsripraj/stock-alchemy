@@ -2,7 +2,7 @@
 
 import React, { SetStateAction } from "react";
 import { useRef, useEffect } from "react";
-import { formatConcept, getCursorPos } from "@/app/utils/formulaUtils";
+import { formatConcept, getCursorPos, restoreCursorPosition } from "@/app/utils/formulaUtils";
 
 export default function FormulaBuilder({
   formula,
@@ -18,33 +18,72 @@ export default function FormulaBuilder({
   const formulaDivRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // parse formula and update formulaDivRef
-    // const parts = formula.split(/(\[[^\]]+\])/g).filter((p) => p !== "");
-    // console.log(parts);
+    if (!formulaDivRef.current) return;
 
-    if (formulaDivRef.current) {
-      if (formula.length >= formulaDivRef.current.textContent.length) {
-        const cursorJump =
-          formula.length - formulaDivRef.current.textContent.length;
-        cursorPosRef.current += cursorJump;
-      }
-      formulaDivRef.current.textContent = formula;
+    // Parse formula
+    const parts = formula.split(/(\[[^\]]+\])/g).filter((p) => p !== "");
+    while (formulaDivRef.current.firstChild) {
+      formulaDivRef.current.removeChild(formulaDivRef.current.firstChild);
     }
+    parts.forEach((p) => {
+      console.log(`part: ${p}`);
+      const span = document.createElement("span");
+      span.textContent = p;
+      if (p.startsWith("[")) {
+        span.className = "text-red-500";
+      }
+      formulaDivRef.current?.appendChild(span);
+      console.log(`textContent: ${formulaDivRef.current?.textContent}`);
+    });
 
     // Restore cursor position
-    const selection = window.getSelection();
-    if (selection && formulaDivRef.current?.firstChild) {
-      const range = document.createRange();
-      const firstChild = formulaDivRef.current.firstChild;
-      const pos = Math.min(
-        cursorPosRef.current,
-        formulaDivRef.current.textContent?.length ?? 0
-      );
-      range.setStart(firstChild, pos);
-      range.collapse(true);
-      selection.removeAllRanges();
-      selection.addRange(range);
+    const cursorJump =
+      formula.length - formulaDivRef.current.textContent.length;
+    if (cursorJump > 0) {
+      cursorPosRef.current += cursorJump;
     }
+    restoreCursorPosition(formulaDivRef.current, cursorPosRef.current);
+    // const selection = window.getSelection();
+    // if (selection && formulaDivRef.current.firstElementChild) {
+    //   const range = document.createRange();
+    //   const firstChild = formulaDivRef.current.firstElementChild.firstChild!;
+    //   let pos = Math.min(
+    //     cursorPosRef.current,
+    //     formulaDivRef.current.textContent?.length ?? 0
+    //   );
+
+    //   const spanNodes = formulaDivRef.current.childNodes;
+    //   let i = 0;
+    //   while (i < spanNodes.length) {
+    //     const textNode = spanNodes[i].firstChild;
+    //     if (textNode?.textContent && pos >= textNode.textContent.length) {
+    //       pos -= textNode.textContent.length;
+    //     } else {
+    //       break;
+    //     }
+    //     i++;
+    //   }
+    //   if ((i < spanNodes.length) && spanNodes[i]?.firstChild) {
+    //     const cursorNode = spanNodes[i].firstChild!;
+    //     range.setStart(cursorNode, pos);
+    //     range.collapse(true);
+    //     selection.removeAllRanges();
+    //     selection.addRange(range);
+    //   }
+    // }
+
+    // if (selection && formulaDivRef.current.firstChild) {
+    //   const range = document.createRange();
+    //   const firstChild = formulaDivRef.current.firstChild;
+    //   const pos = Math.min(
+    //     cursorPosRef.current,
+    //     formulaDivRef.current.textContent?.length ?? 0
+    //   );
+    //   range.setStart(firstChild, pos);
+    //   range.collapse(true);
+    //   selection.removeAllRanges();
+    //   selection.addRange(range);
+    // }
   }, [formula]);
 
   // const handleInput = (e: React.FormEvent<HTMLDivElement>) => {};
@@ -104,28 +143,20 @@ export default function FormulaBuilder({
         contentEditable={true}
         autoFocus={true}
         onInput={(e) => {
-          cursorPosRef.current = getCursorPos();
-          console.log(`cursor pos: ${cursorPosRef.current}`);
+          cursorPosRef.current = getCursorPos(formulaDivRef.current);
+          console.log(`onInput cursor pos: ${cursorPosRef.current}`);
           setFormula(
             e.currentTarget?.textContent ? e.currentTarget.textContent : ""
           );
         }}
         onKeyUp={() => {
-          cursorPosRef.current = getCursorPos();
-          console.log(`cursor pos: ${cursorPosRef.current}`);
+          cursorPosRef.current = getCursorPos(formulaDivRef.current);
+          console.log(`onKeyUp cursor pos: ${cursorPosRef.current}`);
         }}
         onClick={() => {
-          cursorPosRef.current = getCursorPos();
-          console.log(`cursor pos: ${cursorPosRef.current}`);
+          cursorPosRef.current = getCursorPos(formulaDivRef.current);
+          console.log(`onClick cursor pos: ${cursorPosRef.current}`);
         }}
-        // onInput={(e) => {
-        //   if (formulaDivRef.current) {
-        //     const span = document.createElement("span");
-        //     span.textContent = "hello world";
-        //     span.className = "text-3xl";
-        //     formulaDivRef.current.appendChild(span);
-        //   }
-        // }}
       >
         {/* <span>hello&nbsp;</span><span className="text-red-500">extra large</span> world */}
       </div>

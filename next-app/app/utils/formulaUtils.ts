@@ -122,8 +122,50 @@ export function getMostRecentYear() {
   return new Date().getFullYear() - 1;
 }
 
-export function getCursorPos() {
+export function getCursorPos(formulaDivRef: HTMLDivElement | null) {
   const selection = window.getSelection();
-  const cursorPos = selection?.getRangeAt(0).startOffset ?? 0;
-  return cursorPos;
+  if (!formulaDivRef || !selection || selection.rangeCount === 0)
+    return 0;
+  const range = selection.getRangeAt(0);
+  const cloneRange = range.cloneRange();
+  cloneRange.selectNodeContents(formulaDivRef);
+  cloneRange.setEnd(range.endContainer, range.endOffset)
+  console.log(cloneRange.toString())
+  return cloneRange.toString().length;
+}
+
+export function restoreCursorPosition(container: HTMLElement, cursorPos: number) {
+  const selection = window.getSelection();
+  if (!selection) return;
+
+  const range = document.createRange();
+
+  let pos = cursorPos;
+  let node: ChildNode | null = container.firstChild;
+
+  while (node) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const text = node.textContent ?? "";
+      if (pos <= text.length) {
+        range.setStart(node, pos);
+        break;
+      } else {
+        pos -= text.length;
+      }
+    } else if (node.nodeType === Node.ELEMENT_NODE) {
+      // Walk into the element
+      const text = (node.textContent ?? "");
+      if (pos <= text.length) {
+        node = node.firstChild;
+        continue;
+      } else {
+        pos -= text.length;
+      }
+    }
+    node = node.nextSibling;
+  }
+
+  range.collapse(true);
+  selection.removeAllRanges();
+  selection.addRange(range);
 }
