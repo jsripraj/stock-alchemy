@@ -130,7 +130,6 @@ export function getCursorPos(formulaDivRef: HTMLDivElement | null) {
   const cloneRange = range.cloneRange();
   cloneRange.selectNodeContents(formulaDivRef);
   cloneRange.setEnd(range.endContainer, range.endOffset)
-  console.log(cloneRange.toString())
   return cloneRange.toString().length;
 }
 

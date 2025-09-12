@@ -70,17 +70,7 @@ export default function Spreadsheet({
                     setHoverCol(null);
                   }}
                   onClick={() => {
-                    // const selection = window.getSelection();
-                    // const cursorPos = selection?.getRangeAt(0).startOffset ?? 0;
-                    // console.log(`cursorPos before: ${cursorPos}`);
                     insertIntoFormula(cursorPosRef.current, formatConcept([dates[colIndex], concepts[rowIndex]]));
-                    // setFormula(
-                    //   (f) =>
-                    //     f + formatConcept([dates[colIndex], concepts[rowIndex]])
-                    // );
-                    // const selectionAfter = window.getSelection();
-                    // const cursorPosAfter = selectionAfter?.getRangeAt(0).startOffset ?? 0;
-                    // console.log(`cursorPos after: ${cursorPosAfter}`);
                   }}
                 ></td>
               ))}
