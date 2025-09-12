@@ -19,7 +19,7 @@ export default function FormulaBuilder({
   dates: string[];
   concepts: string[];
 }) {
-  const unallowed = /[^A-Za-z0-9+\-*/()\[\]\s]/;
+  const unallowed = /[^A-Za-z0-9+\-*/()<>\[\]\s]/;
   const formulaDivRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
