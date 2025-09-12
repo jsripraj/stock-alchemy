@@ -23,6 +23,10 @@ export default function FormulaBuilder({
 
   useEffect(() => {
     if (!formulaDivRef.current) return;
+    if (formula === "") {
+      setFormula(" ");
+      return;
+    }
 
     const cursorJump =
       formula.length - formulaDivRef.current.textContent.length;
