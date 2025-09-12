@@ -2,7 +2,7 @@
 
 import React, { SetStateAction } from "react";
 import { useRef, useEffect } from "react";
-import { formatConcept, getCursorPos, restoreCursorPosition, isValidConcept } from "@/app/utils/formulaUtils";
+import { formatConcept, getCursorPos, restoreCursorPosition, getPrettyConceptText } from "@/app/utils/formulaUtils";
 
 export default function FormulaBuilder({
   formula,
@@ -31,7 +31,6 @@ export default function FormulaBuilder({
 
     const cursorJump =
       formula.length - formulaDivRef.current.textContent.length;
-    console.log(`jump: ${cursorJump}`)
     if (cursorJump > 0) {
       cursorPosRef.current += cursorJump;
     }
@@ -43,9 +42,13 @@ export default function FormulaBuilder({
     }
     parts.forEach((p) => {
       const span = document.createElement("span");
-      span.textContent = p;
-      if (isValidConcept(p, dates, concepts)) {
+      const concept= getPrettyConceptText(p, dates, concepts);
+      if (concept) {
+        span.textContent = concept;
         span.className = "text-lime-500";
+      }
+      else{
+        span.textContent = p;
       }
       formulaDivRef.current?.appendChild(span);
     });

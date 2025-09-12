@@ -2,20 +2,28 @@ export function formatConcept(words: string[]): string {
   return `[${words.join(" ")}]`;
 }
 
-export function isValidConcept(
+export function getPrettyConceptText (
   str: string,
   dates: string[],
   concepts: string[]
-): boolean {
+): string | null {
   if (str.startsWith("[") && str.endsWith("]")) {
-    const sub = str.substring(1, str.length - 1)
-    if (sub === "Market Cap") { return true; }
-    const spaceIndex = sub.indexOf(" ");
-    const year = sub.substring(0, spaceIndex);
-    const concept = sub.substring(spaceIndex + 1);
-    if (dates.includes(year) && concepts.includes(concept)) { return true; }
+    const subLower = str.substring(1, str.length - 1).toLowerCase();
+    if (subLower === "market cap") { 
+      return "[Market Cap]"; 
+    }
+    const spaceIndex = subLower.indexOf(" ");
+    const year = subLower.substring(0, spaceIndex);
+    const concept = subLower.substring(spaceIndex + 1).replaceAll("-", " ");
+    const conceptsLowerCase = concepts.map(c => c.toLowerCase().replaceAll("-", " "));
+    if (dates.includes(year)) {
+      const i = conceptsLowerCase.indexOf(concept);
+      if (i !== 0) {
+        return `[${year} ${concepts[i]}]`;
+      };
+    };
   }
-  return false;
+  return null;
 }
 
 function extractTokens(formula: string): Set<string> {
