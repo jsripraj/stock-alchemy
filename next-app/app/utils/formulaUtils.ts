@@ -2,6 +2,22 @@ export function formatConcept(words: string[]): string {
   return `[${words.join(" ")}]`;
 }
 
+export function isValidConcept(
+  str: string,
+  dates: string[],
+  concepts: string[]
+): boolean {
+  if (str.startsWith("[") && str.endsWith("]")) {
+    const sub = str.substring(1, str.length - 1)
+    if (sub === "Market Cap") { return true; }
+    const spaceIndex = sub.indexOf(" ");
+    const year = sub.substring(0, spaceIndex);
+    const concept = sub.substring(spaceIndex + 1);
+    if (dates.includes(year) && concepts.includes(concept)) { return true; }
+  }
+  return false;
+}
+
 function extractTokens(formula: string): Set<string> {
   const regex = /\[[^\]]+\]/g;
   return new Set(formula.match(regex));
@@ -124,16 +140,18 @@ export function getMostRecentYear() {
 
 export function getCursorPos(formulaDivRef: HTMLDivElement | null) {
   const selection = window.getSelection();
-  if (!formulaDivRef || !selection || selection.rangeCount === 0)
-    return 0;
+  if (!formulaDivRef || !selection || selection.rangeCount === 0) return 0;
   const range = selection.getRangeAt(0);
   const cloneRange = range.cloneRange();
   cloneRange.selectNodeContents(formulaDivRef);
-  cloneRange.setEnd(range.endContainer, range.endOffset)
+  cloneRange.setEnd(range.endContainer, range.endOffset);
   return cloneRange.toString().length;
 }
 
-export function restoreCursorPosition(container: HTMLElement, cursorPos: number) {
+export function restoreCursorPosition(
+  container: HTMLElement,
+  cursorPos: number
+) {
   const selection = window.getSelection();
   if (!selection) return;
 
@@ -153,7 +171,7 @@ export function restoreCursorPosition(container: HTMLElement, cursorPos: number)
       }
     } else if (node.nodeType === Node.ELEMENT_NODE) {
       // Walk into the element
-      const text = (node.textContent ?? "");
+      const text = node.textContent ?? "";
       if (pos <= text.length) {
         node = node.firstChild;
         continue;

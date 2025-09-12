@@ -69,6 +69,8 @@ export default function Home() {
           insertIntoFormula={insertIntoFormula}
           setFormula={setFormula}
           cursorPosRef={cursorPosRef}
+          dates={dates}
+          concepts={concepts}
         />
         <FindStocksButton formula={formula} />
       </div>

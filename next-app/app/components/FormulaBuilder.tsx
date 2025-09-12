@@ -2,18 +2,22 @@
 
 import React, { SetStateAction } from "react";
 import { useRef, useEffect } from "react";
-import { formatConcept, getCursorPos, restoreCursorPosition } from "@/app/utils/formulaUtils";
+import { formatConcept, getCursorPos, restoreCursorPosition, isValidConcept } from "@/app/utils/formulaUtils";
 
 export default function FormulaBuilder({
   formula,
   insertIntoFormula,
   setFormula,
   cursorPosRef,
+  dates,
+  concepts,
 }: {
   formula: string;
   insertIntoFormula: (insertIndex: number, str: string) => void;
   setFormula: React.Dispatch<SetStateAction<string>>;
   cursorPosRef: React.RefObject<number>;
+  dates: string[];
+  concepts: string[];
 }) {
   const formulaDivRef = useRef<HTMLDivElement>(null);
 
@@ -35,7 +39,7 @@ export default function FormulaBuilder({
     parts.forEach((p) => {
       const span = document.createElement("span");
       span.textContent = p;
-      if (p.startsWith("[")) {
+      if (isValidConcept(p, dates, concepts)) {
         span.className = "text-lime-500";
       }
       formulaDivRef.current?.appendChild(span);
