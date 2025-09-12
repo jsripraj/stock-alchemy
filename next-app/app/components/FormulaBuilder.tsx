@@ -19,6 +19,7 @@ export default function FormulaBuilder({
   dates: string[];
   concepts: string[];
 }) {
+  const unallowed = /[^A-Za-z0-9+\-*/()\[\]\s]/;
   const formulaDivRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -104,6 +105,11 @@ export default function FormulaBuilder({
         "
         contentEditable={true}
         autoFocus={true}
+        onBeforeInput={(e) => {
+          if (unallowed.test(e.data)) {
+            e.preventDefault();
+          }
+        }}
         onInput={(e) => {
           cursorPosRef.current = getCursorPos(formulaDivRef.current);
           setFormula(
