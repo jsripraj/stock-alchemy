@@ -200,6 +200,7 @@ export function isValidFormula(
   dates: string[],
   concepts: string[]
 ): { result: boolean; message: string } {
+
   // Check concepts
   const extractedConcepts = [...extractTokens(formula)];
   extractedConcepts.forEach((c) => {
@@ -226,6 +227,10 @@ export function isValidFormula(
   const normalized = formula.replaceAll(conceptRegex, "1");
 
   // Check if normalized formula is valid
+  const unallowed = /[^0-9+\-*/()<>\s]/;
+  if (unallowed.test(normalized)) {
+    return { result: false, message: `Invalid formula` };
+  }
   try {
     new Function(`return ${normalized}`);
   } catch {

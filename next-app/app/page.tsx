@@ -72,7 +72,7 @@ export default function Home() {
           dates={dates}
           concepts={concepts}
         />
-        <FindStocksButton formula={formula} />
+        <FindStocksButton formula={formula} dates={dates} concepts={concepts} />
       </div>
     </div>
   );
