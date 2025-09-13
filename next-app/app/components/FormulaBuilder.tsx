@@ -11,6 +11,7 @@ export default function FormulaBuilder({
   cursorPosRef,
   dates,
   concepts,
+  errorMessage,
 }: {
   formula: string;
   insertIntoFormula: (insertIndex: number, str: string) => void;
@@ -18,6 +19,7 @@ export default function FormulaBuilder({
   cursorPosRef: React.RefObject<number>;
   dates: string[];
   concepts: string[];
+  errorMessage: string;
 }) {
   const unallowed = /[^A-Za-z0-9+\-*/()<>\[\]\s]/;
   const formulaDivRef = useRef<HTMLDivElement>(null);
@@ -127,6 +129,7 @@ export default function FormulaBuilder({
         }}
       >
       </div>
+      <p className="text-red-500 min-h-7">{errorMessage}</p>
     </div>
   );
 }

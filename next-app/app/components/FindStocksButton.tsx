@@ -7,20 +7,17 @@ export default function FindStocksButton({
   formula,
   dates,
   concepts,
-  errorMessage,
   setErrorMessage,
 }: {
   formula: string;
   dates: string[];
   concepts: string[];
-  errorMessage: string;
   setErrorMessage: React.Dispatch<SetStateAction<string>>;
 }) {
   const router = useRouter();
 
   return (
-    <div className="flex-1">
-      <p className="text-red-500 text-center">{errorMessage}</p>
+    <div className="flex-1 flex flex-col items-center">
       <button
         className="m-3 p-3 bg-lime-700 border border-lime-500 rounded text-3xl hover:bg-lime-900 cursor-pointer text-lime-50 hover:font-semibold"
         onClick={async () => {

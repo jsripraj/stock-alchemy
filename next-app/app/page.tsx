@@ -72,8 +72,14 @@ export default function Home() {
           cursorPosRef={cursorPosRef}
           dates={dates}
           concepts={concepts}
+          errorMessage={errorMessage}
         />
-        <FindStocksButton formula={formula} dates={dates} concepts={concepts} errorMessage={errorMessage} setErrorMessage={setErrorMessage}/>
+        <FindStocksButton
+          formula={formula}
+          dates={dates}
+          concepts={concepts}
+          setErrorMessage={setErrorMessage}
+        />
       </div>
     </div>
   );
