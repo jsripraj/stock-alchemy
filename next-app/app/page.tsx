@@ -33,6 +33,7 @@ const concepts = [
 
 export default function Home() {
   const [formula, setFormula] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
   const cursorPosRef = useRef<number>(0);
 
   function insertIntoFormula(insertIndex: number, str: string) {
@@ -72,7 +73,7 @@ export default function Home() {
           dates={dates}
           concepts={concepts}
         />
-        <FindStocksButton formula={formula} dates={dates} concepts={concepts} />
+        <FindStocksButton formula={formula} dates={dates} concepts={concepts} errorMessage={errorMessage} setErrorMessage={setErrorMessage}/>
       </div>
     </div>
   );

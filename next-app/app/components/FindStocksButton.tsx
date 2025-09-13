@@ -1,18 +1,32 @@
 import { storeFormula } from "@/app/utils/postgresUtils";
 import { isValidFormula } from "@/app/utils/formulaUtils";
 import { useRouter } from "next/navigation";
+import { SetStateAction } from "react";
 
-export default function FindStocksButton({ formula, dates, concepts }: { formula: string; dates: string[]; concepts: string[]; }) {
+export default function FindStocksButton({
+  formula,
+  dates,
+  concepts,
+  errorMessage,
+  setErrorMessage,
+}: {
+  formula: string;
+  dates: string[];
+  concepts: string[];
+  errorMessage: string;
+  setErrorMessage: React.Dispatch<SetStateAction<string>>;
+}) {
   const router = useRouter();
 
   return (
     <div className="flex-1">
+      <p className="text-red-500 text-center">{errorMessage}</p>
       <button
-        className="mt-6 px-3 py-1 bg-lime-700 border border-lime-500 rounded text-3xl hover:bg-lime-900 cursor-pointer text-lime-50 hover:font-semibold"
+        className="m-3 p-3 bg-lime-700 border border-lime-500 rounded text-3xl hover:bg-lime-900 cursor-pointer text-lime-50 hover:font-semibold"
         onClick={async () => {
           const { result, message } = isValidFormula(formula, dates, concepts);
-          if (message) { 
-            console.log(message);
+          if (message) {
+            setErrorMessage(message);
             return;
           }
           const [{ id }] = await storeFormula(formula);
