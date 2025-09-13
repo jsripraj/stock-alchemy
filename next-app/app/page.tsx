@@ -34,7 +34,9 @@ const concepts = [
 export default function Home() {
   const [formula, setFormula] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [isMessageVisable, setIsMessageVisable] = useState(false);
   const cursorPosRef = useRef<number>(0);
+  const timerID = useRef<NodeJS.Timeout>(null);
 
   function insertIntoFormula(insertIndex: number, str: string) {
     setFormula((f) => {
@@ -42,6 +44,16 @@ export default function Home() {
       const right = f.substring(insertIndex);
       return left + str + right;
     });
+  }
+
+  function startMessageTimer() {
+    setIsMessageVisable(true);
+    if (timerID.current) {
+      clearTimeout(timerID.current);
+    }
+    timerID.current = setTimeout(() => {
+      setIsMessageVisable(false);
+    }, 5000);
   }
 
   return (
@@ -73,12 +85,14 @@ export default function Home() {
           dates={dates}
           concepts={concepts}
           errorMessage={errorMessage}
+          isMessageVisable={isMessageVisable}
         />
         <FindStocksButton
           formula={formula}
           dates={dates}
           concepts={concepts}
           setErrorMessage={setErrorMessage}
+          startMessageTimer={startMessageTimer}
         />
       </div>
     </div>

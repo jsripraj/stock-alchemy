@@ -8,11 +8,13 @@ export default function FindStocksButton({
   dates,
   concepts,
   setErrorMessage,
+  startMessageTimer,
 }: {
   formula: string;
   dates: string[];
   concepts: string[];
   setErrorMessage: React.Dispatch<SetStateAction<string>>;
+  startMessageTimer: () => void;
 }) {
   const router = useRouter();
 
@@ -24,6 +26,7 @@ export default function FindStocksButton({
           const { result, message } = isValidFormula(formula, dates, concepts);
           if (message) {
             setErrorMessage(message);
+            startMessageTimer();
             return;
           }
           const [{ id }] = await storeFormula(formula);

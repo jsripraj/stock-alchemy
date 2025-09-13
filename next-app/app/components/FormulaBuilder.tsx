@@ -2,7 +2,12 @@
 
 import React, { SetStateAction } from "react";
 import { useRef, useEffect } from "react";
-import { formatConcept, getCursorPos, restoreCursorPosition, getPrettyConceptText } from "@/app/utils/formulaUtils";
+import {
+  formatConcept,
+  getCursorPos,
+  restoreCursorPosition,
+  getPrettyConceptText,
+} from "@/app/utils/formulaUtils";
 
 export default function FormulaBuilder({
   formula,
@@ -12,6 +17,7 @@ export default function FormulaBuilder({
   dates,
   concepts,
   errorMessage,
+  isMessageVisable,
 }: {
   formula: string;
   insertIntoFormula: (insertIndex: number, str: string) => void;
@@ -20,6 +26,7 @@ export default function FormulaBuilder({
   dates: string[];
   concepts: string[];
   errorMessage: string;
+  isMessageVisable: boolean;
 }) {
   const unallowed = /[^A-Za-z0-9+\-*/()<>\[\]\s]/;
   const formulaDivRef = useRef<HTMLDivElement>(null);
@@ -44,12 +51,11 @@ export default function FormulaBuilder({
     }
     parts.forEach((p) => {
       const span = document.createElement("span");
-      const concept= getPrettyConceptText(p, dates, concepts);
+      const concept = getPrettyConceptText(p, dates, concepts);
       if (concept) {
         span.textContent = concept;
         span.className = "text-lime-500";
-      }
-      else{
+      } else {
         span.textContent = p;
       }
       formulaDivRef.current?.appendChild(span);
@@ -127,9 +133,14 @@ export default function FormulaBuilder({
         onClick={() => {
           cursorPosRef.current = getCursorPos(formulaDivRef.current);
         }}
+      ></div>
+      <p
+        className={`text-red-500 min-h-7 ${
+          isMessageVisable ? "opacity-100" : "opacity-0"
+        } transition-discrete transition-opacity duration-200`}
       >
-      </div>
-      <p className="text-red-500 min-h-7">{errorMessage}</p>
+        {errorMessage}
+      </p>
     </div>
   );
 }
