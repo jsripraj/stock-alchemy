@@ -20,7 +20,6 @@ export default async function ResultsPage({ searchParams }: ResultsPageProps) {
   if (!results) {
     return noResults;
   }
-  console.log(results);
 
   const headers = ["Ticker", "Company", "Left Side", "Right Side"];
 
@@ -46,7 +45,7 @@ export default async function ResultsPage({ searchParams }: ResultsPageProps) {
               <td
                 key={key}
                 scope="row"
-                className={`border border-[#a0a0a0] px-[10px] py-2`}
+                className={`border border-[#a0a0a0] px-[10px] py-2 text-lime-500`}
               >
                 {value}
               </td>

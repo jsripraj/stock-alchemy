@@ -29,7 +29,7 @@ export default function FindStocksButton({
             startMessageTimer();
             return;
           }
-          const [{ id }] = await storeFormula(formula);
+          const [{ id }] = await storeFormula(formula.normalize());
           router.push(`/results?id=${id}`);
         }}
       >

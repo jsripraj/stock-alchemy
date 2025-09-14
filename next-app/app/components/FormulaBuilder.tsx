@@ -31,10 +31,13 @@ export default function FormulaBuilder({
   const unallowed = /[^A-Za-z0-9+\-*/()<>\[\]\s]/;
   const formulaDivRef = useRef<HTMLDivElement>(null);
 
+  /* 
+  Track changes to formula to add syntax highlighting, correct cursor positioning, 
+  and prevent hidden characters.
+  */
   useEffect(() => {
     if (!formulaDivRef.current) return;
     if (formula === "") {
-      setFormula(" ");
       return;
     }
 
