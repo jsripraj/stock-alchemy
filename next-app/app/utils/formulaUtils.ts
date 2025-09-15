@@ -277,5 +277,72 @@ export function isValidFormula(
 }
 
 function isParsable(expr: string) {
+  const isWhitespaceString = (str: string) => {
+    return str.replace(/\s/g, "").length === 0;
+  };
+  if (isWhitespaceString(expr)) {
+    return false;
+  }
+
+  const unallowed = /[^0-9+\-*/()\s]/;
+  if (unallowed.test(expr)) {
+    return false;
+  }
+
+  const numType = "num";
+  const opType = "op";
+
+  // Tokenize 
+  let token = "";
+  const tokenTypes = [];
+  let i = 0;
+  while (i < expr.length) {
+    const char = expr[i];
+    if (/\d/.test(char)) {
+      // digit
+      token += char;
+    } else {
+      // whitespace, operator, or parenthesis
+      if (token) {
+        tokenTypes.push(numType);
+        token = "";
+      }
+      if (/[+\-*/]/.test(char)) {
+        tokenTypes.push(opType);
+      } else if (char === "(") {
+        const end = expr.lastIndexOf(")");
+        if (end <= i + 1 || !isParsable(expr.substring(i + 1, end))) {
+          return false;
+        }
+        tokenTypes.push(numType);
+        i = end + 1;
+        continue;
+      } else if (char === ")") {
+        return false;
+      }
+    }
+    i++;
+  }
+  if (token) {
+    tokenTypes.push(numType);
+  }
+
+  // Check validity
+  if (!tokenTypes.length) {
+    return false;
+  }
+  for (i = 0; i < tokenTypes.length; i++) {
+    const cur = tokenTypes[i];
+    if ((i === 0 || i === tokenTypes.length - 1) && cur === "op") {
+      return false;
+    }
+    if (i > 0) {
+      const prev = tokenTypes[i-1];
+      if (prev === cur) {
+        return false;
+      }
+    }
+  }
+
   return true;
 }
