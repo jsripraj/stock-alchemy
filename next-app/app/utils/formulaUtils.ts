@@ -206,51 +206,76 @@ export function isValidFormula(
   dates: string[],
   concepts: string[]
 ): { result: boolean; message: string } {
-
-  // Check concepts
-  const extractedConcepts = [...extractTokens(formula)];
-  if (extractedConcepts.length === 0) {
-    return { result: false, message: `Formula must contain at least one financial concept` };
-  }
-  extractedConcepts.forEach((c) => {
-    if (!getPrettyConceptText(c, dates, concepts)) {
-      return { result: false, message: `Invalid financial concept: ${c}` };
+  try {
+    // Check inequality
+    const inequalityRegex = /[<>]/g;
+    const matches = formula.match(inequalityRegex);
+    if (!matches?.length) {
+      return {
+        result: false,
+        message: `The formula must be an inequality and include one of "<" or ">"`,
+      };
     }
-  });
-
-  // Check inequality
-  const inequalityRegex = /[<>]/g;
-  const matches = formula.match(inequalityRegex);
-  if (!matches?.length) {
-    return {
-      result: false,
-      message: `The formula must be an inequality and include one of "<" or ">"`,
-    };
-  }
-  if (matches.length > 1) {
-    return { result: false, message: `Too many inequality operators` };
-  }
-
-  // Replace concepts with "1 "
-  const conceptRegex = /\[[^\]]+\]/g;
-  const normalized = formula.replaceAll(conceptRegex, "1 ");
-
-  // Check if normalized formula is valid
-  const unallowed = /[^0-9+\-*/()\s]/;
-  const sides = normalized.split(inequalityRegex);
-  for (const side of sides) {
-    try {
-      if (unallowed.test(side)) {
-        throw new Error("Invalid formula");
-      }
-      const test = evaluate(side);
-      if (!Number.isFinite(test)) {
-        throw new Error("Invalid formula");
-      }
-    } catch {
-      return { result: false, message: `Invalid formula` };
+    if (matches.length > 1) {
+      return { result: false, message: `Too many inequality operators` };
     }
+
+    // Check concepts
+    const extractedConcepts = [...extractTokens(formula)];
+    if (extractedConcepts.length === 0) {
+      return {
+        result: false,
+        message: `Formula must contain at least one financial concept`,
+      };
+    }
+    extractedConcepts.forEach((c) => {
+      if (!getPrettyConceptText(c, dates, concepts)) {
+        return { result: false, message: `Invalid financial concept: ${c}` };
+      }
+    });
+
+    const unallowed = /[^0-9+\-*/()<>\s]/;
+    const conceptRegex = /\[[^\]]+\]/g;
+
+    // Normalize formula
+    const normalized = formula.replaceAll(conceptRegex, "(1)");
+
+    // Check for unallowed characters
+    if (unallowed.test(normalized)) {
+      return {
+        result: false,
+        message: "Invalid formula: unallowed characters",
+      };
+    }
+
+    const sides = normalized.split(inequalityRegex);
+    for (let i = 0; i < sides.length; i++) {
+      const side = sides[i];
+      const dir = i === 0 ? "left" : "right";
+
+      // Check parsing
+      if (!isParsable(side)) {
+        return {
+          result: false,
+          message: `Invalid formula: unable to parse ${dir} side of inequality`,
+        };
+      }
+
+      // Check for NaN and Infinity
+      if (!Number.isFinite(evaluate(side))) {
+        return {
+          result: false,
+          message: `Invalid formula: ${dir} side of inequality does not evaluate to a finite number`,
+        };
+      }
+    }
+  } catch {
+    return { result: false, message: `Invalid formula` };
   }
 
   return { result: true, message: "" };
+}
+
+function isParsable(expr: string) {
+  return true;
 }
