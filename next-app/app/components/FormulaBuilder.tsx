@@ -37,9 +37,6 @@ export default function FormulaBuilder({
   */
   useEffect(() => {
     if (!formulaDivRef.current) return;
-    if (formula === "") {
-      return;
-    }
 
     const cursorJump =
       formula.length - formulaDivRef.current.textContent.length;
@@ -48,10 +45,10 @@ export default function FormulaBuilder({
     }
 
     // Parse formula
-    const parts = formula.split(/(\[[^\]]+\])/g).filter((p) => p !== "");
     while (formulaDivRef.current.firstChild) {
       formulaDivRef.current.removeChild(formulaDivRef.current.firstChild);
     }
+    const parts = formula.split(/(\[[^\]]+\])/g).filter((p) => p !== "");
     parts.forEach((p) => {
       const span = document.createElement("span");
       const concept = getPrettyConceptText(p, dates, concepts);
@@ -97,14 +94,19 @@ export default function FormulaBuilder({
           <button
             key={op}
             className="px-3 py-1 bg-black border border-orange-500 rounded hover:bg-orange-900 hover:font-semibold cursor-pointer font-medium text-orange-50"
-            onClick={() => insertIntoFormula(cursorPosRef.current, op)}
+            onClick={() => {
+              insertIntoFormula(cursorPosRef.current, op);
+            }}
           >
             {op}
           </button>
         ))}
         <button
           className="px-3 py-1 bg-red-700 border border-red-500 rounded hover:bg-red-900 hover:font-semibold cursor-pointer font-medium text-red-50"
-          onClick={() => setFormula("")}
+          onClick={() => {
+            cursorPosRef.current = 0;
+            setFormula("");
+          }}
         >
           Clear
         </button>

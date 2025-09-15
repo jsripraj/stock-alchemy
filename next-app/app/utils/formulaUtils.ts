@@ -54,26 +54,30 @@ export function restoreCursorPosition(
   let pos = cursorPos;
   let node: ChildNode | null = container.firstChild;
 
-  while (node) {
-    if (node.nodeType === Node.TEXT_NODE) {
-      const text = node.textContent ?? "";
-      if (pos <= text.length) {
-        range.setStart(node, pos);
-        break;
-      } else {
-        pos -= text.length;
+  if (node) {
+    while (node) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        const text = node.textContent ?? "";
+        if (pos <= text.length) {
+          range.setStart(node, pos);
+          break;
+        } else {
+          pos -= text.length;
+        }
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        // Walk into the element
+        const text = node.textContent ?? "";
+        if (pos <= text.length) {
+          node = node.firstChild;
+          continue;
+        } else {
+          pos -= text.length;
+        }
       }
-    } else if (node.nodeType === Node.ELEMENT_NODE) {
-      // Walk into the element
-      const text = node.textContent ?? "";
-      if (pos <= text.length) {
-        node = node.firstChild;
-        continue;
-      } else {
-        pos -= text.length;
-      }
+      node = node.nextSibling;
     }
-    node = node.nextSibling;
+  } else {
+    range.setStart(container, pos);
   }
 
   range.collapse(true);
@@ -200,7 +204,6 @@ export function isValidFormula(
   dates: string[],
   concepts: string[]
 ): { result: boolean; message: string } {
-
   // Check concepts
   const extractedConcepts = [...extractTokens(formula)];
   extractedConcepts.forEach((c) => {
