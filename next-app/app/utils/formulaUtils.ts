@@ -206,6 +206,7 @@ export function isValidFormula(
   dates: string[],
   concepts: string[]
 ): { result: boolean; message: string } {
+
   // Check concepts
   const extractedConcepts = [...extractTokens(formula)];
   if (extractedConcepts.length === 0) {
@@ -230,9 +231,9 @@ export function isValidFormula(
     return { result: false, message: `Too many inequality operators` };
   }
 
-  // Replace concepts with "1"
+  // Replace concepts with "1 "
   const conceptRegex = /\[[^\]]+\]/g;
-  const normalized = formula.replaceAll(conceptRegex, "1");
+  const normalized = formula.replaceAll(conceptRegex, "1 ");
 
   // Check if normalized formula is valid
   const unallowed = /[^0-9+\-*/()\s]/;
