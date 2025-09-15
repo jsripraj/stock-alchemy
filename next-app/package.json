@@ -23,6 +23,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "autoprefixer": "^10.4.21",
+    "mathjs": "^14.7.0",
     "postcss": "^8.5.6",
     "tailwind-scrollbar": "^4.0.2",
     "tailwindcss": "^4",

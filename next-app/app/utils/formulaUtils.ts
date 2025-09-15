@@ -1,3 +1,5 @@
+import { evaluate } from "mathjs";
+
 export function formatConcept(words: string[]): string {
   return `[${words.join(" ")}]`;
 }
@@ -206,6 +208,9 @@ export function isValidFormula(
 ): { result: boolean; message: string } {
   // Check concepts
   const extractedConcepts = [...extractTokens(formula)];
+  if (extractedConcepts.length === 0) {
+    return { result: false, message: `Formula must contain at least one financial concept` };
+  }
   extractedConcepts.forEach((c) => {
     if (!getPrettyConceptText(c, dates, concepts)) {
       return { result: false, message: `Invalid financial concept: ${c}` };
@@ -230,14 +235,21 @@ export function isValidFormula(
   const normalized = formula.replaceAll(conceptRegex, "1");
 
   // Check if normalized formula is valid
-  const unallowed = /[^0-9+\-*/()<>\s]/;
-  if (unallowed.test(normalized)) {
-    return { result: false, message: `Invalid formula` };
+  const unallowed = /[^0-9+\-*/()\s]/;
+  const sides = normalized.split(inequalityRegex);
+  for (const side of sides) {
+    try {
+      if (unallowed.test(side)) {
+        throw new Error("Invalid formula");
+      }
+      const test = evaluate(side);
+      if (!Number.isFinite(test)) {
+        throw new Error("Invalid formula");
+      }
+    } catch {
+      return { result: false, message: `Invalid formula` };
+    }
   }
-  try {
-    new Function(`return ${normalized}`);
-  } catch {
-    return { result: false, message: `Invalid formula` };
-  }
+
   return { result: true, message: "" };
 }
