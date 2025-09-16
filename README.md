@@ -6,10 +6,12 @@ A full-stack stock screener that lets users define and evaluate custom financial
 ## Overview
 - Python ETL pipeline ingests SEC filings and historical stock prices into a Postgres database.  
 - Next.js front-end (in progress) for querying, visualizing, and screening stocks.  
-- Supports user-defined formulas to track financial metrics over time.
+- Supports user-defined formulas to filter on financial metrics over time.
 
 ## Tech Stack
-Python, Postgres, Next.js, Tailwind CSS, [yfinance](https://github.com/ranaroussi/yfinance), [EDGAR API](https://www.sec.gov/search-filings/edgar-application-programming-interfaces)
+- **Languages & Frameworks:** Python, TypeScript, React, Next.js, Tailwind CSS  
+- **Database:** Postgres  
+- **APIs:** [EDGAR](https://www.sec.gov/search-filings/edgar-application-programming-interfaces), [yfinance](https://github.com/ranaroussi/yfinance)
 
 ## Future Work  
 - Implement user authentication
