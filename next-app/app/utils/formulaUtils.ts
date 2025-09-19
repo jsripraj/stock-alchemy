@@ -234,41 +234,46 @@ export function isValidFormula(
       }
     });
 
-    const unallowed = /[^0-9+\-*/()<>\s]/;
+    // const unallowed = /[^0-9+\-*/()<>\s]/;
     const conceptRegex = /\[[^\]]+\]/g;
 
     // Normalize formula
-    const normalized = formula.replaceAll(conceptRegex, "(1)");
+    const normalized = normalizeFormula(formula);
+
+    // const normalized = formula.replaceAll(conceptRegex, "(1)");
+    console.log(`normalized: ${normalized}`);
+    return { result: false, message: `testing` };
 
     // Check for unallowed characters
-    if (unallowed.test(normalized)) {
-      return {
-        result: false,
-        message: "Invalid formula: unallowed characters",
-      };
-    }
+    // if (unallowed.test(normalized)) {
+    //   return {
+    //     result: false,
+    //     message: "Invalid formula: unallowed characters",
+    //   };
+    // }
 
-    const sides = normalized.split(inequalityRegex);
-    for (let i = 0; i < sides.length; i++) {
-      const side = sides[i];
-      const dir = i === 0 ? "left" : "right";
+    //   const sides = normalized.split(inequalityRegex);
+    //   for (let i = 0; i < sides.length; i++) {
+    //     const side = sides[i];
+    //     console.log(`side: ${side}`)
+    //     const dir = i === 0 ? "left" : "right";
 
-      // Check parsing
-      if (!isParsable(side)) {
-        return {
-          result: false,
-          message: `Invalid formula: unable to parse ${dir} side of inequality`,
-        };
-      }
+    //     // Check parsing
+    //     if (!isParsable(side)) {
+    //       return {
+    //         result: false,
+    //         message: `Invalid formula: unable to parse ${dir} side of inequality`,
+    //       };
+    //     }
 
-      // Check for NaN and Infinity
-      if (!Number.isFinite(evaluate(side))) {
-        return {
-          result: false,
-          message: `Invalid formula: ${dir} side of inequality does not evaluate to a finite number`,
-        };
-      }
-    }
+    //     // Check for NaN and Infinity
+    //     if (!Number.isFinite(evaluate(side))) {
+    //       return {
+    //         result: false,
+    //         message: `Invalid formula: ${dir} side of inequality does not evaluate to a finite number`,
+    //       };
+    //     }
+    //   }
   } catch {
     return { result: false, message: `Invalid formula` };
   }
@@ -277,22 +282,25 @@ export function isValidFormula(
 }
 
 function isParsable(expr: string) {
+  /** Takes a normalized expression (i.e. bracketed concepts have been replaced) */
   const isWhitespaceString = (str: string) => {
     return str.replace(/\s/g, "").length === 0;
   };
   if (isWhitespaceString(expr)) {
+    console.log(`${expr}: not parsable: whitespace string`);
     return false;
   }
 
   const unallowed = /[^0-9+\-*/()\s]/;
   if (unallowed.test(expr)) {
+    console.log(`${expr}: not parsable: unallowed chars`);
     return false;
   }
 
   const numType = "num";
   const opType = "op";
 
-  // Tokenize 
+  // Tokenize
   let token = "";
   const tokenTypes = [];
   let i = 0;
@@ -312,12 +320,14 @@ function isParsable(expr: string) {
       } else if (char === "(") {
         const end = expr.lastIndexOf(")");
         if (end <= i + 1 || !isParsable(expr.substring(i + 1, end))) {
+          console.log(`${expr}: not parsable: couldn't find close parenthesis`);
           return false;
         }
         tokenTypes.push(numType);
         i = end + 1;
         continue;
       } else if (char === ")") {
+        console.log(`${expr}: not parsable: unexpected close parenthesis`);
         return false;
       }
     }
@@ -329,20 +339,50 @@ function isParsable(expr: string) {
 
   // Check validity
   if (!tokenTypes.length) {
+    console.log(`${expr}: not parsable: no token types`);
     return false;
   }
   for (i = 0; i < tokenTypes.length; i++) {
     const cur = tokenTypes[i];
     if ((i === 0 || i === tokenTypes.length - 1) && cur === "op") {
+      console.log(`${expr}: not parsable: operator token at start or end`);
       return false;
     }
     if (i > 0) {
-      const prev = tokenTypes[i-1];
+      const prev = tokenTypes[i - 1];
       if (prev === cur) {
+        console.log(`${expr}: not parsable: consecutive token types`);
         return false;
       }
     }
   }
 
   return true;
+}
+
+function normalizeFormula(formula: string) {
+  /** Replaces concepts with a unique id */
+  const conceptRegex = /\[[^\]]+\]/g;
+  const concepts = formula
+    .matchAll(conceptRegex)
+    .map((match: string[]) => match[0]);
+
+  let num = 1;
+  const getID = () => {
+    return "x" + (num++).toString();
+  };
+
+  const conceptToID = new Map();
+  concepts.forEach((c) => {
+    if (!conceptToID.has(c)) {
+      conceptToID.set(c, getID());
+    }
+  });
+
+  let normalized = formula;
+  conceptToID.forEach((id, concept) => {
+    normalized = normalized.replaceAll(concept, id);
+  })
+
+  return normalized;
 }
