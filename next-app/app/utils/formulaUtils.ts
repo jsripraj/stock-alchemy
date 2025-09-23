@@ -1,4 +1,4 @@
-import { evaluate } from "mathjs";
+import { simplify } from "mathjs";
 
 export function formatConcept(words: string[]): string {
   return `[${words.join(" ")}]`;
@@ -242,7 +242,7 @@ export function isValidFormula(
 
     // const normalized = formula.replaceAll(conceptRegex, "(1)");
     console.log(`normalized: ${normalized}`);
-    return { result: false, message: `testing` };
+    // return { result: false, message: `testing` };
 
     // Check for unallowed characters
     // if (unallowed.test(normalized)) {
@@ -266,8 +266,8 @@ export function isValidFormula(
       //       };
       //     }
 
-      // Check for NaN and Infinity
-      if (!Number.isFinite(evaluate(side))) {
+      // Check for Infinity
+      if (simplify(side).toString().includes("Infinity")) {
         return {
           result: false,
           message: `Invalid formula: ${dir} side of inequality does not evaluate to a finite number`,
