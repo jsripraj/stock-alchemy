@@ -8,6 +8,7 @@ const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
 export async function fetchResults(formula: string, mostRecentYear: string) {
   const clean = formula.replace(/\u00A0/g, " ");
   const query = getSqlQuery(clean, mostRecentYear);
+  console.log(query);
 
   if (query) {
     const data = await sql.unsafe(query);
