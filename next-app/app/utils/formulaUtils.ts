@@ -252,28 +252,28 @@ export function isValidFormula(
     //   };
     // }
 
-    //   const sides = normalized.split(inequalityRegex);
-    //   for (let i = 0; i < sides.length; i++) {
-    //     const side = sides[i];
-    //     console.log(`side: ${side}`)
-    //     const dir = i === 0 ? "left" : "right";
+    const sides = normalized.split(inequalityRegex);
+    for (let i = 0; i < sides.length; i++) {
+      const side = sides[i];
+      console.log(`side: ${side}`);
+      const dir = i === 0 ? "left" : "right";
 
-    //     // Check parsing
-    //     if (!isParsable(side)) {
-    //       return {
-    //         result: false,
-    //         message: `Invalid formula: unable to parse ${dir} side of inequality`,
-    //       };
-    //     }
+      //     // Check parsing
+      //     if (!isParsable(side)) {
+      //       return {
+      //         result: false,
+      //         message: `Invalid formula: unable to parse ${dir} side of inequality`,
+      //       };
+      //     }
 
-    //     // Check for NaN and Infinity
-    //     if (!Number.isFinite(evaluate(side))) {
-    //       return {
-    //         result: false,
-    //         message: `Invalid formula: ${dir} side of inequality does not evaluate to a finite number`,
-    //       };
-    //     }
-    //   }
+      // Check for NaN and Infinity
+      if (!Number.isFinite(evaluate(side))) {
+        return {
+          result: false,
+          message: `Invalid formula: ${dir} side of inequality does not evaluate to a finite number`,
+        };
+      }
+    }
   } catch {
     return { result: false, message: `Invalid formula` };
   }
@@ -361,7 +361,7 @@ function isParsable(expr: string) {
 }
 
 function normalizeFormula(formula: string) {
-  /** Replaces concepts with a unique id */
+  /** Replaces concepts with a unique id wrapped in () */
   const conceptRegex = /\[[^\]]+\]/g;
   const concepts = formula
     .matchAll(conceptRegex)
@@ -381,8 +381,8 @@ function normalizeFormula(formula: string) {
 
   let normalized = formula;
   conceptToID.forEach((id, concept) => {
-    normalized = normalized.replaceAll(concept, id);
-  })
+    normalized = normalized.replaceAll(concept, `(${id})`);
+  });
 
   return normalized;
 }
