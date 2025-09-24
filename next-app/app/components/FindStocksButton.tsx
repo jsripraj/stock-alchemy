@@ -1,5 +1,5 @@
 import { storeFormula } from "@/app/utils/postgresUtils";
-import { getValidFormula } from "@/app/utils/formulaUtils";
+import { isValidFormula } from "@/app/utils/formulaUtils";
 import { useRouter } from "next/navigation";
 import { SetStateAction } from "react";
 
@@ -23,7 +23,7 @@ export default function FindStocksButton({
       <button
         className="m-3 p-3 bg-lime-700 border border-lime-500 rounded text-3xl hover:bg-lime-900 cursor-pointer text-lime-50 hover:font-semibold"
         onClick={async () => {
-          const { result, message } = getValidFormula(formula, dates, concepts);
+          const { result, message } = isValidFormula(formula, dates, concepts);
           if (!result) {
             setErrorMessage(message);
             startMessageTimer();

@@ -202,27 +202,23 @@ export function getSqlQuery(formula: string, mostRecentYear: string) {
   `;
 }
 
-export function getValidFormula(
+export function isValidFormula(
   formula: string,
   dates: string[],
   concepts: string[]
-): { result: string | null; message: string } {
-  /**
-   * Returns the valid formula as result, if it can be created. Otherwise returns null as result.
-   * The message attribute explains why the valid formula could not be created.
-   */
+): { result: boolean; message: string } {
   try {
     // Check inequality
     const inequalityRegex = /[<>]/g;
     const matches = formula.match(inequalityRegex);
     if (!matches?.length) {
       return {
-        result: null,
+        result: false,
         message: `The formula must be an inequality and include one of "<" or ">"`,
       };
     }
     if (matches.length > 1) {
-      return { result: null, message: `Too many inequality operators` };
+      return { result: false, message: `Too many inequality operators` };
     }
     const inequality = matches[0];
 
@@ -230,13 +226,13 @@ export function getValidFormula(
     const extractedConcepts = [...extractTokens(formula)];
     if (extractedConcepts.length === 0) {
       return {
-        result: null,
+        result: false,
         message: `Formula must contain at least one financial concept`,
       };
     }
     extractedConcepts.forEach((c) => {
       if (!getPrettyConceptText(c, dates, concepts)) {
-        return { result: null, message: `Invalid financial concept: ${c}` };
+        return { result: false, message: `Invalid financial concept: ${c}` };
       }
     });
 
@@ -245,25 +241,25 @@ export function getValidFormula(
 
     // Normalize formula
     const normalized = normalizeFormula(formula);
-
     // const normalized = formula.replaceAll(conceptRegex, "(1)");
     console.log(`normalized: ${normalized}`);
-    // return { result: null, message: `testing` };
+    // return { result: false, message: `testing` };
 
     // Check for unallowed characters
     // if (unallowed.test(normalized)) {
     //   return {
-    //     result: null,
+    //     result: false,
     //     message: "Invalid formula: unallowed characters",
     //   };
     // }
 
+    // Check if each side evaluates to infinity
     const sides = normalized.split(inequality);
     const leftSideSimplified = simplify(sides[0]).toString();
     console.log(leftSideSimplified);
     if (leftSideSimplified.includes("Infinity")) {
       return {
-        result: null,
+        result: false,
         message: `Invalid formula: left side of inequality does not evaluate to a finite number`,
       };
     }
@@ -272,7 +268,7 @@ export function getValidFormula(
     console.log(rightSideSimplified);
     if (rightSideSimplified.includes("Infinity")) {
       return {
-        result: null,
+        result: false,
         message: `Invalid formula: right side of inequality does not evaluate to a finite number`,
       };
     }
@@ -285,7 +281,7 @@ export function getValidFormula(
     //   //     // Check parsing
     //   //     if (!isParsable(side)) {
     //   //       return {
-    //   //         result: null,
+    //   //         result: false,
     //   //         message: `Invalid formula: unable to parse ${dir} side of inequality`,
     //   //       };
     //   //     }
@@ -293,16 +289,15 @@ export function getValidFormula(
     //   // Check for Infinity
     //   if (simplify(side).toString().includes("Infinity")) {
     //     return {
-    //       result: null,
+    //       result: false,
     //       message: `Invalid formula: ${dir} side of inequality does not evaluate to a finite number`,
     //     };
     //   }
     // }
 
-    // TODO
-    // Add * operator between consecutive numbers
+    // Check each side for implicit multiplication
     console.log("wuh");
-    const removeImplicitMultiplication = (expr: string) => {
+    const hasImplicitMultiplication = (expr: string) => {
       const trimParens = (str: string) => {
         const parensRegex = /[\(\)]/g;
         return str.replace(parensRegex, "");
@@ -317,33 +312,38 @@ export function getValidFormula(
       };
 
       const terms = expr.split(" ");
-      const processedTerms = new Array<string>();
       let prevType = null;
       let curType = null;
       for (const term of terms) {
         curType = getType(term);
         if (prevType === "num" && curType === "num") {
-          processedTerms.push("*");
+          return true;
         }
-        processedTerms.push(term);
         prevType = curType;
       }
-
-      return processedTerms.join(" ");
+      return false;
     };
 
     console.log("huh");
-    const leftResult = removeImplicitMultiplication(leftSideSimplified);
-    const rightResult = removeImplicitMultiplication(rightSideSimplified);
-    const finalFormula = [leftResult, inequality, rightResult].join(" ");
-    console.log(`finalFormula: ${finalFormula}`);
+    if (hasImplicitMultiplication(leftSideSimplified)) {
+      return {
+        result: false,
+        message: `Invalid formula: try adding multiplication operators (*) to the left side of inequality`,
+      };
+    }
+    if (hasImplicitMultiplication(rightSideSimplified)) {
+      return {
+        result: false,
+        message: `Invalid formula: try adding multiplication operators (*) to the right side of inequality`,
+      };
+    }
 
     return {
-      result: finalFormula,
+      result: true,
       message: "",
     };
   } catch {
-    return { result: null, message: `Invalid formula` };
+    return { result: false, message: `Invalid formula` };
   }
 }
 
