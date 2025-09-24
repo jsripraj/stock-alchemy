@@ -49,9 +49,13 @@ export default function FormulaBuilder({
       formulaDivRef.current.removeChild(formulaDivRef.current.firstChild);
     }
     const parts = formula.split(/(\[[^\]]+\])/g).filter((p) => p !== "");
+    console.log(`parts: ${parts}`);
+
     parts.forEach((p) => {
       const span = document.createElement("span");
       const concept = getPrettyConceptText(p, dates, concepts);
+      console.log(`prettyConcept: ${concept}`);
+
       if (concept) {
         span.textContent = concept;
         span.className = "text-lime-500";

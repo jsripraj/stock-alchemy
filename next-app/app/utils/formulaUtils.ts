@@ -14,15 +14,15 @@ export function getPrettyConceptText(
     if (subLower === "market cap") {
       return "[Market Cap]";
     }
-    const spaceIndex = subLower.indexOf(" ");
-    const year = subLower.substring(0, spaceIndex);
-    const concept = subLower.substring(spaceIndex + 1).replaceAll("-", " ");
+    const firstSpaceIndex = subLower.indexOf(" ");
+    const year = subLower.substring(0, firstSpaceIndex);
+    const concept = subLower.substring(firstSpaceIndex + 1).replaceAll("-", " ");
     const conceptsLowerCase = concepts.map((c) =>
       c.toLowerCase().replaceAll("-", " ")
     );
     if (dates.includes(year)) {
       const i = conceptsLowerCase.indexOf(concept);
-      if (i !== 0) {
+      if (i !== -1) {
         return `[${year} ${concepts[i]}]`;
       }
     }
