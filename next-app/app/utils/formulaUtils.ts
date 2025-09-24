@@ -328,13 +328,13 @@ export function isValidFormula(
     if (hasImplicitMultiplication(leftSideSimplified)) {
       return {
         result: false,
-        message: `Invalid formula: try adding multiplication operators (*) to the left side of inequality`,
+        message: `Invalid formula: Implicit multiplication. Try adding multiplication operators (*) to the left side of inequality`,
       };
     }
     if (hasImplicitMultiplication(rightSideSimplified)) {
       return {
         result: false,
-        message: `Invalid formula: try adding multiplication operators (*) to the right side of inequality`,
+        message: `Invalid formula: Implicit multiplication. Try adding multiplication operators (*) to the right side of inequality`,
       };
     }
 
