@@ -338,6 +338,15 @@ export function isValidFormula(
       };
     }
 
+    // Check if formula evaluates to a boolean
+    const normalizedSimplified = simplify(normalized).toString();
+    if (normalizedSimplified === "0" || normalizedSimplified === "1") {
+      return {
+        result: false,
+        message: `Invalid formula: Evaluates to boolean ${normalizedSimplified === "1" ? "True" : "False"}`,
+      };
+    }
+
     return {
       result: true,
       message: "",
