@@ -53,7 +53,7 @@ export default function Home() {
     }
     timerID.current = setTimeout(() => {
       setIsMessageVisable(false);
-    }, 5000);
+    }, 10000);
   }
 
   return (
