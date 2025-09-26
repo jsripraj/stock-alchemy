@@ -16,17 +16,21 @@ export function getPrettyConceptText(
     }
     const firstSpaceIndex = subLower.indexOf(" ");
     const year = subLower.substring(0, firstSpaceIndex);
-    const concept = subLower.substring(firstSpaceIndex + 1).replaceAll("-", " ");
+    const concept = subLower
+      .substring(firstSpaceIndex + 1)
+      .replaceAll("-", " ");
     const conceptsLowerCase = concepts.map((c) =>
       c.toLowerCase().replaceAll("-", " ")
     );
     if (dates.includes(year)) {
+      console.log(`year: ${year}`);
       const i = conceptsLowerCase.indexOf(concept);
       if (i !== -1) {
         return `[${year} ${concepts[i]}]`;
       }
     }
   }
+  console.log(`getPrettyConceptText returning null`);
   return null;
 }
 
@@ -224,29 +228,30 @@ export function isValidFormula(
 
     // Check concepts
     const extractedConcepts = [...extractTokens(formula)];
+    console.log(`extractedConcepts: ${extractedConcepts}`);
     if (extractedConcepts.length === 0) {
       return {
         result: false,
         message: `Formula must contain at least one financial concept`,
       };
     }
-    extractedConcepts.forEach((c) => {
+    for (const c of extractedConcepts) {
+      console.log(`testing ${c}`);
       if (!getPrettyConceptText(c, dates, concepts)) {
+        console.log(`${c} is not okay`);
         return { result: false, message: `Invalid financial concept: ${c}` };
       }
-    });
+    }
 
     // const unallowed = /[^0-9+\-*/()<>\s]/;
-    // const conceptRegex = /\[[^\]]+\]/g;
 
     // Normalize formula
-    const normalized = normalizeFormula(formula);
-    // const normalized = formula.replaceAll(conceptRegex, "(1)");
-    console.log(`normalized: ${normalized}`);
+    const formulaWithIDs = replaceConceptsWithIDs(formula);
+    console.log(`formulaWithIDs: ${formulaWithIDs}`);
     // return { result: false, message: `testing` };
 
     // Check for unallowed characters
-    // if (unallowed.test(normalized)) {
+    // if (unallowed.test(formulaWithIDs)) {
     //   return {
     //     result: false,
     //     message: "Invalid formula: unallowed characters",
@@ -254,9 +259,9 @@ export function isValidFormula(
     // }
 
     // Check if each side evaluates to infinity
-    const sides = normalized.split(inequality);
+    const sides = formulaWithIDs.split(inequality);
     const leftSideSimplified = simplify(sides[0]).toString();
-    console.log(leftSideSimplified);
+    console.log(`leftSideSimplified: ${leftSideSimplified}`);
     if (leftSideSimplified.includes("Infinity")) {
       return {
         result: false,
@@ -304,7 +309,7 @@ export function isValidFormula(
       };
 
       const getType = (term: string) => {
-        const opsRegex = /[\+\-\*/]/g;
+        const opsRegex = /[\+\-\*/\^]/g; // include ^ operator because math.simplify may insert it
         if (trimParens(term).match(opsRegex)) {
           return "op";
         }
@@ -325,19 +330,27 @@ export function isValidFormula(
     };
 
     console.log("huh");
-    if (hasImplicitMultiplication(leftSideSimplified) || hasImplicitMultiplication(rightSideSimplified)) {
+    if (hasImplicitMultiplication(leftSideSimplified)) {
       return {
         result: false,
-        message: `Invalid formula: Implicit multiplication not allowed. Make sure you use explicit multiplication operators (*).`,
+        message: `Invalid formula: Make sure to use explicit multiplication operators (*) on left side of inequality.`,
+      };
+    }
+    if (hasImplicitMultiplication(rightSideSimplified)) {
+      return {
+        result: false,
+        message: `Invalid formula: Make sure to use explicit multiplication operators (*) on right side of inequality.`,
       };
     }
 
     // Check if formula evaluates to a boolean
-    const normalizedSimplified = simplify(normalized).toString();
-    if (normalizedSimplified === "0" || normalizedSimplified === "1") {
+    const formulaWithIDsSimplified = simplify(formulaWithIDs).toString();
+    if (formulaWithIDsSimplified === "0" || formulaWithIDsSimplified === "1") {
       return {
         result: false,
-        message: `Invalid formula: Evaluates to boolean ${normalizedSimplified === "1" ? "True" : "False"}`,
+        message: `Invalid formula: Evaluates to boolean ${
+          formulaWithIDsSimplified === "1" ? "True" : "False"
+        }`,
       };
     }
 
@@ -428,13 +441,20 @@ export function isValidFormula(
 
 //   return true;
 // }
-
-function normalizeFormula(formula: string) {
-  /** Replaces concepts with a unique id wrapped in () */
+function getConcepts(formula: string): string[] {
   const conceptRegex = /\[[^\]]+\]/g;
   const concepts = formula
     .matchAll(conceptRegex)
     .map((match: string[]) => match[0]);
+  return [...concepts];
+}
+
+function replaceConceptsWithIDs(formula: string) {
+  // const conceptRegex = /\[[^\]]+\]/g;
+  // const concepts = formula
+  //   .matchAll(conceptRegex)
+  //   .map((match: string[]) => match[0]);
+  const concepts = getConcepts(formula);
 
   let num = 1;
   const getID = () => {
@@ -448,10 +468,10 @@ function normalizeFormula(formula: string) {
     }
   });
 
-  let normalized = formula;
+  let replaced = formula;
   conceptToID.forEach((id, concept) => {
-    normalized = normalized.replaceAll(concept, `(${id})`);
+    replaced = replaced.replaceAll(concept, `(${id})`);
   });
 
-  return normalized;
+  return replaced;
 }
