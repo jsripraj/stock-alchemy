@@ -243,7 +243,12 @@ export function isValidFormula(
       }
     }
 
-    // const unallowed = /[^0-9+\-*/()<>\s]/;
+    // Check for unallowed characters outside of concepts
+    const unallowed = /[^0-9+\-*/()<>\s]/;
+    const dummyFormula = replaceConceptsWithDummyVar(formula, extractedConcepts);
+    if (dummyFormula.match(unallowed)) {
+      return { result: false, message: `Invalid Formula: Unexpected characters.`}
+    }
 
     // Normalize formula
     const formulaWithIDs = replaceConceptsWithIDs(formula, extractedConcepts);
@@ -447,6 +452,16 @@ function getConcepts(formula: string): string[] {
     .matchAll(conceptRegex)
     .map((match: string[]) => match[0]);
   return [...concepts];
+}
+
+function replaceConceptsWithDummyVar(formula: string, concepts: string[]) {
+  const dummy = "(1)";
+  let replaced = formula;
+  concepts.forEach((c) => {
+    replaced = replaced.replaceAll(c, dummy);
+  });
+
+  return replaced;
 }
 
 function replaceConceptsWithIDs(formula: string, concepts: string[]) {
