@@ -209,7 +209,7 @@ export function getSqlQuery(formula: string, mostRecentYear: string) {
 export function isValidFormula(
   formula: string,
   dates: string[],
-  concepts: string[]
+  trueConcepts: string[]
 ): { result: boolean; message: string } {
   try {
     // Check inequality
@@ -237,7 +237,7 @@ export function isValidFormula(
     }
     for (const c of extractedConcepts) {
       console.log(`testing ${c}`);
-      if (!getPrettyConceptText(c, dates, concepts)) {
+      if (!getPrettyConceptText(c, dates, trueConcepts)) {
         console.log(`${c} is not okay`);
         return { result: false, message: `Invalid financial concept: ${c}` };
       }
@@ -246,7 +246,7 @@ export function isValidFormula(
     // const unallowed = /[^0-9+\-*/()<>\s]/;
 
     // Normalize formula
-    const formulaWithIDs = replaceConceptsWithIDs(formula);
+    const formulaWithIDs = replaceConceptsWithIDs(formula, extractedConcepts);
     console.log(`formulaWithIDs: ${formulaWithIDs}`);
     // return { result: false, message: `testing` };
 
@@ -449,12 +449,12 @@ function getConcepts(formula: string): string[] {
   return [...concepts];
 }
 
-function replaceConceptsWithIDs(formula: string) {
+function replaceConceptsWithIDs(formula: string, concepts: string[]) {
   // const conceptRegex = /\[[^\]]+\]/g;
   // const concepts = formula
   //   .matchAll(conceptRegex)
   //   .map((match: string[]) => match[0]);
-  const concepts = getConcepts(formula);
+  // const concepts = getConcepts(formula);
 
   let num = 1;
   const getID = () => {
