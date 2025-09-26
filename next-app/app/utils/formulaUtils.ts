@@ -325,16 +325,10 @@ export function isValidFormula(
     };
 
     console.log("huh");
-    if (hasImplicitMultiplication(leftSideSimplified)) {
+    if (hasImplicitMultiplication(leftSideSimplified) || hasImplicitMultiplication(rightSideSimplified)) {
       return {
         result: false,
-        message: `Invalid formula: Implicit multiplication. Try adding multiplication operators (*) to the left side of inequality`,
-      };
-    }
-    if (hasImplicitMultiplication(rightSideSimplified)) {
-      return {
-        result: false,
-        message: `Invalid formula: Implicit multiplication. Try adding multiplication operators (*) to the right side of inequality`,
+        message: `Invalid formula: Implicit multiplication not allowed. Make sure you use explicit multiplication operators (*).`,
       };
     }
 
