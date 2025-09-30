@@ -165,7 +165,7 @@ function getSqlSelectExpression(
   return formula;
 }
 
-export function getSqlQuery(formula: string, mostRecentYear: string) {
+export function getSqlQuery(formula: string, mostRecentYear: string, limit: number = 0) {
   const tokens = extractTokens(formula);
 
   const regex = /(.+)(<|>)(.+)/;
@@ -189,6 +189,7 @@ export function getSqlQuery(formula: string, mostRecentYear: string) {
   const joinStatements = [...tokens].map((token) =>
     getSqlJoinStatement(token, mostRecentYear)
   );
+  const limitStatement = limit > 0 ? `limit ${limit}` : "";
 
   return `
     with results as (
@@ -199,6 +200,7 @@ export function getSqlQuery(formula: string, mostRecentYear: string) {
             ${rightSelect} as rightSide
         from companies
         ${joinStatements.join("\n")}
+        ${limitStatement}
     )  
     select *
     from results
