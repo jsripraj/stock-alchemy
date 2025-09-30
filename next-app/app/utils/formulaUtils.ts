@@ -1,4 +1,6 @@
 import { simplify } from "mathjs";
+import { fetchResults } from "@/app/utils/postgresUtils";
+
 
 export function formatConcept(words: string[]): string {
   return `[${words.join(" ")}]`;
@@ -208,11 +210,11 @@ export function getSqlQuery(formula: string, mostRecentYear: string, limit: numb
   `;
 }
 
-export function isValidFormula(
+export async function isValidFormula(
   formula: string,
   dates: string[],
   trueConcepts: string[]
-): { result: boolean; message: string } {
+): Promise<{ result: boolean; message: string }> {
   try {
     // Check inequality
     const inequalityRegex = /[<>]/g;
@@ -360,6 +362,9 @@ export function isValidFormula(
         }`,
       };
     }
+
+    // Lastly, check if Postgres is okay with the query translated from the formula
+    await fetchResults(formula, getMostRecentYear().toString(), 1);
 
     return {
       result: true,
