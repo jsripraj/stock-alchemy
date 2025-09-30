@@ -30,7 +30,7 @@ export default function FindStocksButton({
             setErrorMessage(message);
             startMessageTimer();
           } else {
-            const [{ id }] = await storeFormula(formula.normalize()); // normalize to prevent hidden whitespace chars(?)
+            const [{ id }] = await storeFormula(formula); // normalize to prevent hidden whitespace chars?
             router.push(`/results?id=${id}`);
           }
         }}
