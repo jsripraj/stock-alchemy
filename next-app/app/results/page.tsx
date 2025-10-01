@@ -39,11 +39,13 @@ export default async function ResultsPage({ searchParams }: ResultsPageProps) {
           scrollbar scrollbar-thumb-stone-600 scrollbar-track-lime-500
         "
       >
-        {spanParts.map((p) => {
+        {spanParts.map((p, i) => {
           return p.startsWith("[") ? (
-            <span className="text-lime-500">{p}</span>
+            <span key={i} className="text-lime-500">
+              {p}
+            </span>
           ) : (
-            <span>{p}</span>
+            <span key={i}>{p}</span>
           );
         })}
       </div>
