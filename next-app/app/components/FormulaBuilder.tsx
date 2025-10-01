@@ -72,6 +72,8 @@ export default function FormulaBuilder({
 
   return (
     <div className="w-full flex-2 flex flex-col items-center mt-6 overflow-hidden">
+
+      {/* Button bar */}
       <div className="flex gap-2 mb-2">
         <button
           className="px-3 py-1 bg-black border border-lime-500 rounded hover:bg-lime-900 hover:font-semibold cursor-pointer font-medium text-lime-50"
@@ -116,6 +118,8 @@ export default function FormulaBuilder({
           Clear
         </button>
       </div>
+
+      {/* Formula editor area */}
       <div
         ref={formulaDivRef}
         className="w-full flex-1 mb-2 p-2 
@@ -144,6 +148,8 @@ export default function FormulaBuilder({
           cursorPosRef.current = getCursorPos(formulaDivRef.current);
         }}
       ></div>
+
+      {/* Invalid formula message */}
       <p
         className={`text-red-500 min-h-7 ${
           isMessageVisable ? "opacity-100" : "opacity-0"
