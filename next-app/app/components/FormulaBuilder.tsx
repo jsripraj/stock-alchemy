@@ -7,6 +7,7 @@ import {
   getCursorPos,
   restoreCursorPosition,
   getPrettyConceptText,
+  getSpanParts,
 } from "@/app/utils/formulaUtils";
 
 export default function FormulaBuilder({
@@ -44,12 +45,12 @@ export default function FormulaBuilder({
       cursorPosRef.current += cursorJump;
     }
 
-    // Parse formula
+    // Highlight concepts
     while (formulaDivRef.current.firstChild) {
       formulaDivRef.current.removeChild(formulaDivRef.current.firstChild);
     }
-    const parts = formula.split(/(\[[^\]]+\])/g).filter((p) => p !== "");
-    console.log(`parts: ${parts}`);
+    // const parts = formula.split(/(\[[^\]]+\])/g).filter((p) => p !== "");
+    const parts = getSpanParts(formula);
 
     parts.forEach((p) => {
       const span = document.createElement("span");

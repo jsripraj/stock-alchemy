@@ -1,7 +1,6 @@
 import { simplify } from "mathjs";
 import { fetchResults } from "@/app/utils/postgresUtils";
 
-
 export function formatConcept(words: string[]): string {
   return `[${words.join(" ")}]`;
 }
@@ -167,7 +166,11 @@ function getSqlSelectExpression(
   return formula;
 }
 
-export function getSqlQuery(formula: string, mostRecentYear: string, limit: number = 0) {
+export function getSqlQuery(
+  formula: string,
+  mostRecentYear: string,
+  limit: number = 0
+) {
   const tokens = extractTokens(formula);
 
   const regex = /(.+)(<|>)(.+)/;
@@ -249,9 +252,15 @@ export async function isValidFormula(
 
     // Check for unallowed characters outside of concepts
     const unallowed = /[^0-9+\-*/()<>\s]/;
-    const dummyFormula = replaceConceptsWithDummyVar(formula, extractedConcepts);
+    const dummyFormula = replaceConceptsWithDummyVar(
+      formula,
+      extractedConcepts
+    );
     if (dummyFormula.match(unallowed)) {
-      return { result: false, message: `Invalid Formula: Unexpected characters.`}
+      return {
+        result: false,
+        message: `Invalid Formula: Unexpected characters.`,
+      };
     }
 
     // Normalize formula
@@ -459,6 +468,11 @@ function getConcepts(formula: string): string[] {
     .matchAll(conceptRegex)
     .map((match: string[]) => match[0]);
   return [...concepts];
+}
+
+export function getSpanParts(formula: string): string[] {
+  const parts = formula.split(/(\[[^\]]+\])/g).filter((p) => p !== "");
+  return parts;
 }
 
 function replaceConceptsWithDummyVar(formula: string, concepts: string[]) {
