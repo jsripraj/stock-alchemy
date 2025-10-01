@@ -1,5 +1,9 @@
 import { fetchResults, fetchFormula } from "@/app/utils/postgresUtils";
-import { getMostRecentYear } from "@/app/utils/formulaUtils";
+import {
+  getMostRecentYear,
+  getSpanParts,
+  getPrettyConceptText,
+} from "@/app/utils/formulaUtils";
 
 interface ResultsPageProps {
   searchParams: { id?: string };
@@ -23,6 +27,7 @@ export default async function ResultsPage({ searchParams }: ResultsPageProps) {
   }
 
   const headers = ["Ticker", "Company", "Left Side", "Right Side"];
+  const spanParts = getSpanParts(formula);
 
   return (
     <div>
@@ -34,6 +39,13 @@ export default async function ResultsPage({ searchParams }: ResultsPageProps) {
           scrollbar scrollbar-thumb-stone-600 scrollbar-track-lime-500
         "
       >
+        {spanParts.map((p) => {
+          return p.startsWith("[") ? (
+            <span className="text-lime-500">{p}</span>
+          ) : (
+            <span>{p}</span>
+          );
+        })}
       </div>
       <table className="border-separate border-spacing-0">
         <thead>
