@@ -35,9 +35,9 @@ export default async function ResultsPage({ searchParams }: ResultsPageProps) {
       {/* Formula area */}
       <label className="text-lime-500 text-lg font-mono">Formula</label>
       <div
-        className="w-full min-h-20 mb-6 p-2 
+        className="w-full min-h-12 mb-6 p-2 
           border border-lime-500 rounded-xs outline-none 
-          overflow-y-auto 
+          overflow-y-auto resize-y
           text-lime-50 text-lg font-mono 
           scrollbar scrollbar-thumb-stone-600 scrollbar-track-lime-500
         "
