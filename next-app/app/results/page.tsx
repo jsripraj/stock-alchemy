@@ -35,7 +35,7 @@ export default async function ResultsPage({ searchParams }: ResultsPageProps) {
       {/* Formula area */}
       <label className="text-lime-500 text-lg font-mono">Formula</label>
       <div
-        className="w-full min-h-30 mb-8 p-2 
+        className="w-full min-h-20 mb-6 p-2 
           border border-lime-500 rounded-xs outline-none 
           overflow-y-auto 
           text-lime-50 text-lg font-mono 
@@ -54,36 +54,39 @@ export default async function ResultsPage({ searchParams }: ResultsPageProps) {
       </div>
 
       {/* Results table */}
-      <table className="border-separate border-spacing-0">
-        <thead>
-          <tr>
-            {headers.map((h) => (
-              <th
-                key={h}
-                scope="col"
-                className={`border border-[#a0a0a0] px-[10px] py-2 sticky top-0 left-0 bg-white z-20`}
-              >
-                {h}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {results.map((res) => (
-            <tr key={res.ticker}>
-              {Object.entries(res).map(([key, value]) => (
-                <td
-                  key={key}
-                  scope="row"
-                  className={`border border-[#a0a0a0] px-[10px] py-2 text-lime-500`}
+      <label className="text-lime-500 text-lg font-mono">Results</label>
+      <div className="flex-2 border border-lime-500 rounded-xs overflow-auto mb-6 border scrollbar scrollbar-thumb-stone-600 scrollbar-track-lime-500">
+        <table className="border-separate border-spacing-0 text-lime-100">
+          <thead>
+            <tr>
+              {headers.map((h) => (
+                <th
+                  key={h}
+                  scope="col"
+                  className={"border border-lime-500 px-3 py-1 sticky top-0 left-0 bg-[var(--background)] z-20"}
                 >
-                  {value}
-                </td>
+                  {h}
+                </th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {results.map((res) => (
+              <tr key={res.ticker}>
+                {Object.entries(res).map(([key, value]) => (
+                  <td
+                    key={key}
+                    scope="row"
+                    className={"border border-lime-500 px-3 py-1"}
+                  >
+                    {value}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
