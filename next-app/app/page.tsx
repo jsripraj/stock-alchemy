@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, use } from "react";
 import Spreadsheet from "@/app/components/Spreadsheet";
 import FormulaBuilder from "@/app/components/FormulaBuilder";
 import FindStocksButton from "@/app/components/FindStocksButton";
@@ -26,11 +26,15 @@ const concepts = [
 ];
 
 export default function Home() {
-  const [formula, setFormula] = useState("");
+  const [formula, setFormula] = useState(typeof window !== "undefined" ? (sessionStorage?.getItem("formula") || "") : "");
   const [errorMessage, setErrorMessage] = useState("");
   const [isMessageVisable, setIsMessageVisable] = useState(false);
   const cursorPosRef = useRef<number>(0);
   const timerID = useRef<NodeJS.Timeout>(null);
+
+  useEffect(() => {
+    sessionStorage?.setItem("formula", formula);
+  }, [formula]);
 
   function insertIntoFormula(insertIndex: number, str: string) {
     setFormula((f) => {
