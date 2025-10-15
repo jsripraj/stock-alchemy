@@ -2,7 +2,6 @@ import { fetchResults, fetchFormula } from "@/app/utils/postgresUtils";
 import {
   getMostRecentYear,
   getSpanParts,
-  getPrettyConceptText,
 } from "@/app/utils/formulaUtils";
 
 interface ResultsPageProps {

@@ -342,14 +342,6 @@ export async function isValidFormula(
   }
 }
 
-function getConcepts(formula: string): string[] {
-  const conceptRegex = /\[[^\]]+\]/g;
-  const concepts = formula
-    .matchAll(conceptRegex)
-    .map((match: string[]) => match[0]);
-  return [...concepts];
-}
-
 export function getSpanParts(formula: string): string[] {
   const parts = formula.split(/(\[[^\]]+\])/g).filter((p) => p !== "");
   return parts;
@@ -366,12 +358,6 @@ function replaceConceptsWithDummyVar(formula: string, concepts: string[]) {
 }
 
 function replaceConceptsWithIDs(formula: string, concepts: string[]) {
-  // const conceptRegex = /\[[^\]]+\]/g;
-  // const concepts = formula
-  //   .matchAll(conceptRegex)
-  //   .map((match: string[]) => match[0]);
-  // const concepts = getConcepts(formula);
-
   let num = 1;
   const getID = () => {
     return "x" + (num++).toString();
