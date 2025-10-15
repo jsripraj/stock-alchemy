@@ -24,8 +24,6 @@ export default function FindStocksButton({
         className="m-3 p-3 bg-lime-700 border border-lime-500 rounded text-3xl hover:bg-lime-900 cursor-pointer text-lime-50 hover:font-semibold"
         onClick={async () => {
           const { result, message } = await isValidFormula(formula, dates, concepts);
-          console.log(`result: ${result}`);
-          console.log(`message: ${message}`);
           if (!result) {
             setErrorMessage(message);
             startMessageTimer();

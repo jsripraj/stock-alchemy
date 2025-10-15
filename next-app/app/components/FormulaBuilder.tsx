@@ -49,13 +49,11 @@ export default function FormulaBuilder({
     while (formulaDivRef.current.firstChild) {
       formulaDivRef.current.removeChild(formulaDivRef.current.firstChild);
     }
-    // const parts = formula.split(/(\[[^\]]+\])/g).filter((p) => p !== "");
     const parts = getSpanParts(formula);
 
     parts.forEach((p) => {
       const span = document.createElement("span");
       const concept = getPrettyConceptText(p, dates, concepts);
-      console.log(`prettyConcept: ${concept}`);
 
       if (concept) {
         span.textContent = concept;

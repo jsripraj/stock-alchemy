@@ -24,14 +24,12 @@ export function getPrettyConceptText(
       c.toLowerCase().replaceAll("-", " ")
     );
     if (dates.includes(year)) {
-      console.log(`year: ${year}`);
       const i = conceptsLowerCase.indexOf(concept);
       if (i !== -1) {
         return `[${year} ${concepts[i]}]`;
       }
     }
   }
-  console.log(`getPrettyConceptText returning null`);
   return null;
 }
 
@@ -235,7 +233,6 @@ export async function isValidFormula(
 
     // Check concepts
     const extractedConcepts = [...extractTokens(formula)];
-    console.log(`extractedConcepts: ${extractedConcepts}`);
     if (extractedConcepts.length === 0) {
       return {
         result: false,
@@ -243,9 +240,7 @@ export async function isValidFormula(
       };
     }
     for (const c of extractedConcepts) {
-      console.log(`testing ${c}`);
       if (!getPrettyConceptText(c, dates, trueConcepts)) {
-        console.log(`${c} is not okay`);
         return { result: false, message: `Invalid financial concept: ${c}` };
       }
     }
@@ -265,30 +260,17 @@ export async function isValidFormula(
 
     // Normalize formula
     const formulaWithIDs = replaceConceptsWithIDs(formula, extractedConcepts);
-    console.log(`formulaWithIDs: ${formulaWithIDs}`);
-    // return { result: false, message: `testing` };
-
-    // Check for unallowed characters
-    // if (unallowed.test(formulaWithIDs)) {
-    //   return {
-    //     result: false,
-    //     message: "Invalid formula: unallowed characters",
-    //   };
-    // }
 
     // Check if each side evaluates to infinity
     const sides = formulaWithIDs.split(inequality);
     const leftSideSimplified = simplify(sides[0]).toString();
-    console.log(`leftSideSimplified: ${leftSideSimplified}`);
     if (leftSideSimplified.includes("Infinity")) {
       return {
         result: false,
         message: `Invalid formula: left side of inequality does not evaluate to a finite number`,
       };
     }
-    console.log("wuh");
     const rightSideSimplified = simplify(sides[1]).toString();
-    console.log(rightSideSimplified);
     if (rightSideSimplified.includes("Infinity")) {
       return {
         result: false,
@@ -296,30 +278,7 @@ export async function isValidFormula(
       };
     }
 
-    // for (let i = 0; i < sides.length; i++) {
-    //   const side = sides[i];
-    //   console.log(`side: ${side}`);
-    //   const dir = i === 0 ? "left" : "right";
-
-    //   //     // Check parsing
-    //   //     if (!isParsable(side)) {
-    //   //       return {
-    //   //         result: false,
-    //   //         message: `Invalid formula: unable to parse ${dir} side of inequality`,
-    //   //       };
-    //   //     }
-
-    //   // Check for Infinity
-    //   if (simplify(side).toString().includes("Infinity")) {
-    //     return {
-    //       result: false,
-    //       message: `Invalid formula: ${dir} side of inequality does not evaluate to a finite number`,
-    //     };
-    //   }
-    // }
-
     // Check each side for implicit multiplication
-    console.log("wuh");
     const hasImplicitMultiplication = (expr: string) => {
       const trimParens = (str: string) => {
         const parensRegex = /[\(\)]/g;
@@ -347,7 +306,6 @@ export async function isValidFormula(
       return false;
     };
 
-    console.log("huh");
     if (hasImplicitMultiplication(leftSideSimplified)) {
       return {
         result: false,
@@ -384,84 +342,6 @@ export async function isValidFormula(
   }
 }
 
-// function isParsable(expr: string) {
-//   /** Takes a normalized expression (i.e. bracketed concepts have been replaced) */
-//   const isWhitespaceString = (str: string) => {
-//     return str.replace(/\s/g, "").length === 0;
-//   };
-//   if (isWhitespaceString(expr)) {
-//     console.log(`${expr}: not parsable: whitespace string`);
-//     return false;
-//   }
-
-//   const unallowed = /[^0-9+\-*/()\s]/;
-//   if (unallowed.test(expr)) {
-//     console.log(`${expr}: not parsable: unallowed chars`);
-//     return false;
-//   }
-
-//   const numType = "num";
-//   const opType = "op";
-
-//   // Tokenize
-//   let token = "";
-//   const tokenTypes = [];
-//   let i = 0;
-//   while (i < expr.length) {
-//     const char = expr[i];
-//     if (/\d/.test(char)) {
-//       // digit
-//       token += char;
-//     } else {
-//       // whitespace, operator, or parenthesis
-//       if (token) {
-//         tokenTypes.push(numType);
-//         token = "";
-//       }
-//       if (/[+\-*/]/.test(char)) {
-//         tokenTypes.push(opType);
-//       } else if (char === "(") {
-//         const end = expr.lastIndexOf(")");
-//         if (end <= i + 1 || !isParsable(expr.substring(i + 1, end))) {
-//           console.log(`${expr}: not parsable: couldn't find close parenthesis`);
-//           return false;
-//         }
-//         tokenTypes.push(numType);
-//         i = end + 1;
-//         continue;
-//       } else if (char === ")") {
-//         console.log(`${expr}: not parsable: unexpected close parenthesis`);
-//         return false;
-//       }
-//     }
-//     i++;
-//   }
-//   if (token) {
-//     tokenTypes.push(numType);
-//   }
-
-//   // Check validity
-//   if (!tokenTypes.length) {
-//     console.log(`${expr}: not parsable: no token types`);
-//     return false;
-//   }
-//   for (i = 0; i < tokenTypes.length; i++) {
-//     const cur = tokenTypes[i];
-//     if ((i === 0 || i === tokenTypes.length - 1) && cur === "op") {
-//       console.log(`${expr}: not parsable: operator token at start or end`);
-//       return false;
-//     }
-//     if (i > 0) {
-//       const prev = tokenTypes[i - 1];
-//       if (prev === cur) {
-//         console.log(`${expr}: not parsable: consecutive token types`);
-//         return false;
-//       }
-//     }
-//   }
-
-//   return true;
-// }
 function getConcepts(formula: string): string[] {
   const conceptRegex = /\[[^\]]+\]/g;
   const concepts = formula

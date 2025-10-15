@@ -90,7 +90,6 @@ export default async function ResultsPage({ searchParams }: ResultsPageProps) {
             {results.map((res) => (
               <tr key={res.ticker}>
                 {Object.entries(res).map(([key, value]) => {
-                  console.log(`key = ${key}, value = ${value}`);
                   let formattedValue = value;
                   if (key === "leftside") {
                     formattedValue = leftFormatter(Number(value));
