@@ -25,6 +25,22 @@ export default async function ResultsPage({ searchParams }: ResultsPageProps) {
   if (!results) {
     return noResults;
   }
+  
+  const leftSideMinAbs = Math.min(...(results.map((r) => Math.abs(r.leftside))));
+  const rightSideMinAbs = Math.min(...(results.map((r) => Math.abs(r.rightside))));
+  const getFormatter = (minAbs: number) => {
+    if (minAbs < 1.0) {
+      return ((x: Number) => {return x.toPrecision(4)});
+    }
+    if (minAbs < 1000) {
+      return (x: Number) => {
+        return x.toFixed(2)
+      };
+    }
+    return (x: Number) => {return x.toFixed(0)};
+  }
+  const leftFormatter = getFormatter(leftSideMinAbs);
+  const rightFormatter = getFormatter(rightSideMinAbs);
 
   const headers = ["Ticker", "Company", "Left Side", "Right Side"];
   const spanParts = getSpanParts(formula);
@@ -73,15 +89,23 @@ export default async function ResultsPage({ searchParams }: ResultsPageProps) {
           <tbody>
             {results.map((res) => (
               <tr key={res.ticker}>
-                {Object.entries(res).map(([key, value]) => (
+                {Object.entries(res).map(([key, value]) => {
+                  console.log(`key = ${key}, value = ${value}`);
+                  let formattedValue = value;
+                  if (key === "leftside") {
+                    formattedValue = leftFormatter(Number(value));
+                  } else if (key === "rightside") {
+                    formattedValue = rightFormatter(Number(value));
+                  } 
+                   return (
                   <td
                     key={key}
                     scope="row"
                     className={"border border-lime-500 px-3 py-1"}
                   >
-                    {value}
+                    {formattedValue}
                   </td>
-                ))}
+                )})}
               </tr>
             ))}
           </tbody>
