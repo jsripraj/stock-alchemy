@@ -33,8 +33,14 @@ export function getPrettyConceptText(
   return null;
 }
 
+/**
+ * @returns The most recent year that all companies have reported for.
+ */
 export function getMostRecentYear() {
-  return new Date().getFullYear() - 1;
+  const daysToMilliseconds = (days: number) => {return days * 24 * 60 * 60 * 1000};
+  const now = new Date();
+  const before = new Date(now.valueOf() - daysToMilliseconds(90));
+  return before.getFullYear() - 1;
 }
 
 export function getCursorPos(formulaDivRef: HTMLDivElement | null) {
@@ -127,10 +133,8 @@ function getSqlName(token: string): string {
 
 function getSqlSelectTerm(token: string, mostRecentYear: string): string {
   if (token === "[Market Cap]") {
-    return `(companies.close * ${getSqlSelectTerm(
-      "[2024 Shares Outstanding]",
-      mostRecentYear
-    )})`;
+    const sharesOutstanding = getSqlSelectTerm(`[${mostRecentYear} Shares Outstanding]`, mostRecentYear);
+    return `(companies.close * ${sharesOutstanding})`;
   }
   return `${getSqlName(token)}.value`;
 }
