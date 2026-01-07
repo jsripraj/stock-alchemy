@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useRef, useEffect, use } from "react";
-import Spreadsheet from "@/app/components/Spreadsheet";
-import FormulaBuilder from "@/app/components/FormulaBuilder";
-import FindStocksButton from "@/app/components/FindStocksButton";
+import Spreadsheet from "@/app/components/page/Spreadsheet";
+import FormulaBuilder from "@/app/components/page/FormulaBuilder";
+import FindStocksButton from "@/app/components/page/FindStocksButton";
 import { getMostRecentYear } from "@/app/utils/formulaUtils";
 
 const lastYear = getMostRecentYear();

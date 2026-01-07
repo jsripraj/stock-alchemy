@@ -23,6 +23,7 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+
   return (
     <html lang="en">
       <body className={`${sansation.className} antialiased p-0 m-0`}>
