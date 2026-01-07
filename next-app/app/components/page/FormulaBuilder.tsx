@@ -9,6 +9,7 @@ import {
   getPrettyConceptText,
   getSpanParts,
 } from "@/app/utils/formulaUtils";
+import findStocks from "@/app/components/page/FindStocksButton";
 
 export default function FormulaBuilder({
   formula,
