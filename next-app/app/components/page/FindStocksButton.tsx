@@ -7,14 +7,12 @@ export default function FindStocksButton({
   formula,
   dates,
   concepts,
-  setErrorMessage,
-  startMessageTimer,
+  showErrorMessage
 }: {
   formula: string;
   dates: string[];
   concepts: string[];
-  setErrorMessage: React.Dispatch<SetStateAction<string>>;
-  startMessageTimer: () => void;
+  showErrorMessage: (errMsg: string) => void;
 }) {
   const router = useRouter();
 
@@ -25,8 +23,7 @@ export default function FindStocksButton({
         onClick={async () => {
           const { result, message } = await isValidFormula(formula, dates, concepts);
           if (!result) {
-            setErrorMessage(message);
-            startMessageTimer();
+            showErrorMessage(message);
           } else {
             const [{ id }] = await storeFormula(formula); // normalize to prevent hidden whitespace chars?
             router.push(`/results?id=${id}`);

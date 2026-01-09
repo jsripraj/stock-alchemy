@@ -44,6 +44,11 @@ export default function Home() {
     });
   }
 
+  function showErrorMessage(errMsg: string) {
+    setErrorMessage(errMsg);
+    startMessageTimer();
+  }
+
   function startMessageTimer() {
     setIsMessageVisable(true);
     if (timerID.current) {
@@ -76,8 +81,7 @@ export default function Home() {
         formula={formula}
         dates={dates}
         concepts={concepts}
-        setErrorMessage={setErrorMessage}
-        startMessageTimer={startMessageTimer}
+        showErrorMessage={showErrorMessage}
       />
     </div>
   );
