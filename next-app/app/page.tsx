@@ -85,6 +85,7 @@ export default function Home() {
         concepts={concepts}
         errorMessage={errorMessage}
         isMessageVisable={isMessageVisable}
+        findStocksClicked={findStocksClicked}
       />
       <FindStocksButton
         findStocksClicked={findStocksClicked}

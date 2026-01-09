@@ -19,6 +19,7 @@ export default function FormulaBuilder({
   concepts,
   errorMessage,
   isMessageVisable,
+  findStocksClicked,
 }: {
   formula: string;
   insertIntoFormula: (insertIndex: number, str: string) => void;
@@ -28,6 +29,7 @@ export default function FormulaBuilder({
   concepts: string[];
   errorMessage: string;
   isMessageVisable: boolean;
+  findStocksClicked: () => void;
 }) {
   const unallowed = /[^A-Za-z0-9+\-*/()<>\[\]\s]/;
   const formulaDivRef = useRef<HTMLDivElement>(null);
@@ -129,6 +131,11 @@ export default function FormulaBuilder({
         contentEditable={true}
         autoFocus={true}
         onBeforeInput={(e) => {
+          const newlineRegex = /(\r\n|\r|\n)/
+          if (newlineRegex.test(e.data)) {
+            e.preventDefault();
+            findStocksClicked();
+          }
           if (unallowed.test(e.data)) {
             e.preventDefault();
           }
