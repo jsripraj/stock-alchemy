@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useRef, useEffect, use } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Spreadsheet from "@/app/components/page/Spreadsheet";
 import FormulaBuilder from "@/app/components/page/FormulaBuilder";
 import FindStocksButton from "@/app/components/page/FindStocksButton";
-import { getMostRecentYear } from "@/app/utils/formulaUtils";
+import { getMostRecentYear, isValidFormula } from "@/app/utils/formulaUtils";
+import { storeFormula } from "@/app/utils/postgresUtils";
 
 const lastYear = getMostRecentYear();
 const dates = [...Array(10)].map((_, i) => (lastYear - i).toString());
@@ -31,6 +33,7 @@ export default function Home() {
   const [isMessageVisable, setIsMessageVisable] = useState(false);
   const cursorPosRef = useRef<number>(0);
   const timerID = useRef<NodeJS.Timeout>(null);
+  const router = useRouter();
 
   useEffect(() => {
     sessionStorage?.setItem("formula", formula);
@@ -44,9 +47,15 @@ export default function Home() {
     });
   }
 
-  function showErrorMessage(errMsg: string) {
-    setErrorMessage(errMsg);
-    startMessageTimer();
+  async function findStocksClicked() {
+    const { result, message } = await isValidFormula(formula, dates, concepts);
+    if (!result) {
+      setErrorMessage(message);
+      startMessageTimer();
+    } else {
+      const [{ id }] = await storeFormula(formula); // normalize to prevent hidden whitespace chars?
+      router.push(`/results?id=${id}`);
+    }
   }
 
   function startMessageTimer() {
@@ -78,10 +87,7 @@ export default function Home() {
         isMessageVisable={isMessageVisable}
       />
       <FindStocksButton
-        formula={formula}
-        dates={dates}
-        concepts={concepts}
-        showErrorMessage={showErrorMessage}
+        findStocksClicked={findStocksClicked}
       />
     </div>
   );
