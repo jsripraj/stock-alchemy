@@ -119,6 +119,7 @@ export default function FormulaBuilder({
 
       {/* Formula editor area */}
       <div
+        id="formula-editor"
         ref={formulaDivRef}
         className="w-full flex-1 mb-2 p-2 
           border border-lime-500 focus:border-2 focus:border-lime-400 rounded-xs outline-none 
