@@ -69,7 +69,12 @@ export default async function ResultsPage({ searchParams }: ResultsPageProps) {
       </div>
 
       {/* Results table */}
-      <label className="text-lime-500 text-lg font-mono">{`Results (${results.length})`}</label>
+      <label 
+        id="results-label"
+        className="text-lime-500 text-lg font-mono"
+      >
+        {`Results (${results.length})`}
+      </label>
       <div className="flex-2 border border-lime-500 rounded-xs overflow-auto mb-6 border scrollbar scrollbar-thumb-stone-600 scrollbar-track-lime-500">
         <table className="border-separate border-spacing-0 text-lime-100">
           <thead>
