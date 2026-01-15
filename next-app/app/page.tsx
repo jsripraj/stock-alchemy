@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { ThreeDots } from "react-loader-spinner";
 import Spreadsheet from "@/app/components/page/Spreadsheet";
 import FormulaBuilder from "@/app/components/page/FormulaBuilder";
 import SearchButton from "@/app/components/page/SearchButton";
@@ -31,6 +32,7 @@ export default function Home() {
   const [formula, setFormula] = useState(typeof window !== "undefined" ? (sessionStorage?.getItem("formula") || "") : "");
   const [errorMessage, setErrorMessage] = useState("");
   const [isMessageVisable, setIsMessageVisable] = useState(false);
+  const [loading, setLoading] = useState(false);
   const cursorPosRef = useRef<number>(0);
   const timerID = useRef<NodeJS.Timeout>(null);
   const router = useRouter();
@@ -48,10 +50,12 @@ export default function Home() {
   }
 
   async function searchClicked() {
+    setLoading(true);
     const { result, message } = await isValidFormula(formula, dates, concepts);
     if (!result) {
       setErrorMessage(message);
       startMessageTimer();
+      setLoading(false);
     } else {
       const [{ id }] = await storeFormula(formula); // normalize to prevent hidden whitespace chars?
       router.push(`/results?id=${id}`);
@@ -90,6 +94,17 @@ export default function Home() {
       <SearchButton
         searchClicked={searchClicked}
       />
+      <div className={`mb-3 pb-3 ${loading ? "visible" : "invisible"}`}>
+        <ThreeDots
+          height={10}
+          width={100}
+          radius={10}
+          color="green"
+          ariaLabel="three-dots-loading"
+          wrapperStyle={{}}
+          wrapperClass=""
+        />
+      </div>
     </div>
   );
 }
