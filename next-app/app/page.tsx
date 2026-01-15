@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Spreadsheet from "@/app/components/page/Spreadsheet";
 import FormulaBuilder from "@/app/components/page/FormulaBuilder";
-import FindStocksButton from "@/app/components/page/FindStocksButton";
+import SearchButton from "@/app/components/page/SearchButton";
 import { getMostRecentYear, isValidFormula } from "@/app/utils/formulaUtils";
 import { storeFormula } from "@/app/utils/postgresUtils";
 
@@ -47,7 +47,7 @@ export default function Home() {
     });
   }
 
-  async function findStocksClicked() {
+  async function searchClicked() {
     const { result, message } = await isValidFormula(formula, dates, concepts);
     if (!result) {
       setErrorMessage(message);
@@ -85,10 +85,10 @@ export default function Home() {
         concepts={concepts}
         errorMessage={errorMessage}
         isMessageVisable={isMessageVisable}
-        findStocksClicked={findStocksClicked}
+        searchClicked={searchClicked}
       />
-      <FindStocksButton
-        findStocksClicked={findStocksClicked}
+      <SearchButton
+        searchClicked={searchClicked}
       />
     </div>
   );

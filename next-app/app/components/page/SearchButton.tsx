@@ -1,7 +1,7 @@
-export default function FindStocksButton({
-  findStocksClicked,
+export default function SearchButton({
+  searchClicked,
 }: {
-  findStocksClicked: () => void;
+  searchClicked: () => void;
 }) {
 
   return (
@@ -9,9 +9,9 @@ export default function FindStocksButton({
       <button
         id="find-stocks-btn"
         className="m-3 p-3 bg-lime-700 border border-lime-500 rounded text-3xl hover:bg-lime-900 cursor-pointer text-lime-50 hover:font-semibold"
-        onClick={findStocksClicked}
+        onClick={searchClicked}
       >
-        Find Stocks &#129122;
+        {"Search >"}
       </button>
     </div>
   );
