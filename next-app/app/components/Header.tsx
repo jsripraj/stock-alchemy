@@ -5,12 +5,12 @@ import Link from 'next/link';
 import localFont from "next/font/local";
 
 const asimovian = localFont({
-  src: "../../fonts/Asimovian-Regular.ttf",
+  src: "../fonts/Asimovian-Regular.ttf",
 });
 
 export default function Header() {
   return (
-    <div className="flex my-6 items-center">
+    <div className="flex my-6 justify-center">
       <Link href="/">
         <Image
           src="/logo.png"

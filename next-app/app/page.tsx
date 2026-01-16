@@ -3,9 +3,10 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ThreeDots } from "react-loader-spinner";
-import Spreadsheet from "@/app/components/page/Spreadsheet";
-import FormulaBuilder from "@/app/components/page/FormulaBuilder";
-import SearchButton from "@/app/components/page/SearchButton";
+import Header from "@/app/components/Header";
+import Spreadsheet from "@/app/components/Spreadsheet";
+import FormulaBuilder from "@/app/components/FormulaBuilder";
+import SearchButton from "@/app/components/SearchButton";
 import { getMostRecentYear, isValidFormula } from "@/app/utils/formulaUtils";
 import { storeFormula } from "@/app/utils/postgresUtils";
 
@@ -73,37 +74,40 @@ export default function Home() {
   }
 
   return (
-    <div className="flex-1 w-8/10 flex flex-col items-center overflow-hidden">
-      <Spreadsheet
-        dates={dates}
-        concepts={concepts}
-        cursorPosRef={cursorPosRef}
-        insertIntoFormula={insertIntoFormula}
-      />
-      <FormulaBuilder
-        formula={formula}
-        insertIntoFormula={insertIntoFormula}
-        setFormula={setFormula}
-        cursorPosRef={cursorPosRef}
-        dates={dates}
-        concepts={concepts}
-        errorMessage={errorMessage}
-        isMessageVisable={isMessageVisable}
-        searchClicked={searchClicked}
-      />
-      <SearchButton
-        searchClicked={searchClicked}
-      />
-      <div className={`mb-3 pb-3 ${loading ? "visible" : "invisible"}`}>
-        <ThreeDots
-          height={10}
-          width={100}
-          radius={10}
-          color="green"
-          ariaLabel="three-dots-loading"
-          wrapperStyle={{}}
-          wrapperClass=""
+    <div>
+      <Header />
+      <div className="flex-1 w-8/10 flex flex-col items-center overflow-hidden">
+        <Spreadsheet
+          dates={dates}
+          concepts={concepts}
+          cursorPosRef={cursorPosRef}
+          insertIntoFormula={insertIntoFormula}
         />
+        <FormulaBuilder
+          formula={formula}
+          insertIntoFormula={insertIntoFormula}
+          setFormula={setFormula}
+          cursorPosRef={cursorPosRef}
+          dates={dates}
+          concepts={concepts}
+          errorMessage={errorMessage}
+          isMessageVisable={isMessageVisable}
+          searchClicked={searchClicked}
+        />
+        <SearchButton
+          searchClicked={searchClicked}
+        />
+        <div className={`mb-3 pb-3 ${loading ? "visible" : "invisible"}`}>
+          <ThreeDots
+            height={10}
+            width={100}
+            radius={10}
+            color="green"
+            ariaLabel="three-dots-loading"
+            wrapperStyle={{}}
+            wrapperClass=""
+          />
+        </div>
       </div>
     </div>
   );
