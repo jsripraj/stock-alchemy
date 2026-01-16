@@ -8,7 +8,7 @@ export function formatConcept(words: string[]): string {
 export function getPrettyConceptText(
   str: string,
   dates: string[],
-  concepts: string[]
+  concepts: string[],
 ): string | null {
   if (str.startsWith("[") && str.endsWith("]")) {
     const subLower = str.substring(1, str.length - 1).toLowerCase();
@@ -21,7 +21,7 @@ export function getPrettyConceptText(
       .substring(firstSpaceIndex + 1)
       .replaceAll("-", " ");
     const conceptsLowerCase = concepts.map((c) =>
-      c.toLowerCase().replaceAll("-", " ")
+      c.toLowerCase().replaceAll("-", " "),
     );
     if (dates.includes(year)) {
       const i = conceptsLowerCase.indexOf(concept);
@@ -37,7 +37,9 @@ export function getPrettyConceptText(
  * @returns The most recent year that all companies have reported for.
  */
 export function getMostRecentYear() {
-  const daysToMilliseconds = (days: number) => {return days * 24 * 60 * 60 * 1000};
+  const daysToMilliseconds = (days: number) => {
+    return days * 24 * 60 * 60 * 1000;
+  };
   const now = new Date();
   const before = new Date(now.valueOf() - daysToMilliseconds(90));
   return before.getFullYear() - 1;
@@ -55,7 +57,7 @@ export function getCursorPos(formulaDivRef: HTMLDivElement | null) {
 
 export function restoreCursorPosition(
   container: HTMLElement,
-  cursorPos: number
+  cursorPos: number,
 ) {
   const selection = window.getSelection();
   if (!selection) return;
@@ -133,7 +135,10 @@ function getSqlName(token: string): string {
 
 function getSqlSelectTerm(token: string, mostRecentYear: string): string {
   if (token === "[Market Cap]") {
-    const sharesOutstanding = getSqlSelectTerm(`[${mostRecentYear} Shares Outstanding]`, mostRecentYear);
+    const sharesOutstanding = getSqlSelectTerm(
+      `[${mostRecentYear} Shares Outstanding]`,
+      mostRecentYear,
+    );
     return `(companies.close * ${sharesOutstanding})`;
   }
   return `${getSqlName(token)}.value`;
@@ -143,7 +148,7 @@ function getSqlJoinStatement(token: string, mostRecentYear: string): string {
   if (token === "[Market Cap]") {
     return getSqlJoinStatement(
       `[${mostRecentYear} Shares Outstanding]`,
-      mostRecentYear
+      mostRecentYear,
     );
   }
   const concept = getSqlName(token);
@@ -157,12 +162,12 @@ function getSqlJoinStatement(token: string, mostRecentYear: string): string {
 function getSqlSelectExpression(
   formula: string,
   tokens: Set<string>,
-  mostRecentYear: string
+  mostRecentYear: string,
 ) {
   tokens.forEach((token) => {
     formula = formula.replaceAll(
       token,
-      getSqlSelectTerm(token, mostRecentYear)
+      getSqlSelectTerm(token, mostRecentYear),
     );
   });
   return formula;
@@ -171,7 +176,7 @@ function getSqlSelectExpression(
 export function getSqlQuery(
   formula: string,
   mostRecentYear: string,
-  limit: number = 0
+  limit: number = 0,
 ) {
   const tokens = extractTokens(formula);
 
@@ -181,20 +186,20 @@ export function getSqlQuery(
   if (!match) return null;
 
   const [, leftFormula, compOperator, rightFormula] = match.map((s) =>
-    s.trim()
+    s.trim(),
   );
   const leftSelect = getSqlSelectExpression(
     leftFormula,
     tokens,
-    mostRecentYear
+    mostRecentYear,
   );
   const rightSelect = getSqlSelectExpression(
     rightFormula,
     tokens,
-    mostRecentYear
+    mostRecentYear,
   );
   const joinStatements = [...tokens].map((token) =>
-    getSqlJoinStatement(token, mostRecentYear)
+    getSqlJoinStatement(token, mostRecentYear),
   );
   const limitStatement = limit > 0 ? `limit ${limit}` : "";
 
@@ -218,7 +223,7 @@ export function getSqlQuery(
 export async function isValidFormula(
   formula: string,
   dates: string[],
-  trueConcepts: string[]
+  trueConcepts: string[],
 ): Promise<{ result: boolean; message: string }> {
   try {
     // Check inequality
@@ -253,7 +258,7 @@ export async function isValidFormula(
     const unallowed = /[^0-9+\-*/()<>\s]/;
     const dummyFormula = replaceConceptsWithDummyVar(
       formula,
-      extractedConcepts
+      extractedConcepts,
     );
     if (dummyFormula.match(unallowed)) {
       return {

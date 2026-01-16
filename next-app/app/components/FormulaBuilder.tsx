@@ -72,7 +72,6 @@ export default function FormulaBuilder({
 
   return (
     <div className="w-full flex-2 flex flex-col items-center mt-6 overflow-hidden">
-
       {/* Button bar */}
       <div className="flex gap-2 mb-2">
         <button
@@ -80,7 +79,7 @@ export default function FormulaBuilder({
           onClick={() =>
             insertIntoFormula(
               cursorPosRef.current,
-              formatConcept(["Market Cap"])
+              formatConcept(["Market Cap"]),
             )
           }
         >
@@ -132,7 +131,7 @@ export default function FormulaBuilder({
         contentEditable={true}
         autoFocus={true}
         onBeforeInput={(e) => {
-          const newlineRegex = /(\r\n|\r|\n)/
+          const newlineRegex = /(\r\n|\r|\n)/;
           if (newlineRegex.test(e.data)) {
             e.preventDefault();
             searchClicked();
@@ -144,7 +143,7 @@ export default function FormulaBuilder({
         onInput={(e) => {
           cursorPosRef.current = getCursorPos(formulaDivRef.current);
           setFormula(
-            e.currentTarget?.textContent ? e.currentTarget.textContent : ""
+            e.currentTarget?.textContent ? e.currentTarget.textContent : "",
           );
         }}
         onKeyUp={() => {

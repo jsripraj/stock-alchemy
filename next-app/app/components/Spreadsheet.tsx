@@ -58,8 +58,8 @@ export default function Spreadsheet({
                     hoverRow === rowIndex && hoverCol === colIndex
                       ? "bg-lime-500"
                       : hoverRow === rowIndex || hoverCol === colIndex
-                      ? "bg-lime-900"
-                      : ""
+                        ? "bg-lime-900"
+                        : ""
                   }`}
                   onMouseEnter={() => {
                     setHoverRow(rowIndex);
@@ -70,7 +70,10 @@ export default function Spreadsheet({
                     setHoverCol(null);
                   }}
                   onClick={() => {
-                    insertIntoFormula(cursorPosRef.current, formatConcept([dates[colIndex], concepts[rowIndex]]));
+                    insertIntoFormula(
+                      cursorPosRef.current,
+                      formatConcept([dates[colIndex], concepts[rowIndex]]),
+                    );
                   }}
                 ></td>
               ))}

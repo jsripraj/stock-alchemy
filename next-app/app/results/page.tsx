@@ -1,8 +1,5 @@
 import { fetchResults, fetchFormula } from "@/app/utils/postgresUtils";
-import {
-  getMostRecentYear,
-  getSpanParts,
-} from "@/app/utils/formulaUtils";
+import { getMostRecentYear, getSpanParts } from "@/app/utils/formulaUtils";
 
 interface ResultsPageProps {
   searchParams: { id?: string };
@@ -24,20 +21,26 @@ export default async function ResultsPage({ searchParams }: ResultsPageProps) {
   if (!results) {
     return noResults;
   }
-  
-  const leftSideMinAbs = Math.min(...(results.map((r) => Math.abs(r.leftside))));
-  const rightSideMinAbs = Math.min(...(results.map((r) => Math.abs(r.rightside))));
+
+  const leftSideMinAbs = Math.min(...results.map((r) => Math.abs(r.leftside)));
+  const rightSideMinAbs = Math.min(
+    ...results.map((r) => Math.abs(r.rightside)),
+  );
   const getFormatter = (minAbs: number) => {
     if (minAbs < 1.0) {
-      return ((x: Number) => {return x.toPrecision(4)});
+      return (x: Number) => {
+        return x.toPrecision(4);
+      };
     }
     if (minAbs < 1000) {
       return (x: Number) => {
-        return x.toFixed(2)
+        return x.toFixed(2);
       };
     }
-    return (x: Number) => {return x.toFixed(0)};
-  }
+    return (x: Number) => {
+      return x.toFixed(0);
+    };
+  };
   const leftFormatter = getFormatter(leftSideMinAbs);
   const rightFormatter = getFormatter(rightSideMinAbs);
 
@@ -46,7 +49,6 @@ export default async function ResultsPage({ searchParams }: ResultsPageProps) {
 
   return (
     <div className="w-8/10 flex flex-col items-center overflow-hidden">
-
       {/* Formula area */}
       <label className="text-lime-500 text-lg font-mono">Formula</label>
       <div
@@ -69,10 +71,7 @@ export default async function ResultsPage({ searchParams }: ResultsPageProps) {
       </div>
 
       {/* Results table */}
-      <label 
-        id="results-label"
-        className="text-lime-500 text-lg font-mono"
-      >
+      <label id="results-label" className="text-lime-500 text-lg font-mono">
         {`Results (${results.length})`}
       </label>
       <div className="flex-2 border border-lime-500 rounded-xs overflow-auto mb-6 border scrollbar scrollbar-thumb-stone-600 scrollbar-track-lime-500">
@@ -83,7 +82,9 @@ export default async function ResultsPage({ searchParams }: ResultsPageProps) {
                 <th
                   key={h}
                   scope="col"
-                  className={"border border-lime-500 px-3 py-1 sticky top-0 left-0 bg-[var(--background)] z-20"}
+                  className={
+                    "border border-lime-500 px-3 py-1 sticky top-0 left-0 bg-[var(--background)] z-20"
+                  }
                 >
                   {h}
                 </th>
@@ -99,16 +100,17 @@ export default async function ResultsPage({ searchParams }: ResultsPageProps) {
                     formattedValue = leftFormatter(Number(value));
                   } else if (key === "rightside") {
                     formattedValue = rightFormatter(Number(value));
-                  } 
-                   return (
-                  <td
-                    key={key}
-                    scope="row"
-                    className={"border border-lime-500 px-3 py-1"}
-                  >
-                    {formattedValue}
-                  </td>
-                )})}
+                  }
+                  return (
+                    <td
+                      key={key}
+                      scope="row"
+                      className={"border border-lime-500 px-3 py-1"}
+                    >
+                      {formattedValue}
+                    </td>
+                  );
+                })}
               </tr>
             ))}
           </tbody>

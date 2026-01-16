@@ -2,11 +2,11 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ThreeDots } from "react-loader-spinner";
 import Header from "@/app/components/Header";
 import Spreadsheet from "@/app/components/Spreadsheet";
 import FormulaBuilder from "@/app/components/FormulaBuilder";
 import SearchButton from "@/app/components/SearchButton";
+import Loading from "@/app/components/Loading";
 import { getMostRecentYear, isValidFormula } from "@/app/utils/formulaUtils";
 import { storeFormula } from "@/app/utils/postgresUtils";
 
@@ -30,7 +30,11 @@ const concepts = [
 ];
 
 export default function Home() {
-  const [formula, setFormula] = useState(typeof window !== "undefined" ? (sessionStorage?.getItem("formula") || "") : "");
+  const [formula, setFormula] = useState(
+    typeof window !== "undefined"
+      ? sessionStorage?.getItem("formula") || ""
+      : "",
+  );
   const [errorMessage, setErrorMessage] = useState("");
   const [isMessageVisable, setIsMessageVisable] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -76,7 +80,7 @@ export default function Home() {
   return (
     <div>
       <Header />
-      <div className="flex-1 w-8/10 flex flex-col items-center overflow-hidden">
+      <div className="flex flex-col w-8/10">
         <Spreadsheet
           dates={dates}
           concepts={concepts}
@@ -94,20 +98,8 @@ export default function Home() {
           isMessageVisable={isMessageVisable}
           searchClicked={searchClicked}
         />
-        <SearchButton
-          searchClicked={searchClicked}
-        />
-        <div className={`mb-3 pb-3 ${loading ? "visible" : "invisible"}`}>
-          <ThreeDots
-            height={10}
-            width={100}
-            radius={10}
-            color="green"
-            ariaLabel="three-dots-loading"
-            wrapperStyle={{}}
-            wrapperClass=""
-          />
-        </div>
+        <SearchButton searchClicked={searchClicked} />
+        <Loading loading={loading} />
       </div>
     </div>
   );
